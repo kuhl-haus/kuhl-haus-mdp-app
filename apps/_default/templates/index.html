@@ -1,0 +1,530 @@
+[[extend 'layout.html']]
+
+<div class="section">
+  <div class="vars">
+      [[=BEAUTIFY(message)]]
+  </div>
+</div>
+
+
+[[block page_head]]
+<style>
+        /* Chat Widget Customization Styles */
+        .customization-panel {
+            /*position: fixed;*/
+            /*bottom: 10px;*/
+            /*left: 20px;*/
+            z-index: 10000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .customize-toggle {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .customize-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .controls-panel {
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: auto;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls-panel.active {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .control-group select,
+        .control-group input[type="text"]{
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .control-group input[type="color"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .control-group select:focus,
+        .control-group input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .control-group input[type="range"] {
+            width: 70%;
+            margin-right: 10px;
+        }
+
+        .control-group span {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0;
+            padding: 12px 16px;
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .btn-primary-custom, .btn-secondary-custom {
+            box-sizing: border-box;
+            flex: 1;
+            margin: 0px 0;
+            padding: 12px 16px;
+            height: auto;
+            font-family: monospace;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: wrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            background: #00ff00;
+        }
+
+        .btn-secondary-custom {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary-custom:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            background: #ff0000;
+        }
+
+        /* Ensure chat widget has proper z-index */
+        langflow-chat {
+            z-index: 9999 !important;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .controls-panel {
+                background: #1f2937;
+                border-color: #374151;
+                color: white;
+            }
+
+            .control-group label {
+                color: #f9fafb;
+            }
+
+            .control-group select,
+            .control-group input[type="text"] {
+                background: #374151;
+                border-color: #4b5563;
+                color: white;
+            }
+
+            .btn-secondary-custom {
+                background: #374151;
+                color: #f9fafb;
+                border-color: #4b5563;
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .customization-panel {
+                bottom: 80px;
+                left: 10px;
+            }
+
+            .controls-panel {
+                width: calc(100vw - 40px);
+                max-width: 320px;
+                max-height: calc(100vh - 180px);
+            }
+
+            body {
+                padding-bottom: 80px;
+            }
+        }
+        footer.black {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: black;
+            color: white;
+            z-index: 9999;
+            margin: 0;
+            padding: 0;
+        }
+
+        footer.black * {
+            color: white;
+        }
+    </style>
+[[end]]
+
+[[block page_left_menu]]
+<ul>
+  <li><a href="[[=URL('/app')]]">App</a></li>
+  <li><a href="[[=URL('/healthz')]]">Health</a></li>
+  <li><a href="[[=URL('/_dashboard')]]">Dashboard</a></li>
+</ul>
+[[end]]
+
+
+[[if globals().get('user'):]]
+    [[include 'index_user_footer.html']]
+[[else:]]
+    [[include 'index_public_footer.html']]
+[[pass]]
+
+[[block page_scripts]]
+<!--<script src="js/langflow-embedded-chat-v1.0.7.bundle.min.js"></script>-->
+<script src="[[=URL('static/js/langflow-embedded-chat-v1.0.7.bundle.min.js')]]"></script>
+<script>
+  class ChatWidgetCustomizer {
+      constructor() {
+          this.widget = document.getElementById('langflow-widget');
+          this.panel = document.getElementById('customization-controls');
+          this.toggleBtn = document.getElementById('customize-btn');
+          this.settings = this.loadSettings();
+          this.sizes = {
+              tiny: {height: '400', width: '300'},
+              compact: {height: '600', width: '400'},
+              medium: {height: '800', width: '500'},
+              large: {height: '1000', width: '600'},
+              xlarge: {height: '1250', width: '1200'},
+              wide: {height: '700', width: '1200'},
+          };
+          this.init();
+      }
+
+      init() {
+          this.bindEvents();
+          this.applySettings();
+      }
+
+      bindEvents() {
+          // Apply settings when chat window is activated
+          if (this.widget) {
+              this.widget.addEventListener('chat_opened', () => {
+                  this.applySettings();
+              });
+          }
+
+          // Toggle panel
+          this.toggleBtn.addEventListener('click', () => this.togglePanel());
+
+          // Size dropdown change
+          document.getElementById('chat-size').addEventListener('change', (e) => this.updateSize(e.target.value));
+
+          // Height and width sliders with custom detection
+          document.getElementById('chat-height').addEventListener('input', (e) => {
+              this.updateHeight(e.target.value);
+              document.getElementById('height-value').textContent = e.target.value + 'px';
+              this.checkForCustomSize();
+          });
+
+          document.getElementById('chat-width').addEventListener('input', (e) => {
+              this.updateWidth(e.target.value);
+              document.getElementById('width-value').textContent = e.target.value + 'px';
+              this.checkForCustomSize();
+          });
+
+          // Update placeholder text
+          document.getElementById('placeholder-text').addEventListener('input', (e) => this.updatePlaceholder(e.target.value));
+
+          // Update Langflow Host URL
+          document.getElementById('langflow-host').addEventListener('input', (e) => this.updateLangflowHost(e.target.value));
+
+          // Update Langflow Flow ID
+          document.getElementById('langflow-flow-id').addEventListener('input', (e) => this.updateLangflowId(e.target.value));
+          // Update Langflow API Key
+          document.getElementById('langflow-api-key').addEventListener('input', (e) => this.updateLangflowApiKey(e.target.value));
+
+          // Buttons
+          document.getElementById('save-settings').addEventListener('click', () => this.saveSettings());
+          document.getElementById('reset-settings').addEventListener('click', () => this.resetSettings());
+
+          // Close panel when clicking 'save-settings' or 'reset-settings' buttons
+          document.getElementById('save-settings').addEventListener('click', () => this.togglePanel());
+          document.getElementById('reset-settings').addEventListener('click', () => this.togglePanel());
+      }
+
+      checkForCustomSize() {
+          const currentHeight = document.getElementById('chat-height').value;
+          const currentWidth = document.getElementById('chat-width').value;
+          const sizeSelect = document.getElementById('chat-size');
+
+          // Check if current dimensions match any predefined size
+          let matchesPreset = false;
+          for (const [sizeName, dimensions] of Object.entries(this.sizes)) {
+              if (dimensions.height === currentHeight && dimensions.width === currentWidth) {
+                  sizeSelect.value = sizeName;
+                  this.settings.size = sizeName;
+                  matchesPreset = true;
+                  break;
+              }
+          }
+
+          // If no preset matches, set to custom
+          if (!matchesPreset) {
+              sizeSelect.value = 'custom';
+              this.settings.size = 'custom';
+          }
+      }
+
+      togglePanel() {
+          this.panel.classList.toggle('active');
+      }
+
+      updateSize(size) {
+          if (size !== 'custom' && this.widget && this.sizes[size]) {
+              document.getElementById('chat-height').value = this.sizes[size].height;
+              document.getElementById('chat-width').value = this.sizes[size].width;
+              this.updateHeight(this.sizes[size].height);
+              this.updateWidth(this.sizes[size].width);
+              this.updateRangeDisplays();
+          }
+          this.settings.size = size;
+      }
+
+      updateHeight(height) {
+          if (this.widget) {
+              this.widget.setAttribute('height', height);
+              this.settings.height = height;
+          }
+      }
+
+      updateWidth(width) {
+          if (this.widget) {
+              this.widget.setAttribute('width', width);
+              this.settings.width = width;
+          }
+      }
+
+      updatePlaceholder(placeholder) {
+          if (this.widget) {
+              this.widget.setAttribute('placeholder', placeholder);
+              this.settings.placeholder = placeholder;
+          }
+      }
+
+      updateLangflowHost(langflowHost) {
+          if (this.widget && langflowHost) {
+              this.widget.setAttribute('host_url', langflowHost);
+              this.settings.langflowHost = langflowHost;
+          }
+      }
+
+      updateLangflowId(langflowId) {
+          if (this.widget && langflowId) {
+              this.widget.setAttribute('flow_id', langflowId);
+              this.settings.langflowId = langflowId;
+          }
+      }
+
+      updateLangflowApiKey(langflowApiKey) {
+          if (this.widget && langflowApiKey) {
+              this.widget.setAttribute('api_key', langflowApiKey);
+              this.settings.langflowApiKey = langflowApiKey;
+          }
+      }
+
+      updateRangeDisplays() {
+          document.getElementById('height-value').textContent = document.getElementById('chat-height').value + 'px';
+          document.getElementById('width-value').textContent = document.getElementById('chat-width').value + 'px';
+      }
+
+      applySettings() {
+          // Set default values if no settings exist
+          const defaultSettings = {
+              size: 'medium',
+              height: '800',
+              width: '500',
+              placeholder: 'Type your message...',
+              langflowHost: "https://langflow.example.ai",
+              langflowId: 'Put your Langflow Flow ID here',
+              langflowApiKey: 'Put your Langflow API Key here'
+          };
+
+          // Merge defaults with saved settings
+          this.settings = {...defaultSettings, ...this.settings};
+
+          // Apply all settings to form elements
+          Object.entries(this.settings).forEach(([key, value]) => {
+              const element = document.getElementById(this.getElementId(key));
+              if (element) {
+                  if (element.type === 'checkbox') {
+                      element.checked = value;
+                  } else {
+                      element.value = value;
+                  }
+              }
+          });
+
+          // Apply dimensions to widget and sliders
+          if (this.widget) {
+              // Always use saved height/width values, regardless of size setting
+              const height = this.settings.height || defaultSettings.height;
+              const width = this.settings.width || defaultSettings.width;
+
+              document.getElementById('chat-height').value = height;
+              document.getElementById('chat-width').value = width;
+
+              this.updateHeight(height);
+              this.updateWidth(width);
+              this.updateRangeDisplays();
+              this.updatePlaceholder(this.settings.placeholder || defaultSettings.placeholder);
+
+              if (this.settings.langflowHost) this.updateLangflowHost(this.settings.langflowHost);
+              if (this.settings.langflowId) this.updateLangflowId(this.settings.langflowId);
+              if (this.settings.langflowApiKey) this.updateLangflowApiKey(this.settings.langflowApiKey);
+
+              // Check if current settings match a preset or should be custom
+              this.checkForCustomSize();
+          }
+      }
+
+      getElementId(settingKey) {
+          const mapping = {
+              size: 'chat-size',
+              height: 'chat-height',
+              width: 'chat-width',
+              placeholder: 'placeholder-text',
+              langflowHost: 'langflow-host',
+              langflowId: 'langflow-flow-id',
+              langflowApiKey: 'langflow-api-key',
+          };
+          return mapping[settingKey] || settingKey;
+      }
+
+      saveSettings() {
+          // Always save current slider values
+          this.settings.height = document.getElementById('chat-height').value;
+          this.settings.width = document.getElementById('chat-width').value;
+
+          localStorage.setItem('chatWidgetSettings', JSON.stringify(this.settings));
+          this.showNotification('Settings saved successfully!', 'success');
+      }
+
+      loadSettings() {
+          const saved = localStorage.getItem('chatWidgetSettings');
+          return saved ? JSON.parse(saved) : {};
+      }
+
+      resetSettings() {
+          this.settings = {};
+          localStorage.removeItem('chatWidgetSettings');
+          location.reload();
+      }
+
+      showNotification(message, type = 'info') {
+          const notification = document.createElement('div');
+          notification.className = `notification ${type}`;
+          notification.textContent = message;
+          notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          z-index: 10001;
+          animation: slideDown 0.3s ease;
+      `;
+
+          document.body.appendChild(notification);
+          setTimeout(() => notification.remove(), 3000);
+      }
+  }
+
+  // Initialize when DOM is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+      new ChatWidgetCustomizer();
+  });
+</script>
+[[end]]

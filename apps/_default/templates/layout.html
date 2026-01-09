@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="[[=URL('static')]]/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjQgOEMyMCA4IDE3IDExIDE3IDE1QzE3IDE2IDE3IDE3IDE4IDE4TDE0IDM4TDIwIDM2TDIyIDQyTDI0IDQwTDI2IDQyTDI4IDM2TDM0IDM4TDMwIDE4QzMxIDE3IDMxIDE2IDMxIDE1QzMxIDExIDI4IDggMjQgOFoiIGZpbGw9IiMwMDAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjEiIGN5PSIxNCIgcj0iMS41IiBmaWxsPSIjZmZmIi8+PGNpcmNsZSBjeD0iMjciIGN5PSIxNCIgcj0iMS41IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTIwIDhMMTYgNk0yOCA4TDMyIDYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMjQgMTZMMjYgMTgiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==">
+
+    <link rel="stylesheet" href="css/no.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
+    <style>
+        /* py4web specific styles */
+        .py4web-validation-error{margin-top:-16px; font-size:0.8em;color:red;}
+        .grid-table-wrapper{overflow-x: auto;}
+    </style>
+    [[block page_head]]<!-- individual pages can customize header here -->[[end]]
+  </head>
+  <body>
+    <header>
+      <!-- Navigation bar -->
+      <nav class="black">
+        <!-- Logo -->
+        <a href="[[=URL('index')]]">
+            <!-- Option 1: Outlined crow (visible on black background) -->
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjQgOEMyMCA4IDE3IDExIDE3IDE1QzE3IDE2IDE3IDE3IDE4IDE4TDE0IDM4TDIwIDM2TDIyIDQyTDI0IDQwTDI2IDQyTDI4IDM2TDM0IDM4TDMwIDE4QzMxIDE3IDMxIDE2IDMxIDE1QzMxIDExIDI4IDggMjQgOFoiIGZpbGw9IiMwMDAiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMjEiIGN5PSIxNCIgcj0iMS41IiBmaWxsPSIjZmZmIi8+PGNpcmNsZSBjeD0iMjciIGN5PSIxNCIgcj0iMS41IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTIwIDhMMTYgNk0yOCA4TDMyIDYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMjQgMTZMMjYgMTgiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" alt="MDP" style="height: 24px; vertical-align: middle;">
+
+            <!-- Option 2: Solid black crow (for light backgrounds) -->
+<!--            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjQgOEMyMCA4IDE3IDExIDE3IDE1QzE3IDE2IDE3IDE3IDE4IDE4TDE0IDM4TDIwIDM2TDIyIDQyTDI0IDQwTDI2IDQyTDI4IDM2TDM0IDM4TDMwIDE4QzMxIDE3IDMxIDE2IDMxIDE1QzMxIDExIDI4IDggMjQgOFoiIGZpbGw9IiMwMDAiLz48Y2lyY2xlIGN4PSIyMSIgY3k9IjE0IiByPSIxLjUiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIyNyIgY3k9IjE0IiByPSIxLjUiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMjAgOEwxNiA2TTI4IDhMMzIgNiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0yNCAxNkwyNiAxOCIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" alt="Crow" style="height: 24px; vertical-align: middle;">-->
+
+            <!-- Option 3: Cute little brown bird house -->
+<!--          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjQgNEwxMiAxNkgzNkwyNCA0WiIgZmlsbD0iIzhhNWEzYSIvPjxwYXRoIGQ9Ik0xMiAxNkgzNlYyOEgxMlYxNloiIGZpbGw9IiNiODhiNGEiLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjIyIiByPSI2IiBmaWxsPSIjZmZkNzAwIiBvcGFjaXR5PSIwLjMiLz48Y2lyY2xlIGN4PSIxOCIgY3k9IjIwIiByPSIyIiBmaWxsPSIjZmZmIi8+PGNpcmNsZSBjeD0iMzAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0yMCAzNEwyNCAyOEwyOCAzNEgyMFoiIGZpbGw9IiM4YTVhM2EiLz48cmVjdCB4PSIyMiIgeT0iMzQiIHdpZHRoPSI0IiBoZWlnaHQ9IjEwIiBmaWxsPSIjNmQ0YzMyIi8+PC9zdmc+" alt="Crow" style="height: 24px; vertical-align: middle;">-->
+          <b>MDP</b>
+        </a>
+        <!-- Do not touch this -->
+        <label for="hamburger">☰</label>
+        <input type="checkbox" id="hamburger">
+        <!-- Left menu ul/li -->
+        [[if globals().get('user'):]]
+            [[block page_left_menu]][[end]]
+        [[pass]]
+        <!-- Right menu ul/li -->
+        <ul>
+          [[if globals().get('user'):]]
+          <li>
+            <a class="navbar-link is-primary">
+              [[=globals().get('user',{}).get('email')]]
+            </a>
+            <ul>
+              <li><a href="[[=URL('auth/profile')]]">Edit Profile</a></li>
+              <li><a href="[[=URL('auth/change_password')]]">Change Password</a></li>
+              <li><a href="[[=URL('auth/logout')]]">Logout</a></li>
+            </ul>
+          </li>
+          [[else:]]
+          <li>
+            Login
+            <ul>
+              <li><a href="[[=URL('auth/register')]]">Sign up</a></li>
+              <li><a href="[[=URL('auth/login')]]">Log in</a></li>
+            </ul>
+          </li>
+          [[pass]]
+        </ul>
+      </nav>
+    </header>
+    <!-- beginning of HTML inserted by extending template -->
+    <div class="padded">
+        <div>
+          <!-- Flash alert messages, first optional one in data-alert -->
+          <flash-alerts class="padded" data-alert="[[=globals().get('flash','')]]"></flash-alerts>
+        </div>
+        <main class="padded">
+          <!-- contect injected by extending page -->
+            <div>
+                [[include]]
+            </div>
+        </main>
+    </div>
+
+    [[block page_footer]]
+    <footer class="black">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; width: 100%; padding: 1rem;">
+        <!-- Left: column -->
+        <div style="justify-self: start;">
+            <span> </span>
+        </div>
+
+        <!-- Center: column -->
+        <div style="justify-self: center;">
+          <span> </span>
+        </div>
+
+        <!-- Right: column -->
+        <div style="justify-self: end;">
+            <span> </span>
+        </div>
+    </div>
+    </footer>
+    [[end]]
+  </body>
+  <!-- You've gotta have utils.js -->
+  <!--  <script src="js/utils.js"></script>-->
+  <!--  <script src="js/jquery-3.6.0.min.js"></script>-->
+  <!--  <script src="js/bootstrap.bundle.min.js"></script>-->
+  <script src="[[=URL('static/js/utils.js')]]"></script>
+  <script src="[[=URL('static/js/jquery-3.6.0.min.js')]]"></script>
+  <script src="[[=URL('static/js/bootstrap.bundle.min.js')]]"></script>
+  [[block page_scripts]]<!-- individual pages can add scripts here -->[[end]]
+</html>
