@@ -1,10 +1,11 @@
 [![License](https://img.shields.io/github/license/kuhl-haus/kuhl-haus-mdp-app)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/blob/mainline/LICENSE.txt)
-[![release](https://img.shields.io/github/v/release/kuhl-haus/kuhl-haus-mdp-app?style=flat-square)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/releases)
-[![Build Images](https://github.com/kuhl-haus/kuhl-haus-mdp-app-servers/actions/workflows/build-images.yml/badge.svg)](https://github.com/kuhl-haus/kuhl-haus-mdp-app-servers/actions/workflows/build-images.yml)
-[![CodeQL Advanced](https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/codeql.yml/badge.svg)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/codeql.yml)
+[![Build Images](https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/build-images.yml/badge.svg)](https://github.com/kuhl-haus/kuhl-haus-mdp-app-servers/actions/workflows/build-images.yml)
 [![GitHub last commit](https://img.shields.io/github/last-commit/kuhl-haus/kuhl-haus-mdp-app)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/branches)
 [![GitHub issues](https://img.shields.io/github/issues/kuhl-haus/kuhl-haus-mdp-app)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/kuhl-haus/kuhl-haus-mdp-app)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/pulls)
+
+[//]: # ([![release]&#40;https://img.shields.io/github/v/release/kuhl-haus/kuhl-haus-mdp-app?style=flat-square&#41;]&#40;https://github.com/kuhl-haus/kuhl-haus-mdp-app/releases&#41;)
+[//]: # ([![CodeQL Advanced]&#40;https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/codeql.yml/badge.svg&#41;]&#40;https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/codeql.yml&#41;)
 
 # kuhl-haus-mdp-app
 Market data processing service control plane and web application
