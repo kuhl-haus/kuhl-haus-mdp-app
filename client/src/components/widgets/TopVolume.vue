@@ -1,0 +1,243 @@
+<template>
+  <div class="scanner-widget top-volume">
+    <div class="scanner-controls">
+      <label for="volVolumeThreshold">Volume</label>
+      <select v-model="volumeThreshold" class="filter-select">
+        <option value="10">10K+ Volume</option>
+        <option value="100">100K+ Volume</option>
+        <option value="1000">1M+ Volume</option>
+        <option value="5000">5M+ Volume</option>
+        <option value="10000">10M+ Volume</option>
+        <option value="50000">50M+ Volume</option>
+        <option value="100000">100M+ Volume</option>
+      </select>
+      <label for="volMinPriceThreshold">Min Price</label>
+      <select v-model="minPriceThreshold" class="filter-select">
+        <option value="0">$0</option>
+        <option value="1">$1</option>
+        <option value="2">$2</option>
+        <option value="3">$3</option>
+        <option value="5">$5</option>
+        <option value="8">$8</option>
+        <option value="10">$10</option>
+        <option value="15">$15</option>
+        <option value="20">$20</option>
+        <option value="100">$100</option>
+      </select>
+      <label for="volMaxPriceThreshold">Max Price</label>
+      <select v-model="maxPriceThreshold" class="filter-select">
+        <option value="1">$1</option>
+        <option value="2">$2</option>
+        <option value="3">$3</option>
+        <option value="5">$5</option>
+        <option value="8">$8</option>
+        <option value="10">$10</option>
+        <option value="15">$15</option>
+        <option value="20">$20</option>
+        <option value="100">$100</option>
+        <option value="1000000000">$100B+</option>
+      </select>
+      <label for="volRelVolumeThreshold">Rel. Vol.</label>
+      <input id="volRelVolumeThreshold" v-model.number="relVolumeThreshold" type="number" placeholder="Min Volume Ratio" class="filter-input" />
+      <label class="checkbox-label">
+        <input type="checkbox" v-model="showGainersOnly" />
+        Gainers Only
+      </label>
+    </div>
+
+    <GenericScannerTable
+        :data="filteredData"
+        :columns="columns"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        :row-class-fn="getRowClass"
+        @sort="sortBy"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed } from 'vue'
+import GenericScannerTable from './GenericScannerTable.vue'
+import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+
+const appConfig = window.__APP_CONFIG__ || {}
+const marketData = reactive([])
+
+const sortKey = ref('relative_volume')
+const sortDir = ref('desc')
+const volumeThreshold = ref('100')
+const relVolumeThreshold = ref('5')
+const showGainersOnly = ref(false)
+const minPriceThreshold = ref(2)
+const maxPriceThreshold = ref(20)
+
+useWebSocketClient({
+  wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
+  authKey: appConfig.apiKey || 'secret',
+  feedName: 'scanners:top_volume',
+  cacheKey: 'scanners:top_volume',
+  onData: (data) => Object.assign(marketData, data),
+  autoConnect: true
+})
+
+const getRelVolClass = (relVol) => {
+  if (relVol >= 5) return 'extreme'
+  if (relVol >= 3) return 'high'
+  if (relVol >= 2) return 'medium'
+  return 'normal'
+}
+
+const formatVolume = (vol) => {
+  if (vol >= 1000000000) return `${(vol / 1000000000).toFixed(1)}B`
+  if (vol >= 1000000) return `${(vol / 1000000).toFixed(1)}M`
+  if (vol >= 1000) return `${(vol / 1000).toFixed(1)}K`
+  return vol.toString()
+}
+
+const columns = [
+  { key: 'symbol', label: 'Symbol' },
+  { key: 'close', label: 'Price', decimals: 2 },
+  {
+    key: 'change',
+    label: 'Change',
+    format: (val) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}`,
+    cellClass: (row) => row.change >= 0 ? 'positive' : 'negative'
+  },
+  {
+    key: 'pct_change',
+    label: 'Change %',
+    format: (val) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`,
+    cellClass: (row) => row.pct_change >= 0 ? 'positive' : 'negative'
+  },
+  {
+    key: 'pct_change_since_open',
+    label: 'Change %<br>(Open)',
+    format: (val) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`,
+    cellClass: (row) => row.pct_change_since_open >= 0 ? 'positive' : 'negative'
+  },
+  { key: 'accumulated_volume', label: 'Volume' },
+  { key: 'free_float', label: 'Float', format: (val) => formatVolume(val) },
+  {
+    key: 'relative_volume',
+    label: 'Rel. Vol.',
+    format: (val) => `${val.toFixed(2)}x`,
+    cellClass: (row) => getRelVolClass(row.relative_volume)
+  },
+  { key: 'avg_volume', label: 'Avg Vol', format: (val) => formatVolume(val) },
+  { key: 'prev_day_volume', label: 'PD Vol', format: (val) => formatVolume(val) },
+  { key: 'official_open_price', label: 'Day Open', decimals: 2 },
+  { key: 'prev_day_close', label: 'PD Close', decimals: 2 },
+  { key: 'aggregate_vwap', label: 'VWAP', decimals: 2 },
+  { key: 'prev_day_vwap', label: 'PD VWAP', decimals: 2 }
+]
+
+const sortBy = (key) => {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = ['relative_volume', 'pct_change_since_open'].includes(key) ? 'desc' : 'asc'
+  }
+}
+
+const filteredData = computed(() => {
+  if (!marketData.length) return []
+
+  let filtered = [...marketData]
+  const minPrice = parseFloat(minPriceThreshold.value)
+  const maxPrice = parseFloat(maxPriceThreshold.value)
+  const threshold = parseInt(volumeThreshold.value) * 1000
+  const relThreshold = parseInt(relVolumeThreshold.value)
+
+  filtered = filtered.filter(item =>
+      item.close >= minPrice &&
+      item.close <= maxPrice &&
+      item.accumulated_volume >= threshold &&
+      item.relative_volume >= relThreshold &&
+      (!showGainersOnly.value || item.pct_change > 0)
+  )
+
+  return filtered.sort((a, b) => {
+    const aVal = a[sortKey.value]
+    const bVal = b[sortKey.value]
+    const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
+    return sortDir.value === 'asc' ? comparison : -comparison
+  })
+})
+
+const getRowClass = (row) => {
+  if (row.pct_change >= 100) return 'hundred-percent-gainer'
+  if (row.pct_change >= 50) return 'fifty-percent-gainer'
+  if (row.pct_change >= 20) return 'twenty-percent-gainer'
+  if (row.pct_change >= 10) return 'ten-percent-gainer'
+}
+</script>
+
+<style scoped>
+.top-volume {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scanner-controls {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.scanner-controls label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.filter-select {
+  padding: 6px 10px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.filter-input {
+  flex: 1;
+  min-width: 100px;
+  padding: 6px 10px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+}
+
+.scanner-widget {
+  height: 100%;
+  overflow: auto;
+}
+</style>
