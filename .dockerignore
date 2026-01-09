@@ -1,0 +1,12 @@
+# .dockerignore
+node_modules
+client/dist
+client/node_modules
+**/__pycache__
+**/*.pyc
+**/.git
+**/.gitignore
+**/.DS_Store
+**/venv
+**/.env
+**/*.log
