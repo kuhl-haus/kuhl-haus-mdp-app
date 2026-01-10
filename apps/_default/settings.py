@@ -10,19 +10,9 @@ import os
 from py4web.core import required_folder
 
 
-# Service Endpoints
-SCP_SERVER_DOMAIN = os.environ.get("SCP_SERVER_DOMAIN")  # Service Control Plane - py4web
-MDC_SERVER_DOMAIN = os.environ.get("MDC_SERVER_DOMAIN")  # Market Data Cache - Redis
-MDL_SERVER_DOMAIN = os.environ.get("MDL_SERVER_DOMAIN")  # Market Data Listener - FastAPI
-MDP_SERVER_DOMAIN = os.environ.get("MDP_SERVER_DOMAIN")  # Market Data Processor - FastAPI
-MDQ_SERVER_DOMAIN = os.environ.get("MDQ_SERVER_DOMAIN")  # Market Data Queues - RabbitMQ
-WDS_SERVER_DOMAIN = os.environ.get("WDS_SERVER_DOMAIN")  # Widget Data Service - FastAPI
-WDS_ENDPOINT = os.environ.get("WDS_ENDPOINT", f"wss://{WDS_SERVER_DOMAIN}/ws")  # Override for development without TLS
+# Widget Data Service settings
+WDS_ENDPOINT = os.environ.get("WDS_ENDPOINT", f"ws://localhost:4020/ws")  # Widget Data Service Endpoint
 WDS_API_KEY = os.environ.get("WDS_API_KEY", "secret")  # Widget Data Service API KEY
-
-# Market Data Cache settings
-redis_url: str = os.environ.get("REDIS_URL", "redis://redis:redis@localhost:6379/0")
-
 
 # mode (default or development)
 MODE = os.environ.get("PY4WEB_MODE")
