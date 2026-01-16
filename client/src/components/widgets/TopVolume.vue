@@ -40,8 +40,8 @@
       <label for="volRelVolumeThreshold">Rel. Vol.</label>
       <input id="volRelVolumeThreshold" v-model.number="relVolumeThreshold" type="number" placeholder="Min Volume Ratio" class="filter-input" />
       <label class="checkbox-label">
-        <input type="checkbox" v-model="showGainersOnly" />
-        Gainers Only
+        <input type="checkbox" v-model="showGappersOnly" />
+        Gappers Only
       </label>
     </div>
 
@@ -68,7 +68,7 @@ const sortKey = ref('relative_volume')
 const sortDir = ref('desc')
 const volumeThreshold = ref('100')
 const relVolumeThreshold = ref('5')
-const showGainersOnly = ref(false)
+const showGappersOnly = ref(false)
 const minPriceThreshold = ref(2)
 const maxPriceThreshold = ref(20)
 
@@ -155,7 +155,7 @@ const filteredData = computed(() => {
       item.close <= maxPrice &&
       item.accumulated_volume >= threshold &&
       item.relative_volume >= relThreshold &&
-      (!showGainersOnly.value || item.pct_change > 0)
+      (!showGappersOnly.value || item.pct_change > 0)
   )
 
   return filtered.sort((a, b) => {
