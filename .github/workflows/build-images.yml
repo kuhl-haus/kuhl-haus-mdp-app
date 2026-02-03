@@ -89,6 +89,8 @@ jobs:
           file: ./app.Dockerfile
           platforms: linux/amd64
           push: true
+          build-args: |
+            IMAGE_VERSION=${{ env.IMAGE_TAG }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/kuhl-haus-mdp-app-server:${{ env.IMAGE_TAG }}
             ghcr.io/${{ github.repository_owner }}/kuhl-haus-mdp-app-server:latest
