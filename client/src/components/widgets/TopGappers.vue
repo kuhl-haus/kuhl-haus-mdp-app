@@ -62,6 +62,11 @@ import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 const appConfig = window.__APP_CONFIG__ || {}
 const marketData = reactive([])
 
+const toNum = (val) => {
+  const n = Number(val)
+  return Number.isFinite(n) ? n : 0
+}
+
 const sortKey = ref('pct_change')
 const sortDir = ref('desc')
 const volumeThreshold = ref('100')
@@ -101,28 +106,28 @@ const columns = [
     key: 'change',
     label: 'Change',
     decimals: 2,
-    format: (val) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}`,
-    cellClass: (row) => row.change >= 0 ? 'positive' : 'negative'
+    format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}` },
+    cellClass: (row) => toNum(row.change) >= 0 ? 'positive' : 'negative'
   },
   {
     key: 'pct_change',
     label: 'Change %',
-    format: (val) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`,
-    cellClass: (row) => row.pct_change >= 0 ? 'positive' : 'negative'
+    format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` },
+    cellClass: (row) => toNum(row.pct_change) >= 0 ? 'positive' : 'negative'
   },
   {
     key: 'pct_change_since_open',
     label: 'Change %<br>(Open)',
-    format: (val) => `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`,
-    cellClass: (row) => row.pct_change_since_open >= 0 ? 'positive' : 'negative'
+    format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` },
+    cellClass: (row) => toNum(row.pct_change_since_open) >= 0 ? 'positive' : 'negative'
   },
   { key: 'accumulated_volume', label: 'Volume' },
   { key: 'free_float', label: 'Float', format: (val) => formatVolume(val) },
   {
     key: 'relative_volume',
     label: 'Rel. Vol.',
-    format: (val) => `${val.toFixed(2)}x`,
-    cellClass: (row) => getRelVolClass(row.relative_volume)
+    format: (val) => `${toNum(val).toFixed(2)}x`,
+    cellClass: (row) => getRelVolClass(toNum(row.relative_volume))
   },
   { key: 'avg_volume', label: 'Avg Vol', format: (val) => formatVolume(val) },
   { key: 'prev_day_volume', label: 'PD Vol', format: (val) => formatVolume(val) },

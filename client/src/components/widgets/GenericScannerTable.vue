@@ -51,11 +51,17 @@ const props = defineProps({
 
 defineEmits(['sort'])
 
+const toNum = (val) => {
+  const n = Number(val)
+  return Number.isFinite(n) ? n : 0
+}
+
 const formatVolume = (vol) => {
-  if (vol >= 1000000000) return `${(vol / 1000000000).toFixed(1)}B`
-  if (vol >= 1000000) return `${(vol / 1000000).toFixed(1)}M`
-  if (vol >= 1000) return `${(vol / 1000).toFixed(1)}K`
-  return vol.toString()
+  const v = toNum(vol)
+  if (v >= 1000000000) return `${(v / 1000000000).toFixed(1)}B`
+  if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
+  return v.toString()
 }
 
 const getCellClass = (col, row) => {
@@ -72,8 +78,9 @@ const formatCell = (col, row) => {
   if (value == null) return ''
 
   if (col.format) return col.format(value, row)
-  if (typeof value === 'number' && col.decimals !== undefined) {
-    return value.toFixed(col.decimals)
+  if (col.decimals !== undefined) {
+    const num = Number(value)
+    return Number.isFinite(num) ? num.toFixed(col.decimals) : ''
   }
   return value
 }
