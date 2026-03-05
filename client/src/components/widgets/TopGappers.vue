@@ -76,7 +76,7 @@ const maxPriceThreshold = ref(20)
 const minChangePercent = ref(10)
 
 // Initialize WebSocket client
-const { connect } = useWebSocketClient({
+const { connect, lastDataAt } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey: appConfig.apiKey || 'secret',
   feedName: 'scanners:top_gappers',
@@ -84,6 +84,8 @@ const { connect } = useWebSocketClient({
   onData: (data) => Object.assign(marketData, data),
   autoConnect: true
 })
+
+defineExpose({ lastDataAt })
 
 const getRelVolClass = (relVol) => {
   if (relVol >= 5) return 'extreme'

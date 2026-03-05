@@ -75,7 +75,7 @@ const minPriceThreshold = ref(2)
 const maxPriceThreshold = ref(20)
 const minChangePercent = ref(10)
 
-useWebSocketClient({
+const { lastDataAt } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey: appConfig.apiKey || 'secret',
   feedName: 'scanners:top_gainers',
@@ -83,6 +83,8 @@ useWebSocketClient({
   onData: (data) => Object.assign(marketData, data),
   autoConnect: true
 })
+
+defineExpose({ lastDataAt })
 
 const getRelVolClass = (relVol) => {
   if (relVol >= 5) return 'extreme'

@@ -12,6 +12,7 @@ export function useWebSocketClient(config = {}) {
 
   const ws = ref(null)
   const isConnected = ref(false)
+  const lastDataAt = ref(null)
   const wsUrl = ref(initialWsUrl)
   const authKey = ref(initialAuthKey)
   const feedName = ref(initialFeedName)
@@ -93,8 +94,10 @@ export function useWebSocketClient(config = {}) {
         try {
           const data = JSON.parse(event.data)
           if (data.data) {
+            lastDataAt.value = Date.now()
             onData?.(data.data)
           } else if (data) {
+            lastDataAt.value = Date.now()
             onData?.(data)
           } else {
             logMessage(`⬇ ${JSON.stringify(event)}`, 'info')
@@ -154,6 +157,7 @@ export function useWebSocketClient(config = {}) {
   return {
     ws,
     isConnected,
+    lastDataAt,
     wsUrl,
     authKey,
     feedName,

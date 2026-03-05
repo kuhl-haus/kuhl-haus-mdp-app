@@ -2,16 +2,17 @@
   <div class="widget-wrapper">
     <div class="widget-header">
       <span class="widget-title">{{ widgetType }}</span>
+      <span class="freshness-indicator" :class="freshnessClass">{{ freshnessLabel }}</span>
       <button @click="$emit('close', widgetId)" class="close-btn">✕</button>
     </div>
     <div class="widget-content">
-      <component :is="widgetComponent"/>
+      <component :is="widgetComponent" ref="activeWidget"/>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import TopVolume from './widgets/TopVolume.vue'
 import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
@@ -25,8 +26,36 @@ const widgetComponents = {
   'top-gappers': TopGappers
 }
 
-
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
+
+const activeWidget = ref(null)
+const now = ref(Date.now())
+const intervalId = setInterval(() => { now.value = Date.now() }, 1000)
+onUnmounted(() => clearInterval(intervalId))
+
+const lastDataAt = computed(() => activeWidget.value?.lastDataAt ?? null)
+
+const elapsedMs = computed(() => {
+  if (lastDataAt.value === null) return null
+  return now.value - lastDataAt.value
+})
+
+const freshnessLabel = computed(() => {
+  if (lastDataAt.value === null) return 'Waiting...'
+  const s = Math.floor(elapsedMs.value / 1000)
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  return `${m}m ${rem}s ago`
+})
+
+const freshnessClass = computed(() => {
+  if (lastDataAt.value === null) return 'stale'
+  const s = elapsedMs.value / 1000
+  if (s < 30) return 'fresh'
+  if (s <= 120) return 'aging'
+  return 'stale'
+})
 
 </script>
 
@@ -90,4 +119,15 @@ const widgetComponent = computed(() => widgetComponents[props.widgetType])
   flex: 1;
   overflow: auto;
 }
+
+.freshness-indicator {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fresh { color: #4caf50; }
+.aging { color: #ff9800; }
+.stale { color: #f44336; }
 </style>
