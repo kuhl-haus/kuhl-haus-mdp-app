@@ -7,8 +7,13 @@ export function useWebSocketClient(config = {}) {
     feedName: initialFeedName = '',
     cacheKey: initialCacheKey = '',
     onData = null,
-    autoConnect = false
+    autoReconnect = true,
+    reconnectBaseMs = 1000,
+    reconnectMaxMs = 30000,
+    reconnectMaxAttempts = 0
   } = config
+
+  let autoConnect = config.autoConnect ?? false
 
   const ws = ref(null)
   const isConnected = ref(false)
@@ -17,6 +22,9 @@ export function useWebSocketClient(config = {}) {
   const authKey = ref(initialAuthKey)
   const feedName = ref(initialFeedName)
   const cacheKey = ref(initialCacheKey)
+  const reconnecting = ref(false)
+  const reconnectAttempts = ref(0)
+  let reconnectTimer = null
 
   function logMessage(content, type = 'message') {
     const time = new Date().toTimeString().split(' ')[0]
@@ -73,6 +81,22 @@ export function useWebSocketClient(config = {}) {
     sendMessage({ action: 'get', cache: key })
   }
 
+  function scheduleReconnect() {
+    if (!autoReconnect) return
+    if (reconnectMaxAttempts > 0 && reconnectAttempts.value >= reconnectMaxAttempts) {
+      logMessage('✗ Max reconnect attempts reached', 'error')
+      return
+    }
+    const delay = Math.min(reconnectBaseMs * 2 ** reconnectAttempts.value, reconnectMaxMs)
+    reconnectAttempts.value++
+    reconnecting.value = true
+    logMessage(`↻ Reconnecting in ${delay}ms (attempt ${reconnectAttempts.value})...`, 'info')
+    reconnectTimer = setTimeout(() => {
+      reconnecting.value = false
+      connect()
+    }, delay)
+  }
+
   function connect() {
     const url = wsUrl.value.trim()
     if (!url) {
@@ -88,6 +112,8 @@ export function useWebSocketClient(config = {}) {
       ws.value.onopen = () => {
         logMessage('✓ WebSocket connected', 'info')
         isConnected.value = true
+        reconnectAttempts.value = 0
+        reconnecting.value = false
       }
 
       ws.value.onmessage = (event) => {
@@ -115,6 +141,9 @@ export function useWebSocketClient(config = {}) {
         logMessage(`⊗ WebSocket closed (code: ${event.code})`, 'info')
         isConnected.value = false
         ws.value = null
+        if (autoConnect) {
+          scheduleReconnect()
+        }
       }
     } catch (error) {
       logMessage(`✗ Connection failed: ${error.message}`, 'error')
@@ -123,6 +152,12 @@ export function useWebSocketClient(config = {}) {
 
   function disconnect() {
     if (ws.value) {
+      autoConnect = false
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
+      reconnecting.value = false
       logMessage('Disconnecting...', 'info')
       ws.value.close()
     }
@@ -143,6 +178,7 @@ export function useWebSocketClient(config = {}) {
 
   // Cleanup on unmount
   onUnmounted(() => {
+    if (reconnectTimer) clearTimeout(reconnectTimer)
     if (feedName.value) {
       unsubscribe()
     }
@@ -162,6 +198,8 @@ export function useWebSocketClient(config = {}) {
     authKey,
     feedName,
     cacheKey,
+    reconnecting,
+    reconnectAttempts,
     connect,
     disconnect,
     sendMessage,
