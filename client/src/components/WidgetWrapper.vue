@@ -34,6 +34,8 @@ const intervalId = setInterval(() => { now.value = Date.now() }, 1000)
 onUnmounted(() => clearInterval(intervalId))
 
 const lastDataAt = computed(() => activeWidget.value?.lastDataAt ?? null)
+const isConnected = computed(() => activeWidget.value?.isConnected ?? true)
+const reconnecting = computed(() => activeWidget.value?.reconnecting ?? false)
 
 const elapsedMs = computed(() => {
   if (lastDataAt.value === null) return null
@@ -41,6 +43,8 @@ const elapsedMs = computed(() => {
 })
 
 const freshnessLabel = computed(() => {
+  if (reconnecting.value) return 'Reconnecting...'
+  if (!isConnected.value) return 'Disconnected'
   if (lastDataAt.value === null) return 'Waiting...'
   const s = Math.floor(elapsedMs.value / 1000)
   if (s < 60) return `${s}s ago`
@@ -50,6 +54,7 @@ const freshnessLabel = computed(() => {
 })
 
 const freshnessClass = computed(() => {
+  if (!isConnected.value || reconnecting.value) return 'disconnected'
   if (lastDataAt.value === null) return 'stale'
   const s = elapsedMs.value / 1000
   if (s < 30) return 'fresh'
@@ -130,4 +135,5 @@ const freshnessClass = computed(() => {
 .fresh { color: #4caf50; }
 .aging { color: #ff9800; }
 .stale { color: #f44336; }
+.disconnected { color: #ff9800; }
 </style>
