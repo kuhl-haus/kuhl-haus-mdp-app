@@ -2,7 +2,7 @@
   <div class="widget-wrapper">
     <div class="widget-header">
       <span class="widget-title">{{ widgetType }}</span>
-      <span class="freshness-indicator" :class="freshnessClass">{{ freshnessLabel }}</span>
+      <span class="freshness-icon">{{ freshnessIcon }}</span>
       <button @click="$emit('close', widgetId)" class="close-btn">✕</button>
     </div>
     <div class="widget-content">
@@ -33,6 +33,10 @@ const now = ref(Date.now())
 const intervalId = setInterval(() => { now.value = Date.now() }, 1000)
 onUnmounted(() => clearInterval(intervalId))
 
+const oscillating = ref(true)
+const oscillateId = setInterval(() => { oscillating.value = !oscillating.value }, 250)
+onUnmounted(() => { clearInterval(oscillateId) })
+
 const lastDataAt = computed(() => activeWidget.value?.lastDataAt ?? null)
 const isConnected = computed(() => activeWidget.value?.isConnected ?? true)
 const reconnecting = computed(() => activeWidget.value?.reconnecting ?? false)
@@ -42,24 +46,15 @@ const elapsedMs = computed(() => {
   return now.value - lastDataAt.value
 })
 
-const freshnessLabel = computed(() => {
-  if (reconnecting.value) return 'Reconnecting...'
-  if (!isConnected.value) return 'Disconnected'
-  if (lastDataAt.value === null) return 'Waiting...'
-  const s = Math.floor(elapsedMs.value / 1000)
-  if (s < 60) return `${s}s ago`
-  const m = Math.floor(s / 60)
-  const rem = s % 60
-  return `${m}m ${rem}s ago`
-})
-
-const freshnessClass = computed(() => {
-  if (!isConnected.value || reconnecting.value) return 'disconnected'
-  if (lastDataAt.value === null) return 'stale'
+const freshnessIcon = computed(() => {
+  if (!isConnected.value && !reconnecting.value) return '❌'
+  if (reconnecting.value || lastDataAt.value === null) {
+    return oscillating.value ? '🔵' : '🟣'
+  }
   const s = elapsedMs.value / 1000
-  if (s < 30) return 'fresh'
-  if (s <= 120) return 'aging'
-  return 'stale'
+  if (s < 5) return '🟢'
+  if (s < 60) return '🟡'
+  return '🔴'
 })
 
 </script>
@@ -125,15 +120,9 @@ const freshnessClass = computed(() => {
   overflow: auto;
 }
 
-.freshness-indicator {
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-variant-numeric: tabular-nums;
+.freshness-icon {
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
 }
-
-.fresh { color: #4caf50; }
-.aging { color: #ff9800; }
-.stale { color: #f44336; }
-.disconnected { color: #ff9800; }
 </style>
