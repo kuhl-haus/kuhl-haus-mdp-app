@@ -16,6 +16,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import TopVolume from './widgets/TopVolume.vue'
 import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
+import NewsFeed from './widgets/NewsFeed.vue'
 
 const props = defineProps(['widgetId', 'widgetType'])
 defineEmits(['close'])
@@ -23,7 +24,8 @@ defineEmits(['close'])
 const widgetComponents = {
   'top-gainers': TopGainers,
   'top-volume': TopVolume,
-  'top-gappers': TopGappers
+  'top-gappers': TopGappers,
+  'news-feed': NewsFeed,
 }
 
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
