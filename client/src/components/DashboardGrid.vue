@@ -63,6 +63,11 @@
         >
           🗑️
         </button>
+        <button
+            @click="isLocked = !isLocked"
+            class="btn-icon"
+            :title="isLocked ? 'Unlock layout (edit mode)' : 'Lock layout'"
+        >{{ isLocked ? '🔒' : '✏️' }}</button>
         <button @click="exportLayouts" class="btn-icon" title="Export All Layouts">
           📤
         </button>
@@ -173,8 +178,8 @@
         v-model:layout="layout"
         :col-num="12"
         :row-height="30"
-        :is-draggable="true"
-        :is-resizable="true"
+        :is-draggable="!isLocked"
+        :is-resizable="!isLocked"
         :vertical-compact="true"
         :margin="[5, 5]"
         :use-css-transforms="true"
@@ -209,8 +214,13 @@ const appConfig = window.__APP_CONFIG__ || {};
 
 const STORAGE_KEY = 'dashboard-layouts'
 const DEFAULT_KEY = 'dashboard-default-layout'
+const LOCK_KEY = 'dashboard-layout-locked'
 const AUTOSAVE_KEY = '__autosave__'
 const AUTOSAVE_DEBOUNCE_MS = 2000
+
+// Lock mode — default locked to prevent accidental drag/autosave
+const isLocked = ref(localStorage.getItem(LOCK_KEY) !== 'false')
+watch(isLocked, (val) => localStorage.setItem(LOCK_KEY, String(val)))
 
 // State
 const layout = ref([])
@@ -371,9 +381,9 @@ const autoSaveLayout = () => {
   }, AUTOSAVE_DEBOUNCE_MS)
 }
 
-// Watch for layout changes
+// Watch for layout changes — only autosave when not locked
 watch(layout, () => {
-  autoSaveLayout()
+  if (!isLocked.value) autoSaveLayout()
 }, { deep: true })
 
 // Import/Export
