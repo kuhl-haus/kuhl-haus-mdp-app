@@ -16,13 +16,6 @@
         <button class="pill-clear" @click="activeTicker = null" title="Clear ticker filter">×</button>
       </span>
 
-      <div class="controls-right">
-        <select v-model="maxItems" class="filter-select">
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-          <option :value="100">100</option>
-        </select>
-      </div>
     </div>
 
     <!-- Table -->
@@ -148,12 +141,10 @@ const props = defineProps({
 defineEmits(['ticker-click'])
 
 const appConfig = window.__APP_CONFIG__ || {}
-const MAX_BUFFER = 500
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
 const newsItems     = ref([])
-const maxItems      = ref(50)
 const selected      = ref(null)
 const activeTicker  = ref(null)                                          // R2: ephemeral
 const hasTickersOnly = ref(                                              // R1: persisted
@@ -172,7 +163,7 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
     const incoming = (Array.isArray(data) ? data : [data])
       .filter(item => item && item.title)
     if (!incoming.length) return
-    newsItems.value = [...incoming, ...newsItems.value].slice(0, MAX_BUFFER)
+    newsItems.value = [...incoming, ...newsItems.value]
   },
   autoConnect: true,
 })
@@ -242,7 +233,7 @@ const filteredNews = computed(() => {
     )
   }
 
-  return items.slice(0, maxItems.value)
+  return items
 })
 </script>
 
@@ -265,10 +256,6 @@ const filteredNews = computed(() => {
   border-bottom: 1px solid #333;
   flex-shrink: 0;
   flex-wrap: wrap;
-}
-
-.controls-right {
-  margin-left: auto;
 }
 
 .filter-btn {
@@ -315,15 +302,6 @@ const filteredNews = computed(() => {
 }
 .pill-clear:hover { opacity: 1; }
 
-.filter-select {
-  padding: 5px 8px;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 3px;
-  color: #e0e0e0;
-  font-size: 13px;
-  cursor: pointer;
-}
 
 /* ── Table ── */
 .news-table-wrap {
