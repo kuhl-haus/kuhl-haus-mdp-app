@@ -6,7 +6,13 @@
       <button @click="$emit('close', widgetId)" class="close-btn">✕</button>
     </div>
     <div class="widget-content">
-      <component :is="widgetComponent" ref="activeWidget"/>
+      <component
+        :is="widgetComponent"
+        ref="activeWidget"
+        :is-locked="isLocked"
+        :col-widths="colWidths"
+        @update-col-widths="$emit('update-col-widths', $event)"
+      />
     </div>
   </div>
 </template>
@@ -18,8 +24,8 @@ import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
 
-const props = defineProps(['widgetId', 'widgetType'])
-defineEmits(['close'])
+const props = defineProps(['widgetId', 'widgetType', 'isLocked', 'colWidths'])
+defineEmits(['close', 'update-col-widths'])
 
 const widgetComponents = {
   'top-gainers': TopGainers,

@@ -196,7 +196,10 @@
         <WidgetWrapper
             :widget-id="item.i"
             :widget-type="item.type"
+            :is-locked="isLocked"
+            :col-widths="item.colWidths || {}"
             @close="removeWidget"
+            @update-col-widths="(w) => updateColWidths(item.i, w)"
         />
       </GridItem>
     </GridLayout>
@@ -663,6 +666,14 @@ const addWidget = (widgetType) => {
     i: `widget-${widgetCounter++}`,
     type: widgetType
   })
+}
+
+const updateColWidths = (widgetId, colWidths) => {
+  const item = layout.value.find(i => i.i === widgetId)
+  if (item) {
+    item.colWidths = { ...colWidths }
+    autoSaveLayout()
+  }
 }
 
 const removeWidget = (widgetId) => {
