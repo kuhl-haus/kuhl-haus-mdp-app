@@ -76,8 +76,12 @@
             @click="openDetail(item)"
           >
             <td class="col-time">{{ formatTime(item.publishDate) }}</td>
-            <td class="col-tickers">
+            <td class="col-title">
               <span
+                :class="['sentiment-dot', sentimentClass(item.sentiment)]"
+                :title="item.sentiment"
+              ></span>
+              {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span><span
                 v-for="co in usCompanies(item)"
                 :key="co.ticker"
                 :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
@@ -85,16 +89,9 @@
                 @click.stop="toggleTickerFilter(co.ticker)"
               >{{ co.ticker }}</span>
             </td>
-            <td class="col-title">
-              <span
-                :class="['sentiment-dot', sentimentClass(item.sentiment)]"
-                :title="item.sentiment"
-              ></span>
-              {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span>
-            </td>
           </tr>
           <tr v-if="filteredNews.length === 0">
-            <td colspan="3" class="news-empty">
+            <td colspan="2" class="news-empty">
               {{ newsItems.length === 0 ? 'No articles yet.' : 'No articles match the current filter.' }}
             </td>
           </tr>
@@ -190,12 +187,11 @@ const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
 // Default widths (px)
-const DEFAULT_WIDTHS = { time: 90, title: 0, tickers: 130 }
+const DEFAULT_WIDTHS = { time: 90, title: 0 }
 // title=0 means "auto" — fills remaining space via table-layout:fixed percentage trick
 
 const columns = [
   { key: 'time',    label: 'Time',     sortable: true  },
-  { key: 'tickers', label: 'Tickers',  sortable: true  },
   { key: 'title',   label: 'Headline', sortable: true  },
 ]
 
@@ -249,8 +245,6 @@ const colWidthsPx = computed(() => {
   return {
     time:    w.time    ? `${w.time}px`    : `${DEFAULT_WIDTHS.time}px`,
     title:   'auto',   // fills remaining space
-    source:  w.source  ? `${w.source}px`  : `${DEFAULT_WIDTHS.source}px`,
-    tickers: w.tickers ? `${w.tickers}px` : `${DEFAULT_WIDTHS.tickers}px`,
   }
 })
 
@@ -521,7 +515,6 @@ const filteredNews = computed(() => {
   pointer-events: none;
 }
 .col-title  { color: #ddd; font-size: 16px; line-height: 1.4; }
-.col-tickers { white-space: normal; vertical-align: top; }
 
 /* Sentiment dot */
 .sentiment-dot {
@@ -557,7 +550,8 @@ const filteredNews = computed(() => {
   border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 3px;
   padding: 1px 4px;
-  margin: 1px 2px 1px 0;
+  margin: 0 0 0 4px;
+  vertical-align: middle;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.12s, border-color 0.12s;
