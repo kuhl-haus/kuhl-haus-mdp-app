@@ -49,7 +49,9 @@
         :sort-key="sortKey"
         :sort-dir="sortDir"
         :row-class-fn="getRowClass"
+        :active-ticker="activeTicker"
         @sort="sortBy"
+        @row-click="onRowClick"
     />
   </div>
 </template>
@@ -58,9 +60,16 @@
 import { ref, reactive, computed } from 'vue'
 import GenericScannerTable from './GenericScannerTable.vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useScannerLink } from '@/composables/useScannerLink.js'
+
+const props = defineProps({
+  isLocked:  { type: Boolean, default: true },
+  linkColor: { type: String,  default: null },
+})
 
 const appConfig = window.__APP_CONFIG__ || {}
 const marketData = reactive([])
+const { activeTicker, onRowClick } = useScannerLink(computed(() => props.linkColor))
 
 const toNum = (val) => {
   const n = Number(val)
