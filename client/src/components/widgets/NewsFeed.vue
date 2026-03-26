@@ -142,6 +142,7 @@
  * @emits update-col-widths   - Column widths changed, payload: { time, title, source, tickers }
  */
 import { ref, computed, watch, onUnmounted } from 'vue'
+import { useWidgetBus } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 const props = defineProps({
@@ -149,8 +150,11 @@ const props = defineProps({
   cacheKey:  { type: String,  default: 'news:feed:latest' },
   isLocked:  { type: Boolean, default: true },
   colWidths: { type: Object,  default: () => ({}) },
+  linkColor: { type: String,  default: null },
 })
 const emit = defineEmits(['ticker-click', 'update-col-widths'])
+
+const { setActiveTicker, activeTickers } = useWidgetBus()
 
 const appConfig   = window.__APP_CONFIG__ || {}
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
@@ -175,6 +179,16 @@ const tableWrap      = ref(null)
 
 // Persist R1 toggle
 watch(hasTickersOnly, (val) => localStorage.setItem(LS_HAS_TICKERS_KEY, val))
+
+// Receive ticker from bus when another linked widget broadcasts
+watch(
+  () => props.linkColor ? activeTickers[props.linkColor] : undefined,
+  (incoming) => {
+    if (props.linkColor && incoming !== undefined) {
+      activeTicker.value = incoming
+    }
+  }
+)
 
 // ── Column width management ────────────────────────────────────────────────────
 
@@ -286,7 +300,12 @@ const formatDateTime = (ts) => {
 const openDetail = (item) => { selected.value = item }
 
 const toggleTickerFilter = (ticker) => {
-  activeTicker.value = activeTicker.value === ticker ? null : ticker
+  const next = activeTicker.value === ticker ? null : ticker
+  activeTicker.value = next
+  // Broadcast to linked widgets if this widget has a link color
+  if (props.linkColor) {
+    setActiveTicker(props.linkColor, next)
+  }
 }
 
 // ── Filtered view ──────────────────────────────────────────────────────────────
