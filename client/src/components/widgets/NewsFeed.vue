@@ -468,7 +468,7 @@ const filteredNews = computed(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 5px 10px;
+  padding: 3px 8px;
   text-align: left;
   border-bottom: 1px solid #333;
   user-select: none;
@@ -502,7 +502,7 @@ const filteredNews = computed(() => {
 .news-row:hover { background: #252525; }
 
 .news-row td {
-  padding: 4px 10px;
+  padding: 2px 8px;
   vertical-align: top;
   /* wrap instead of truncate */
   white-space: normal;
@@ -510,7 +510,7 @@ const filteredNews = computed(() => {
   overflow-wrap: break-word;
 }
 
-.col-time   { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.col-time   { color: #888; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .col-sorted { color: #a78bfa !important; }
 
@@ -520,7 +520,7 @@ const filteredNews = computed(() => {
   color: #a78bfa;
   pointer-events: none;
 }
-.col-title  { color: #ddd; font-size: 13px; line-height: 1.4; }
+.col-title  { color: #ddd; font-size: 16px; line-height: 1.4; }
 .col-tickers { white-space: normal; vertical-align: top; }
 
 /* Sentiment dot */
@@ -542,7 +542,7 @@ const filteredNews = computed(() => {
 /* Inline source in headline */
 .headline-source {
   color: #555;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   margin-left: 2px;
 }
