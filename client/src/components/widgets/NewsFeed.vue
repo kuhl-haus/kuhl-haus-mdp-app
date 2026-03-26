@@ -52,10 +52,12 @@
             <th
               v-for="col in columns"
               :key="col.key"
-              :class="'col-' + col.key"
-              :style="{ width: colWidthsPx[col.key] }"
+              :class="['col-' + col.key, sortKey === col.key ? 'col-sorted' : '']"
+              :style="{ width: colWidthsPx[col.key], cursor: col.sortable ? 'pointer' : 'default' }"
+              @click="col.sortable && cycleSort(col.key)"
+              :title="col.sortable ? (sortKey === col.key ? (sortDir === 'asc' ? 'Sort descending' : 'Sort ascending') : 'Sort by ' + col.label) : ''"
             >
-              {{ col.label }}
+              {{ col.label }}<span v-if="sortKey === col.key" class="sort-indicator">{{ sortDir === 'asc' ? ' ▲' : ' ▼' }}</span>
               <!-- Resize handle — only shown when unlocked -->
               <span
                 v-if="!isLocked"
@@ -192,10 +194,22 @@ const DEFAULT_WIDTHS = { time: 90, title: 0, tickers: 130 }
 // title=0 means "auto" — fills remaining space via table-layout:fixed percentage trick
 
 const columns = [
-  { key: 'time',    label: 'Time'     },
-  { key: 'title',   label: 'Headline' },
-  { key: 'tickers', label: 'Tickers'  },
+  { key: 'time',    label: 'Time',     sortable: true  },
+  { key: 'title',   label: 'Headline', sortable: true  },
+  { key: 'tickers', label: 'Tickers',  sortable: true  },
 ]
+
+const sortKey = ref('time')
+const sortDir = ref('desc')  // newest first by default
+
+const cycleSort = (colKey) => {
+  if (sortKey.value === colKey) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = colKey
+    sortDir.value = colKey === 'time' ? 'desc' : 'asc'
+  }
+}
 
 const newsItems      = ref([])
 const selected       = ref(null)
@@ -343,6 +357,29 @@ const filteredNews = computed(() => {
     const t = activeTicker.value
     items = items.filter(item => usCompanies(item).some(co => co.ticker === t))
   }
+
+  // Sort
+  const key = sortKey.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  items = [...items].sort((a, b) => {
+    let av, bv
+    if (key === 'time') {
+      av = a.publishDate ? new Date(a.publishDate).getTime() : 0
+      bv = b.publishDate ? new Date(b.publishDate).getTime() : 0
+    } else if (key === 'title') {
+      av = (a.title || '').toLowerCase()
+      bv = (b.title || '').toLowerCase()
+    } else if (key === 'tickers') {
+      av = (usCompanies(a)[0]?.ticker || '').toLowerCase()
+      bv = (usCompanies(b)[0]?.ticker || '').toLowerCase()
+    } else {
+      return 0
+    }
+    if (av < bv) return -1 * dir
+    if (av > bv) return  1 * dir
+    return 0
+  })
+
   return items
 })
 </script>
@@ -474,6 +511,15 @@ const filteredNews = computed(() => {
 }
 
 .col-time   { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.col-sorted { color: #a78bfa !important; }
+
+.sort-indicator {
+  font-size: 10px;
+  margin-left: 2px;
+  color: #a78bfa;
+  pointer-events: none;
+}
 .col-title  { color: #ddd; font-size: 13px; line-height: 1.4; }
 .col-tickers { white-space: normal; vertical-align: top; }
 
