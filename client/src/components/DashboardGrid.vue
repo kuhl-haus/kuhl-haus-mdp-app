@@ -1,10 +1,18 @@
 <template>
   <header class="dashboard-header">
-    <h1>Stock Scanner Dashboard</h1>
+    <h1 class="dashboard-title">Stock Scanner Dashboard</h1>
     <div v-if="appConfig" class="status success">Connected</div>
     <div v-else class="status error">Error</div>
 
-    <div v-if="appConfig" class="layout-controls">
+    <!-- Mobile toolbar: just widget add -->
+    <div v-if="appConfig && isMobile" class="layout-controls layout-controls--mobile">
+      <div class="widget-menu">
+        <WidgetMenu @add-widget="addWidget" />
+      </div>
+    </div>
+
+    <!-- Desktop toolbar: full controls -->
+    <div v-if="appConfig && !isMobile" class="layout-controls">
 
       <div class="widget-menu">
         <WidgetMenu @add-widget="addWidget" />
@@ -179,7 +187,30 @@
   </div>
 
   <div class="dashboard">
+    <!-- Mobile: simple vertical stack (< 640px) -->
+    <div v-if="isMobile" class="mobile-stack">
+      <div
+          v-for="item in layout"
+          :key="item.i"
+          class="mobile-widget"
+      >
+        <WidgetWrapper
+            :widget-id="item.i"
+            :widget-type="item.type"
+            :is-locked="true"
+            :col-widths="item.colWidths || {}"
+            :link-color="item.linkColor || null"
+            :is-mobile="true"
+            @close="removeWidget"
+            @update-col-widths="(w) => updateColWidths(item.i, w)"
+            @update-link-color="(c) => updateLinkColor(item.i, c)"
+        />
+      </div>
+    </div>
+
+    <!-- Desktop/tablet: grid layout -->
     <GridLayout
+        v-else
         v-model:layout="layout"
         :col-num="12"
         :row-height="30"
@@ -204,6 +235,7 @@
             :is-locked="isLocked"
             :col-widths="item.colWidths || {}"
             :link-color="item.linkColor || null"
+            :is-mobile="false"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
             @update-link-color="(c) => updateLinkColor(item.i, c)"
@@ -221,6 +253,11 @@ import WidgetMenu from './WidgetMenu.vue'
 import WidgetWrapper from './WidgetWrapper.vue'
 
 const appConfig = window.__APP_CONFIG__ || {};
+
+// Responsive: phone < 640px gets stacked layout; tablet/desktop keeps grid
+const MOBILE_BREAKPOINT = 640
+const isMobile = ref(window.innerWidth < MOBILE_BREAKPOINT)
+const onResize = () => { isMobile.value = window.innerWidth < MOBILE_BREAKPOINT }
 
 const STORAGE_KEY = 'dashboard-layouts'
 const DEFAULT_KEY = 'dashboard-default-layout'
@@ -716,12 +753,14 @@ const handleClickOutside = (e) => {
 
 // Lifecycle
 onMounted(() => {
+  window.addEventListener('resize', onResize)
   loadFromStorage()
   loadDefaultLayout()
   document.addEventListener('click', handleClickOutside)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
   document.removeEventListener('click', handleClickOutside)
   if (autoSaveTimeout) clearTimeout(autoSaveTimeout)
   if (hoverTimeout) clearTimeout(hoverTimeout)
@@ -1147,5 +1186,31 @@ onBeforeUnmount(() => {
 
 .auth-required button:hover {
   background: #3d3d3d;
+}
+
+/* ── Mobile (< 640px) ── */
+@media (max-width: 639px) {
+  .dashboard-title { font-size: 15px; }
+
+  .layout-controls--mobile {
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 6px;
+  }
+
+  .mobile-widget {
+    width: 100%;
+    /* Fixed heights per widget type handled by inner widget */
+  }
+
+  .mobile-widget .widget-wrapper {
+    border-radius: 6px;
+  }
 }
 </style>
