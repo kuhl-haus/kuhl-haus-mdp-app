@@ -4,8 +4,41 @@
     <div v-if="appConfig" class="status success">Connected</div>
     <div v-else class="status error">Error</div>
 
-    <!-- Mobile toolbar: just widget add -->
+    <!-- Mobile toolbar: layout selector + lock + widget add -->
     <div v-if="appConfig && isMobile" class="layout-controls layout-controls--mobile">
+      <!-- Layout load dropdown -->
+      <div class="custom-select custom-select--mobile" ref="selectContainerMobile">
+        <div
+            class="select-trigger"
+            @click="toggleDropdown"
+            :class="{ active: isDropdownOpen }"
+        >
+          <span v-if="selectedLayoutName">{{ selectedLayoutName }}</span>
+          <span v-else class="placeholder">Layout</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div v-if="isDropdownOpen" class="select-dropdown">
+          <div
+              v-for="name in savedLayoutNames"
+              :key="name"
+              class="select-option"
+              :class="{ selected: name === selectedLayoutName }"
+          >
+            <span class="option-name" @click="selectLayout(name)">
+              {{ name }}{{ name === defaultLayoutName ? ' ✓' : '' }}
+            </span>
+          </div>
+          <div v-if="savedLayoutNames.length === 0" class="select-option disabled">
+            No saved layouts
+          </div>
+        </div>
+      </div>
+      <button @click="showSaveDialog = true" class="btn-icon" title="Save Layout">💾</button>
+      <button
+          @click="isLocked = !isLocked"
+          class="btn-icon"
+          :title="isLocked ? 'Unlock layout' : 'Lock layout'"
+      >{{ isLocked ? '🔒' : '✏️' }}</button>
       <div class="widget-menu">
         <WidgetMenu @add-widget="addWidget" />
       </div>
@@ -102,7 +135,7 @@
 
     </div>
 
-    <div v-else class="auth-required">
+    <div v-if="!appConfig" class="auth-required">
       <p>Please log in to access the dashboard</p>
     </div>
   </header>
@@ -1195,6 +1228,22 @@ onBeforeUnmount(() => {
   .layout-controls--mobile {
     display: flex;
     align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .custom-select--mobile {
+    min-width: 110px;
+    max-width: 150px;
+  }
+
+  .custom-select--mobile .select-trigger {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .custom-select--mobile .select-dropdown {
+    font-size: 12px;
   }
 
   .mobile-stack {
