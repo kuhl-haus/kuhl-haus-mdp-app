@@ -15,18 +15,28 @@
         {{ activeTicker }}
         <button class="pill-clear" @click="activeTicker = null" title="Clear ticker filter">×</button>
       </span>
-
     </div>
 
     <!-- Table -->
-    <div class="news-table-wrap">
-      <table class="news-table">
+    <div class="news-table-wrap" ref="tableWrap">
+      <table class="news-table" :style="tableStyle">
         <thead>
           <tr>
-            <th class="col-time">Time</th>
-            <th class="col-title">Headline</th>
-            <th class="col-source">Source</th>
-            <th class="col-tickers">Tickers</th>
+            <th
+              v-for="col in columns"
+              :key="col.key"
+              :class="'col-' + col.key"
+              :style="{ width: colWidthsPx[col.key] }"
+            >
+              {{ col.label }}
+              <!-- Resize handle — only shown when unlocked -->
+              <span
+                v-if="!isLocked"
+                class="col-resize-handle"
+                @mousedown.prevent="startResize($event, col.key)"
+                title="Drag to resize column"
+              ></span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -70,7 +80,6 @@
         <div class="modal-card">
           <button class="modal-close" @click="selected = null">✕</button>
 
-          <!-- Images -->
           <div v-if="selected.images && selected.images.length" class="modal-images">
             <img
               v-for="(img, i) in selected.images.slice(0, 1)"
@@ -93,7 +102,6 @@
 
             <p v-if="selected.summary" class="modal-summary">{{ selected.summary }}</p>
 
-            <!-- Companies -->
             <div v-if="selected.companies && selected.companies.length" class="modal-companies">
               <div
                 v-for="co in selected.companies"
@@ -119,40 +127,121 @@
 
 <script setup>
 /**
- * NewsFeed widget — subscribes to the WDS news:feed:latest channel and
- * displays Enhanced Finlight articles in a table layout with a detail modal.
+ * NewsFeed widget — subscribes to the WDS news:feed:latest channel.
  *
- * Filtering:
- *   R1: "Tickers only" toggle — hides articles with no US-listed companies
- *   R2: Click a ticker badge to filter the feed to that ticker; click again to clear
+ * Column widths are resizable when the dashboard is unlocked (isLocked=false).
+ * Widths are stored as numbers (px) and persisted via update-col-widths emit
+ * which DashboardGrid saves into the layout item.
  *
- * @prop {string} feedName  - WDS feed to subscribe to
- * @prop {string} cacheKey  - WDS cache key for initial state
+ * @prop {string}  feedName  - WDS feed to subscribe to
+ * @prop {string}  cacheKey  - WDS cache key for initial state
+ * @prop {boolean} isLocked  - Dashboard lock state; hides resize handles when true
+ * @prop {object}  colWidths - Saved column widths { time, title, source, tickers }
  *
- * @emits ticker-click  - Emitted when a US ticker tag is clicked, payload: symbol string
+ * @emits ticker-click        - US ticker badge clicked, payload: symbol string
+ * @emits update-col-widths   - Column widths changed, payload: { time, title, source, tickers }
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 const props = defineProps({
-  feedName: { type: String, default: 'news:feed:latest' },
-  cacheKey: { type: String, default: 'news:feed:latest' },
+  feedName:  { type: String,  default: 'news:feed:latest' },
+  cacheKey:  { type: String,  default: 'news:feed:latest' },
+  isLocked:  { type: Boolean, default: true },
+  colWidths: { type: Object,  default: () => ({}) },
 })
-defineEmits(['ticker-click'])
+const emit = defineEmits(['ticker-click', 'update-col-widths'])
 
-const appConfig = window.__APP_CONFIG__ || {}
+const appConfig   = window.__APP_CONFIG__ || {}
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
-const newsItems     = ref([])
-const selected      = ref(null)
-const activeTicker  = ref(null)                                          // R2: ephemeral
-const hasTickersOnly = ref(                                              // R1: persisted
-  localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true'
-)
+// Default widths (px)
+const DEFAULT_WIDTHS = { time: 90, title: 0, source: 110, tickers: 130 }
+// title=0 means "auto" — fills remaining space via table-layout:fixed percentage trick
+
+const columns = [
+  { key: 'time',    label: 'Time'     },
+  { key: 'title',   label: 'Headline' },
+  { key: 'source',  label: 'Source'   },
+  { key: 'tickers', label: 'Tickers'  },
+]
+
+const newsItems      = ref([])
+const selected       = ref(null)
+const activeTicker   = ref(null)
+const hasTickersOnly = ref(localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true')
+const tableWrap      = ref(null)
 
 // Persist R1 toggle
 watch(hasTickersOnly, (val) => localStorage.setItem(LS_HAS_TICKERS_KEY, val))
+
+// ── Column width management ────────────────────────────────────────────────────
+
+// Merge saved widths over defaults; title stays 0 (auto) unless explicitly saved
+const localWidths = ref({ ...DEFAULT_WIDTHS, ...props.colWidths })
+
+// Recompute if parent passes new colWidths (e.g. layout load)
+watch(() => props.colWidths, (v) => {
+  if (v && Object.keys(v).length) localWidths.value = { ...DEFAULT_WIDTHS, ...v }
+})
+
+// CSS: fixed columns get explicit px; title gets remaining space via auto
+// We use table-layout: fixed + col widths as percentages of table width
+const tableStyle = computed(() => ({ tableLayout: 'fixed', width: '100%' }))
+
+const colWidthsPx = computed(() => {
+  const w = localWidths.value
+  return {
+    time:    w.time    ? `${w.time}px`    : `${DEFAULT_WIDTHS.time}px`,
+    title:   'auto',   // fills remaining space
+    source:  w.source  ? `${w.source}px`  : `${DEFAULT_WIDTHS.source}px`,
+    tickers: w.tickers ? `${w.tickers}px` : `${DEFAULT_WIDTHS.tickers}px`,
+  }
+})
+
+// ── Column resize drag ─────────────────────────────────────────────────────────
+
+let resizeState = null
+
+const startResize = (e, colKey) => {
+  if (props.isLocked) return
+  // title column is auto — we compute its current px width from DOM
+  let startWidth
+  if (colKey === 'title' && tableWrap.value) {
+    const th = tableWrap.value.querySelector('th.col-title')
+    startWidth = th ? th.offsetWidth : 300
+  } else {
+    startWidth = localWidths.value[colKey] || DEFAULT_WIDTHS[colKey] || 100
+  }
+
+  resizeState = { colKey, startX: e.clientX, startWidth }
+
+  const onMove = (me) => {
+    if (!resizeState) return
+    const delta = me.clientX - resizeState.startX
+    const newWidth = Math.max(40, resizeState.startWidth + delta)
+    localWidths.value = { ...localWidths.value, [resizeState.colKey]: newWidth }
+  }
+
+  const onUp = () => {
+    resizeState = null
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    // Persist: emit to DashboardGrid for layout save
+    emit('update-col-widths', { ...localWidths.value })
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
+
+onUnmounted(() => {
+  // Safety cleanup if component unmounts mid-drag
+  resizeState = null
+})
+
+// ── WebSocket ──────────────────────────────────────────────────────────────────
 
 const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
@@ -160,8 +249,7 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   feedName: props.feedName,
   cacheKey: props.cacheKey,
   onData: (data) => {
-    const incoming = (Array.isArray(data) ? data : [data])
-      .filter(item => item && item.title)
+    const incoming = (Array.isArray(data) ? data : [data]).filter(item => item && item.title)
     if (!incoming.length) return
     newsItems.value = [...incoming, ...newsItems.value]
   },
@@ -172,23 +260,12 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-const isUsTicker = (co) => {
-  const code = co.primaryListing && co.primaryListing.exchangeCode
-  return US_EXCHANGES.has(code)
-}
+const isUsTicker = (co) => US_EXCHANGES.has(co.primaryListing?.exchangeCode)
+const usCompanies = (item) => item.companies?.filter(isUsTicker) ?? []
 
-const usCompanies = (item) => {
-  if (!item.companies) return []
-  return item.companies.filter(isUsTicker)
-}
-
-const shortSource = (src) => {
-  if (!src) return ''
-  return src.replace(/^www\./, '').replace(/\.[^.]+$/, '')
-}
+const shortSource = (src) => src ? src.replace(/^www\./, '').replace(/\.[^.]+$/, '') : ''
 
 const sentimentClass = (s) => {
-  if (!s) return 'neutral'
   if (s === 'positive') return 'positive'
   if (s === 'negative') return 'negative'
   return 'neutral'
@@ -197,20 +274,17 @@ const sentimentClass = (s) => {
 const formatTime = (ts) => {
   if (!ts) return ''
   const d = new Date(ts)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 const formatDateTime = (ts) => {
   if (!ts) return ''
   const d = new Date(ts)
-  if (isNaN(d.getTime())) return ''
-  return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return isNaN(d.getTime()) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 const openDetail = (item) => { selected.value = item }
 
-// R2: toggle ticker filter — same ticker clears, different ticker replaces
 const toggleTickerFilter = (ticker) => {
   activeTicker.value = activeTicker.value === ticker ? null : ticker
 }
@@ -219,20 +293,11 @@ const toggleTickerFilter = (ticker) => {
 
 const filteredNews = computed(() => {
   let items = newsItems.value
-
-  // R1: hide articles with no US-listed tickers
-  if (hasTickersOnly.value) {
-    items = items.filter(item => usCompanies(item).length > 0)
-  }
-
-  // R2: filter to active ticker
+  if (hasTickersOnly.value) items = items.filter(item => usCompanies(item).length > 0)
   if (activeTicker.value) {
     const t = activeTicker.value
-    items = items.filter(item =>
-      usCompanies(item).some(co => co.ticker === t)
-    )
+    items = items.filter(item => usCompanies(item).some(co => co.ticker === t))
   }
-
   return items
 })
 </script>
@@ -251,7 +316,7 @@ const filteredNews = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 5px 8px;
   background: #222;
   border-bottom: 1px solid #333;
   flex-shrink: 0;
@@ -276,7 +341,6 @@ const filteredNews = computed(() => {
   color: #a78bfa;
 }
 
-/* R2: active ticker pill */
 .active-ticker-pill {
   display: inline-flex;
   align-items: center;
@@ -289,7 +353,6 @@ const filteredNews = computed(() => {
   font-size: 12px;
   font-weight: 700;
 }
-
 .pill-clear {
   background: none;
   border: none;
@@ -301,7 +364,6 @@ const filteredNews = computed(() => {
   opacity: 0.7;
 }
 .pill-clear:hover { opacity: 1; }
-
 
 /* ── Table ── */
 .news-table-wrap {
@@ -324,36 +386,52 @@ const filteredNews = computed(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 6px 10px;
+  padding: 5px 10px;
   text-align: left;
   border-bottom: 1px solid #333;
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  /* Reserve space for resize handle */
+  position: relative;
 }
 
-.col-time    { width: 68px; }
-.col-title   { width: auto; }
-.col-source  { width: 100px; }
-.col-tickers { width: 120px; }
+/* Resize handle */
+.col-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.1s;
+  z-index: 1;
+}
+.col-resize-handle:hover,
+.col-resize-handle:active {
+  background: rgba(139, 92, 246, 0.5);
+}
 
 .news-row {
   cursor: pointer;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid #1c1c1c;
 }
-
 .news-row:hover { background: #252525; }
 
 .news-row td {
-  padding: 8px 10px;
-  vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 4px 10px;
+  vertical-align: top;
+  /* wrap instead of truncate */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
-.col-time  { color: #888; font-size: 13px; font-variant-numeric: tabular-nums; }
-.col-title { color: #ddd; max-width: 0; font-size: 14px; }
-.col-source { color: #888; font-size: 13px; }
-.col-tickers { white-space: normal; }
+.col-time   { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.col-title  { color: #ddd; font-size: 13px; line-height: 1.4; }
+.col-source { color: #888; font-size: 12px; }
+.col-tickers { white-space: normal; vertical-align: top; }
 
 /* Sentiment dot */
 .sentiment-dot {
@@ -412,7 +490,6 @@ const filteredNews = computed(() => {
   justify-content: center;
   padding: 16px;
 }
-
 .modal-card {
   background: #1e1e1e;
   border: 1px solid #333;
@@ -423,7 +500,6 @@ const filteredNews = computed(() => {
   overflow-y: auto;
   position: relative;
 }
-
 .modal-close {
   position: sticky;
   top: 8px;
@@ -443,7 +519,6 @@ const filteredNews = computed(() => {
   z-index: 1;
 }
 .modal-close:hover { background: #444; color: #fff; }
-
 .modal-images {
   width: 100%;
   max-height: 200px;
@@ -456,11 +531,7 @@ const filteredNews = computed(() => {
   object-fit: cover;
   display: block;
 }
-
-.modal-body {
-  padding: 14px 16px 18px;
-}
-
+.modal-body { padding: 14px 16px 18px; }
 .modal-meta {
   display: flex;
   align-items: center;
@@ -468,11 +539,9 @@ const filteredNews = computed(() => {
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
-
 .modal-time   { font-size: 11px; color: #666; }
 .modal-source { font-size: 11px; color: #888; text-decoration: none; }
 .modal-source:hover { color: #aaa; text-decoration: underline; }
-
 .modal-sentiment {
   font-size: 10px;
   font-weight: 600;
@@ -483,8 +552,7 @@ const filteredNews = computed(() => {
 }
 .modal-sentiment.positive { color: #22c55e; background: rgba(34,197,94,0.1); }
 .modal-sentiment.negative { color: #ef4444; background: rgba(239,68,68,0.1); }
-.modal-sentiment.neutral  { color: #888; background: rgba(255,255,255,0.05); }
-
+.modal-sentiment.neutral  { color: #888;    background: rgba(255,255,255,0.05); }
 .modal-title {
   display: block;
   font-size: 15px;
@@ -495,14 +563,12 @@ const filteredNews = computed(() => {
   margin-bottom: 10px;
 }
 .modal-title:hover { color: #fff; text-decoration: underline; }
-
 .modal-summary {
   font-size: 13px;
   color: #aaa;
   line-height: 1.6;
   margin: 0 0 14px;
 }
-
 .modal-companies {
   display: flex;
   flex-direction: column;
@@ -510,13 +576,7 @@ const filteredNews = computed(() => {
   padding-top: 10px;
   border-top: 1px solid #2a2a2a;
 }
-
-.modal-company {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.modal-company { display: flex; align-items: center; gap: 8px; }
 .company-name     { font-size: 12px; color: #999; flex: 1; }
 .company-exchange { font-size: 10px; color: #555; }
 </style>
