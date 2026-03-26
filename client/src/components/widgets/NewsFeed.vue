@@ -33,7 +33,7 @@
               <span
                 v-if="!isLocked"
                 class="col-resize-handle"
-                @mousedown.stop="startResize($event, col.key)"
+                @mousedown.prevent="startResize($event, col.key)"
                 title="Drag to resize column"
               ></span>
             </th>
@@ -220,7 +220,6 @@ let resizeState = null
 
 const startResize = (e, colKey) => {
   if (props.isLocked) return
-  e.preventDefault()
   // title column is auto — we compute its current px width from DOM
   let startWidth
   if (colKey === 'title' && tableWrap.value) {
