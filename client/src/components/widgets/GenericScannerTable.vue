@@ -17,7 +17,9 @@
     <tr
         v-for="row in data"
         :key="row.symbol"
-        :class="rowClassFn?.(row)"
+        :class="[rowClassFn?.(row), activeTicker === row.symbol ? 'row-active' : '']"
+        style="cursor:pointer"
+        @click="$emit('row-click', row)"
     >
       <td v-for="col in columns" :key="col.key" :class="getCellClass(col, row)">
         <template v-if="col.render">
@@ -46,10 +48,11 @@ const props = defineProps({
   columns: { type: Array, required: true },
   sortKey: { type: String, default: '' },
   sortDir: { type: String, default: 'asc' },
-  rowClassFn: { type: Function, default: null }
+  rowClassFn: { type: Function, default: null },
+  activeTicker: { type: String, default: null },
 })
 
-defineEmits(['sort'])
+defineEmits(['sort', 'row-click'])
 
 const toNum = (val) => {
   const n = Number(val)
@@ -183,4 +186,6 @@ tr:hover {
 .twenty-percent-gainer { background: rgba(18, 44, 75, 0.9); }
 .fifty-percent-gainer { background: rgba(50, 4, 141, 0.9); }
 .hundred-percent-gainer { background: rgba(136, 4, 141, 0.9); }
+
+tr.row-active { outline: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.06) !important; }
 </style>
