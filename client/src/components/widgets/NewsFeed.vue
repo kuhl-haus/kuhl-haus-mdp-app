@@ -76,13 +76,6 @@
             @click="openDetail(item)"
           >
             <td class="col-time">{{ formatTime(item.publishDate) }}</td>
-            <td class="col-title">
-              <span
-                :class="['sentiment-dot', sentimentClass(item.sentiment)]"
-                :title="item.sentiment"
-              ></span>
-              {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span>
-            </td>
             <td class="col-tickers">
               <span
                 v-for="co in usCompanies(item)"
@@ -91,6 +84,13 @@
                 :title="activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`"
                 @click.stop="toggleTickerFilter(co.ticker)"
               >{{ co.ticker }}</span>
+            </td>
+            <td class="col-title">
+              <span
+                :class="['sentiment-dot', sentimentClass(item.sentiment)]"
+                :title="item.sentiment"
+              ></span>
+              {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span>
             </td>
           </tr>
           <tr v-if="filteredNews.length === 0">
@@ -195,8 +195,8 @@ const DEFAULT_WIDTHS = { time: 90, title: 0, tickers: 130 }
 
 const columns = [
   { key: 'time',    label: 'Time',     sortable: true  },
-  { key: 'title',   label: 'Headline', sortable: true  },
   { key: 'tickers', label: 'Tickers',  sortable: true  },
+  { key: 'title',   label: 'Headline', sortable: true  },
 ]
 
 const sortKey = ref('time')
