@@ -215,7 +215,7 @@ const filteredNews = computed(() => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ── Controls ── */
@@ -231,23 +231,23 @@ const filteredNews = computed(() => {
 .filter-input {
   flex: 1;
   min-width: 80px;
-  padding: 4px 8px;
+  padding: 5px 10px;
   background: #111;
   border: 1px solid #333;
   border-radius: 3px;
   color: #e0e0e0;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .filter-input:focus { outline: none; border-color: #8b5cf6; }
 
 .filter-select {
-  padding: 4px 6px;
+  padding: 5px 8px;
   background: #111;
   border: 1px solid #333;
   border-radius: 3px;
   color: #e0e0e0;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -268,39 +268,39 @@ const filteredNews = computed(() => {
   top: 0;
   background: #1a1a1a;
   color: #888;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 5px 8px;
+  padding: 6px 10px;
   text-align: left;
   border-bottom: 1px solid #333;
   user-select: none;
 }
 
-.col-time    { width: 52px; }
+.col-time    { width: 68px; }
 .col-title   { width: auto; }
-.col-source  { width: 90px; }
-.col-tickers { width: 110px; }
+.col-source  { width: 100px; }
+.col-tickers { width: 120px; }
 
 .news-row {
   cursor: pointer;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid #222;
 }
 
 .news-row:hover { background: #252525; }
 
 .news-row td {
-  padding: 6px 8px;
+  padding: 8px 10px;
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.col-time  { color: #666; font-size: 11px; font-variant-numeric: tabular-nums; }
-.col-title { color: #ccc; max-width: 0; }  /* max-width:0 makes text-overflow work in table */
-.col-source { color: #666; font-size: 11px; }
+.col-time  { color: #888; font-size: 13px; font-variant-numeric: tabular-nums; }
+.col-title { color: #ddd; max-width: 0; font-size: 14px; }  /* max-width:0 makes text-overflow work in table */
+.col-source { color: #888; font-size: 13px; }
 .col-tickers { white-space: normal; }
 
 /* Sentiment dot */
