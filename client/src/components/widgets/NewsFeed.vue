@@ -147,7 +147,9 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   feedName: props.feedName,
   cacheKey: props.cacheKey,
   onData: (data) => {
-    const incoming = Array.isArray(data) ? data : [data]
+    const incoming = (Array.isArray(data) ? data : [data])
+      .filter(item => item && item.title)  // skip auth/subscribe ack messages
+    if (!incoming.length) return
     newsItems.value = [...incoming, ...newsItems.value].slice(0, MAX_BUFFER)
   },
   autoConnect: true,
