@@ -203,8 +203,10 @@
             :widget-type="item.type"
             :is-locked="isLocked"
             :col-widths="item.colWidths || {}"
+            :link-color="item.linkColor || null"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
+            @update-link-color="(c) => updateLinkColor(item.i, c)"
         />
       </GridItem>
     </GridLayout>
@@ -676,6 +678,14 @@ const addWidget = (widgetType) => {
     i: `widget-${widgetCounter++}`,
     type: widgetType
   })
+}
+
+const updateLinkColor = (widgetId, linkColor) => {
+  const item = layout.value.find(i => i.i === widgetId)
+  if (item) {
+    item.linkColor = linkColor || null
+    autoSaveLayout()
+  }
 }
 
 const updateColWidths = (widgetId, colWidths) => {

@@ -1,7 +1,38 @@
 <template>
   <div class="widget-wrapper">
-    <div class="widget-header">
+    <div
+      class="widget-header"
+      :style="linkColor ? { borderBottom: `1px solid ${linkColorHex}`, boxShadow: `0 1px 0 0 ${linkColorHex}` } : {}"
+    >
       <span class="widget-title">{{ widgetType }}</span>
+
+      <!-- Link color selector — only when unlocked -->
+      <div v-if="!isLocked" class="link-color-selector">
+        <!-- Unlink option -->
+        <button
+          :class="['color-swatch', 'color-swatch--none', !linkColor ? 'color-swatch--active' : '']"
+          title="No link (unlinked)"
+          @click="$emit('update-link-color', null)"
+        >∅</button>
+        <!-- Color swatches -->
+        <button
+          v-for="c in LINK_COLORS"
+          :key="c.name"
+          :class="['color-swatch', linkColor === c.name ? 'color-swatch--active' : '']"
+          :style="{ background: c.hex }"
+          :title="`Link: ${c.name}`"
+          @click="$emit('update-link-color', c.name)"
+        ></button>
+      </div>
+
+      <!-- Link color dot — always visible when linked -->
+      <span
+        v-else-if="linkColor"
+        class="link-dot"
+        :style="{ background: linkColorHex }"
+        :title="`Linked: ${linkColor}`"
+      ></span>
+
       <span class="freshness-icon">{{ freshnessIcon }}</span>
       <button @click="$emit('close', widgetId)" class="close-btn">✕</button>
     </div>
@@ -11,6 +42,7 @@
         ref="activeWidget"
         :is-locked="isLocked"
         :col-widths="colWidths"
+        :link-color="linkColor"
         @update-col-widths="$emit('update-col-widths', $event)"
       />
     </div>
@@ -23,19 +55,29 @@ import TopVolume from './widgets/TopVolume.vue'
 import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
+import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
-const props = defineProps(['widgetId', 'widgetType', 'isLocked', 'colWidths'])
-defineEmits(['close', 'update-col-widths'])
+const props = defineProps({
+  widgetId:  { type: String,  required: true },
+  widgetType: { type: String, required: true },
+  isLocked:  { type: Boolean, default: true },
+  colWidths: { type: Object,  default: () => ({}) },
+  linkColor: { type: String,  default: null },
+})
+defineEmits(['close', 'update-col-widths', 'update-link-color'])
 
 const widgetComponents = {
   'top-gainers': TopGainers,
-  'top-volume': TopVolume,
+  'top-volume':  TopVolume,
   'top-gappers': TopGappers,
-  'news-feed': NewsFeed,
+  'news-feed':   NewsFeed,
 }
 
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
 
+const linkColorHex = computed(() => props.linkColor ? LINK_COLOR_MAP[props.linkColor] : null)
+
+// Freshness tracking
 const activeWidget = ref(null)
 const now = ref(Date.now())
 const intervalId = setInterval(() => { now.value = Date.now() }, 1000)
@@ -45,26 +87,19 @@ const oscillating = ref(true)
 const oscillateId = setInterval(() => { oscillating.value = !oscillating.value }, 250)
 onUnmounted(() => { clearInterval(oscillateId) })
 
-const lastDataAt = computed(() => activeWidget.value?.lastDataAt ?? null)
-const isConnected = computed(() => activeWidget.value?.isConnected ?? true)
-const reconnecting = computed(() => activeWidget.value?.reconnecting ?? false)
-
-const elapsedMs = computed(() => {
-  if (lastDataAt.value === null) return null
-  return now.value - lastDataAt.value
-})
+const lastDataAt    = computed(() => activeWidget.value?.lastDataAt ?? null)
+const isConnected   = computed(() => activeWidget.value?.isConnected ?? true)
+const reconnecting  = computed(() => activeWidget.value?.reconnecting ?? false)
+const elapsedMs     = computed(() => lastDataAt.value === null ? null : now.value - lastDataAt.value)
 
 const freshnessIcon = computed(() => {
   if (!isConnected.value && !reconnecting.value) return '❌'
-  if (reconnecting.value || lastDataAt.value === null) {
-    return oscillating.value ? '🔵' : '🟣'
-  }
+  if (reconnecting.value || lastDataAt.value === null) return oscillating.value ? '🔵' : '🟣'
   const s = elapsedMs.value / 1000
   if (s < 5) return '🟢'
   if (s < 60) return '🟡'
   return '🔴'
 })
-
 </script>
 
 <style scoped>
@@ -87,7 +122,9 @@ const freshnessIcon = computed(() => {
   background: #2d2d2d;
   border-bottom: 1px solid #333;
   cursor: move;
-  gap: 8px;
+  gap: 6px;
+  /* Smooth transition when link color applied */
+  transition: border-bottom-color 0.15s, box-shadow 0.15s;
 }
 
 .widget-title {
@@ -95,12 +132,59 @@ const freshnessIcon = computed(() => {
   font-weight: 600;
   color: #fff;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* ── Link color selector ── */
+.link-color-selector {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+.color-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.1s, border-color 0.1s;
+  font-size: 9px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.color-swatch:hover { transform: scale(1.3); border-color: rgba(255,255,255,0.5); }
+.color-swatch--active { border: 2px solid #fff; transform: scale(1.2); }
+
+.color-swatch--none {
+  background: #333;
+  color: #666;
+  font-size: 10px;
+}
+.color-swatch--none.color-swatch--active { color: #aaa; }
+
+/* ── Link dot (locked mode) ── */
+.link-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* ── Freshness + close ── */
+.freshness-icon {
+  font-size: 14px;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .close-btn {
@@ -116,21 +200,12 @@ const freshnessIcon = computed(() => {
   align-items: center;
   justify-content: center;
   border-radius: 3px;
+  flex-shrink: 0;
 }
-
-.close-btn:hover {
-  background: #3d3d3d;
-  color: #fff;
-}
+.close-btn:hover { background: #3d3d3d; color: #fff; }
 
 .widget-content {
   flex: 1;
   overflow: auto;
-}
-
-.freshness-icon {
-  font-size: 14px;
-  line-height: 1;
-  user-select: none;
 }
 </style>
