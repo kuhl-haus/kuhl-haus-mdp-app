@@ -68,6 +68,11 @@
             class="btn-icon"
             :title="isLocked ? 'Unlock layout (edit mode)' : 'Lock layout'"
         >{{ isLocked ? '🔒' : '✏️' }}</button>
+        <button
+            @click="autosaveEnabled = !autosaveEnabled"
+            :class="['btn-icon', autosaveEnabled ? '' : 'btn-icon--inactive']"
+            :title="autosaveEnabled ? 'Autosave ON — click to disable' : 'Autosave OFF — click to enable'"
+        >{{ autosaveEnabled ? '🔄' : '⏸' }}</button>
         <button @click="exportLayouts" class="btn-icon" title="Export All Layouts">
           📤
         </button>
@@ -219,11 +224,15 @@ const STORAGE_KEY = 'dashboard-layouts'
 const DEFAULT_KEY = 'dashboard-default-layout'
 const LOCK_KEY = 'dashboard-layout-locked'
 const AUTOSAVE_KEY = '__autosave__'
+const AUTOSAVE_ENABLED_KEY = 'dashboard-autosave-enabled'
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
 // Lock mode — default locked to prevent accidental drag/autosave
 const isLocked = ref(localStorage.getItem(LOCK_KEY) !== 'false')
 watch(isLocked, (val) => localStorage.setItem(LOCK_KEY, String(val)))
+
+const autosaveEnabled = ref(localStorage.getItem(AUTOSAVE_ENABLED_KEY) !== 'false')
+watch(autosaveEnabled, (val) => localStorage.setItem(AUTOSAVE_ENABLED_KEY, String(val)))
 
 // State
 const layout = ref([])
@@ -364,6 +373,7 @@ const loadDefaultLayout = () => {
 
 // Auto-save
 const autoSaveLayout = () => {
+  if (!autosaveEnabled.value) return
   if (autoSaveTimeout) {
     clearTimeout(autoSaveTimeout)
   }
@@ -873,6 +883,11 @@ onBeforeUnmount(() => {
 .btn-icon:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.btn-icon--inactive {
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 
 .auto-save-indicator {
