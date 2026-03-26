@@ -3,17 +3,26 @@
 
     <!-- Controls -->
     <div class="news-controls">
-      <input
-        v-model="tickerFilter"
-        type="text"
-        placeholder="Filter by ticker…"
-        class="filter-input"
-      />
-      <select v-model="maxItems" class="filter-select">
-        <option :value="25">25</option>
-        <option :value="50">50</option>
-        <option :value="100">100</option>
-      </select>
+      <!-- R1: has-tickers toggle -->
+      <button
+        :class="['filter-btn', hasTickersOnly ? 'filter-btn--active' : '']"
+        :title="hasTickersOnly ? 'Showing: tickers only — click to show all' : 'Show only articles with tickers'"
+        @click="hasTickersOnly = !hasTickersOnly"
+      >🏷 Tickers only</button>
+
+      <!-- R2: active ticker filter pill -->
+      <span v-if="activeTicker" class="active-ticker-pill">
+        {{ activeTicker }}
+        <button class="pill-clear" @click="activeTicker = null" title="Clear ticker filter">×</button>
+      </span>
+
+      <div class="controls-right">
+        <select v-model="maxItems" class="filter-select">
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+      </div>
     </div>
 
     <!-- Table -->
@@ -47,13 +56,16 @@
               <span
                 v-for="co in usCompanies(item)"
                 :key="co.ticker"
-                class="ticker-tag"
-                @click.stop="$emit('ticker-click', co.ticker)"
+                :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
+                :title="activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`"
+                @click.stop="toggleTickerFilter(co.ticker)"
               >{{ co.ticker }}</span>
             </td>
           </tr>
           <tr v-if="filteredNews.length === 0">
-            <td colspan="4" class="news-empty">No articles yet.</td>
+            <td colspan="4" class="news-empty">
+              {{ newsItems.length === 0 ? 'No articles yet.' : 'No articles match the current filter.' }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -96,8 +108,9 @@
                 class="modal-company"
               >
                 <span
-                  :class="['ticker-tag', isUsTicker(co) ? '' : 'ticker-foreign']"
-                  @click="isUsTicker(co) && $emit('ticker-click', co.ticker)"
+                  :class="['ticker-tag', isUsTicker(co) ? (activeTicker === co.ticker ? 'ticker-tag--active' : '') : 'ticker-foreign']"
+                  :title="isUsTicker(co) ? (activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`) : co.ticker"
+                  @click="isUsTicker(co) && toggleTickerFilter(co.ticker)"
                 >{{ co.ticker }}</span>
                 <span class="company-name">{{ co.name }}</span>
                 <span class="company-exchange">{{ co.primaryListing && co.primaryListing.exchangeCode }}</span>
@@ -116,14 +129,16 @@
  * NewsFeed widget — subscribes to the WDS news:feed:latest channel and
  * displays Enhanced Finlight articles in a table layout with a detail modal.
  *
- * Assumes Enhanced WebSocket messages with companies/entities present.
+ * Filtering:
+ *   R1: "Tickers only" toggle — hides articles with no US-listed companies
+ *   R2: Click a ticker badge to filter the feed to that ticker; click again to clear
  *
  * @prop {string} feedName  - WDS feed to subscribe to
  * @prop {string} cacheKey  - WDS cache key for initial state
  *
  * @emits ticker-click  - Emitted when a US ticker tag is clicked, payload: symbol string
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 const props = defineProps({
@@ -135,11 +150,18 @@ defineEmits(['ticker-click'])
 const appConfig = window.__APP_CONFIG__ || {}
 const MAX_BUFFER = 500
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
+const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
-const newsItems = ref([])
-const tickerFilter = ref('')
-const maxItems = ref(50)
-const selected = ref(null)
+const newsItems     = ref([])
+const maxItems      = ref(50)
+const selected      = ref(null)
+const activeTicker  = ref(null)                                          // R2: ephemeral
+const hasTickersOnly = ref(                                              // R1: persisted
+  localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true'
+)
+
+// Persist R1 toggle
+watch(hasTickersOnly, (val) => localStorage.setItem(LS_HAS_TICKERS_KEY, val))
 
 const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
@@ -148,7 +170,7 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   cacheKey: props.cacheKey,
   onData: (data) => {
     const incoming = (Array.isArray(data) ? data : [data])
-      .filter(item => item && item.title)  // skip auth/subscribe ack messages
+      .filter(item => item && item.title)
     if (!incoming.length) return
     newsItems.value = [...incoming, ...newsItems.value].slice(0, MAX_BUFFER)
   },
@@ -157,7 +179,8 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
 
 defineExpose({ lastDataAt, isConnected, reconnecting })
 
-// Helpers
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 const isUsTicker = (co) => {
   const code = co.primaryListing && co.primaryListing.exchangeCode
   return US_EXCHANGES.has(code)
@@ -196,15 +219,29 @@ const formatDateTime = (ts) => {
 
 const openDetail = (item) => { selected.value = item }
 
-// Filter: match ticker filter against US company tickers in the article
+// R2: toggle ticker filter — same ticker clears, different ticker replaces
+const toggleTickerFilter = (ticker) => {
+  activeTicker.value = activeTicker.value === ticker ? null : ticker
+}
+
+// ── Filtered view ──────────────────────────────────────────────────────────────
+
 const filteredNews = computed(() => {
   let items = newsItems.value
-  const filter = tickerFilter.value.trim().toUpperCase()
-  if (filter) {
+
+  // R1: hide articles with no US-listed tickers
+  if (hasTickersOnly.value) {
+    items = items.filter(item => usCompanies(item).length > 0)
+  }
+
+  // R2: filter to active ticker
+  if (activeTicker.value) {
+    const t = activeTicker.value
     items = items.filter(item =>
-      usCompanies(item).some(co => co.ticker.toUpperCase().includes(filter))
+      usCompanies(item).some(co => co.ticker === t)
     )
   }
+
   return items.slice(0, maxItems.value)
 })
 </script>
@@ -221,25 +258,62 @@ const filteredNews = computed(() => {
 /* ── Controls ── */
 .news-controls {
   display: flex;
+  align-items: center;
   gap: 6px;
   padding: 6px 8px;
   background: #222;
   border-bottom: 1px solid #333;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.filter-input {
-  flex: 1;
-  min-width: 80px;
-  padding: 5px 10px;
+.controls-right {
+  margin-left: auto;
+}
+
+.filter-btn {
+  padding: 4px 10px;
   background: #111;
   border: 1px solid #333;
   border-radius: 3px;
-  color: #e0e0e0;
-  font-size: 13px;
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.filter-btn:hover { background: #1a1a1a; color: #aaa; }
+.filter-btn--active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #a78bfa;
 }
 
-.filter-input:focus { outline: none; border-color: #8b5cf6; }
+/* R2: active ticker pill */
+.active-ticker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 10px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 12px;
+  color: #a78bfa;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill-clear {
+  background: none;
+  border: none;
+  color: #a78bfa;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0 1px;
+  opacity: 0.7;
+}
+.pill-clear:hover { opacity: 1; }
 
 .filter-select {
   padding: 5px 8px;
@@ -299,7 +373,7 @@ const filteredNews = computed(() => {
 }
 
 .col-time  { color: #888; font-size: 13px; font-variant-numeric: tabular-nums; }
-.col-title { color: #ddd; max-width: 0; font-size: 14px; }  /* max-width:0 makes text-overflow work in table */
+.col-title { color: #ddd; max-width: 0; font-size: 14px; }
 .col-source { color: #888; font-size: 13px; }
 .col-tickers { white-space: normal; }
 
@@ -332,10 +406,15 @@ const filteredNews = computed(() => {
   margin: 1px 2px 1px 0;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s;
+  transition: background 0.12s, border-color 0.12s;
 }
 .ticker-tag:hover { background: rgba(139, 92, 246, 0.28); }
-.ticker-tag.ticker-foreign { color: #666; background: transparent; border-color: #333; cursor: default; }
+.ticker-tag--active {
+  background: rgba(139, 92, 246, 0.35);
+  border-color: rgba(139, 92, 246, 0.7);
+  color: #fff;
+}
+.ticker-foreign { color: #666; background: transparent; border-color: #333; cursor: default; }
 
 .news-empty {
   padding: 24px;
