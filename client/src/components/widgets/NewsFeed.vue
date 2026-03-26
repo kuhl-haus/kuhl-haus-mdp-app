@@ -17,8 +17,35 @@
       </span>
     </div>
 
-    <!-- Table -->
-    <div class="news-table-wrap" ref="tableWrap">
+    <!-- Mobile: card list -->
+    <div v-if="isMobile" class="news-card-list">
+      <div
+        v-for="(item, idx) in filteredNews"
+        :key="idx"
+        class="news-card"
+        @click="openDetail(item)"
+      >
+        <div class="news-card-header">
+          <span class="news-card-time">{{ formatTime(item.publishDate) }}</span>
+          <span
+            v-for="co in usCompanies(item)"
+            :key="co.ticker"
+            :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
+            @click.stop="toggleTickerFilter(co.ticker)"
+          >{{ co.ticker }}</span>
+        </div>
+        <div class="news-card-title">
+          <span :class="['sentiment-dot', sentimentClass(item.sentiment)]" :title="item.sentiment"></span>
+          {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span>
+        </div>
+      </div>
+      <div v-if="filteredNews.length === 0" class="news-empty">
+        {{ newsItems.length === 0 ? 'No articles yet.' : 'No articles match the current filter.' }}
+      </div>
+    </div>
+
+    <!-- Desktop: table -->
+    <div v-else class="news-table-wrap" ref="tableWrap">
       <table class="news-table" :style="tableStyle">
         <thead>
           <tr>
@@ -52,9 +79,8 @@
                 :class="['sentiment-dot', sentimentClass(item.sentiment)]"
                 :title="item.sentiment"
               ></span>
-              {{ item.title }}
+              {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span>
             </td>
-            <td class="col-source">{{ shortSource(item.source) }}</td>
             <td class="col-tickers">
               <span
                 v-for="co in usCompanies(item)"
@@ -66,13 +92,13 @@
             </td>
           </tr>
           <tr v-if="filteredNews.length === 0">
-            <td colspan="4" class="news-empty">
+            <td colspan="3" class="news-empty">
               {{ newsItems.length === 0 ? 'No articles yet.' : 'No articles match the current filter.' }}
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
+    </div><!-- end desktop table (v-else) -->
 
     <!-- Detail modal -->
     <Teleport to="body">
@@ -151,6 +177,7 @@ const props = defineProps({
   isLocked:  { type: Boolean, default: true },
   colWidths: { type: Object,  default: () => ({}) },
   linkColor: { type: String,  default: null },
+  isMobile:  { type: Boolean, default: false },
 })
 const emit = defineEmits(['ticker-click', 'update-col-widths'])
 
@@ -161,13 +188,12 @@ const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
 // Default widths (px)
-const DEFAULT_WIDTHS = { time: 90, title: 0, source: 110, tickers: 130 }
+const DEFAULT_WIDTHS = { time: 90, title: 0, tickers: 130 }
 // title=0 means "auto" — fills remaining space via table-layout:fixed percentage trick
 
 const columns = [
   { key: 'time',    label: 'Time'     },
   { key: 'title',   label: 'Headline' },
-  { key: 'source',  label: 'Source'   },
   { key: 'tickers', label: 'Tickers'  },
 ]
 
@@ -449,7 +475,6 @@ const filteredNews = computed(() => {
 
 .col-time   { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .col-title  { color: #ddd; font-size: 13px; line-height: 1.4; }
-.col-source { color: #888; font-size: 12px; }
 .col-tickers { white-space: normal; vertical-align: top; }
 
 /* Sentiment dot */
@@ -467,6 +492,14 @@ const filteredNews = computed(() => {
 .sentiment-dot.positive { background: #22c55e; }
 .sentiment-dot.negative { background: #ef4444; }
 .sentiment-dot.neutral  { background: #555; }
+
+/* Inline source in headline */
+.headline-source {
+  color: #555;
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 2px;
+}
 
 /* Ticker tags */
 .ticker-tag {
@@ -598,4 +631,44 @@ const filteredNews = computed(() => {
 .modal-company { display: flex; align-items: center; gap: 8px; }
 .company-name     { font-size: 12px; color: #999; flex: 1; }
 .company-exchange { font-size: 10px; color: #555; }
+
+/* ── Mobile card layout ── */
+.news-card-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.news-card {
+  padding: 7px 8px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.news-card:hover { background: #222; }
+
+.news-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.news-card-time {
+  font-size: 11px;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.news-card-title {
+  font-size: 13px;
+  color: #ddd;
+  line-height: 1.4;
+}
 </style>

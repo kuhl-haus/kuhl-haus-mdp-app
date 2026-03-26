@@ -1,5 +1,5 @@
 <template>
-  <div class="widget-wrapper">
+  <div :class="['widget-wrapper', isMobile ? 'widget-wrapper--mobile' : '']">
     <div
       class="widget-header"
       :style="linkColor ? { borderBottom: `1px solid ${linkColorHex}`, boxShadow: `0 1px 0 0 ${linkColorHex}` } : {}"
@@ -43,6 +43,7 @@
         :is-locked="isLocked"
         :col-widths="colWidths"
         :link-color="linkColor"
+        :is-mobile="isMobile"
         @update-col-widths="$emit('update-col-widths', $event)"
       />
     </div>
@@ -58,11 +59,12 @@ import NewsFeed from './widgets/NewsFeed.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
-  widgetId:  { type: String,  required: true },
-  widgetType: { type: String, required: true },
-  isLocked:  { type: Boolean, default: true },
-  colWidths: { type: Object,  default: () => ({}) },
-  linkColor: { type: String,  default: null },
+  widgetId:   { type: String,  required: true },
+  widgetType: { type: String,  required: true },
+  isLocked:   { type: Boolean, default: true },
+  colWidths:  { type: Object,  default: () => ({}) },
+  linkColor:  { type: String,  default: null },
+  isMobile:   { type: Boolean, default: false },
 })
 defineEmits(['close', 'update-col-widths', 'update-link-color'])
 
@@ -207,5 +209,12 @@ const freshnessIcon = computed(() => {
 .widget-content {
   flex: 1;
   overflow: auto;
+}
+
+/* Mobile: fixed heights so widgets don't collapse */
+.widget-wrapper--mobile {
+  height: auto;
+  min-height: 320px;
+  max-height: 480px;
 }
 </style>
