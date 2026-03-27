@@ -299,7 +299,11 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   onData: (data) => {
     const incoming = (Array.isArray(data) ? data : [data]).filter(item => item && item.title)
     if (!incoming.length) return
-    newsItems.value = [...incoming, ...newsItems.value]
+    // Dedup by link — prevents duplicates from cache load + live pub/sub overlap
+    const seen = new Set(newsItems.value.map(a => a.link))
+    const fresh = incoming.filter(a => !seen.has(a.link))
+    if (!fresh.length) return
+    newsItems.value = [...fresh, ...newsItems.value]
   },
   autoConnect: true,
 })
