@@ -101,6 +101,7 @@ th {
   background: #2d2d2d;
   position: sticky;
   top: 0;
+  z-index: 1;
   padding: 10px 8px;
   font-size: 13px;
   font-weight: 600;
@@ -122,6 +123,7 @@ td {
   padding: 8px;
   font-size: 13px;
   border-bottom: 1px solid #2a2a2a;
+  position: relative;
 }
 
 tr:hover {

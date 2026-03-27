@@ -1235,6 +1235,7 @@ onBeforeUnmount(() => {
   .custom-select--mobile {
     min-width: 110px;
     max-width: 150px;
+    position: relative;
   }
 
   .custom-select--mobile .select-trigger {
@@ -1244,6 +1245,7 @@ onBeforeUnmount(() => {
 
   .custom-select--mobile .select-dropdown {
     font-size: 12px;
+    z-index: 9999;
   }
 
   .mobile-stack {
