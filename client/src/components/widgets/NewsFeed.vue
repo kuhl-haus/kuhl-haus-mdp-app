@@ -504,7 +504,7 @@ const filteredNews = computed(() => {
   overflow-wrap: break-word;
 }
 
-.col-time   { color: #888; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.col-time   { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .col-sorted { color: #a78bfa !important; }
 
