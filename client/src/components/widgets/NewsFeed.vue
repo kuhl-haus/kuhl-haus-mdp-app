@@ -10,6 +10,15 @@
         @click="hasTickersOnly = !hasTickersOnly"
       >🏷 Tickers only</button>
 
+      <!-- Search input -->
+      <input
+        v-model.trim="searchQuery"
+        type="search"
+        placeholder="Search headlines…"
+        class="search-input"
+        @keydown.escape="searchQuery = ''"
+      />
+
       <!-- R2: active ticker filter pill -->
       <span v-if="activeTicker" class="active-ticker-pill">
         {{ activeTicker }}
@@ -210,6 +219,7 @@ const cycleSort = (colKey) => {
 const newsItems      = ref([])
 const selected       = ref(null)
 const activeTicker   = ref(null)
+const searchQuery    = ref('')
 const hasTickersOnly = ref(localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true')
 const tableWrap      = ref(null)
 
@@ -356,6 +366,16 @@ const filteredNews = computed(() => {
     items = items.filter(item => usCompanies(item).some(co => co.ticker === t))
   }
 
+  // Search: filter by headline, source, or ticker symbol
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    items = items.filter(item =>
+      item.title?.toLowerCase().includes(q) ||
+      item.source?.toLowerCase().includes(q) ||
+      usCompanies(item).some(co => co.ticker.toLowerCase().includes(q))
+    )
+  }
+
   // Sort
   const key = sortKey.value
   const dir = sortDir.value === 'asc' ? 1 : -1
@@ -415,6 +435,20 @@ const filteredNews = computed(() => {
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 .filter-btn:hover { background: #1a1a1a; color: #aaa; }
+
+.search-input {
+  flex: 1;
+  min-width: 80px;
+  max-width: 200px;
+  padding: 4px 8px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #e0e0e0;
+  font-size: 12px;
+}
+.search-input:focus { outline: none; border-color: #8b5cf6; }
+.search-input::placeholder { color: #555; }
 .filter-btn--active {
   background: rgba(139, 92, 246, 0.15);
   border-color: rgba(139, 92, 246, 0.5);
