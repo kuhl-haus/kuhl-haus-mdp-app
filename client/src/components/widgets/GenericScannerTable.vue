@@ -187,5 +187,5 @@ tr:hover {
 .fifty-percent-gainer { background: rgba(50, 4, 141, 0.9); }
 .hundred-percent-gainer { background: rgba(136, 4, 141, 0.9); }
 
-tr.row-active { outline: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.06) !important; }
+tr.row-active { outline: 1px solid #a78bfa; outline-offset: -1px; background: transparent !important; }
 </style>
