@@ -6,6 +6,7 @@ export function useWebSocketClient(config = {}) {
     authKey: initialAuthKey = 'secret',
     feedName: initialFeedName = '',
     cacheKey: initialCacheKey = '',
+    cacheLimit: initialCacheLimit = 0,
     onData = null,
     autoReconnect = true,
     reconnectBaseMs = 1000,
@@ -22,6 +23,7 @@ export function useWebSocketClient(config = {}) {
   const authKey = ref(initialAuthKey)
   const feedName = ref(initialFeedName)
   const cacheKey = ref(initialCacheKey)
+  const cacheLimit = ref(initialCacheLimit)
   const reconnecting = ref(false)
   const reconnectAttempts = ref(0)
   let reconnectTimer = null
@@ -72,13 +74,15 @@ export function useWebSocketClient(config = {}) {
     sendMessage({ action: 'unsubscribe', feed })
   }
 
-  function getCache() {
+  function getCache(limit = 0) {
     const key = cacheKey.value.trim()
     if (!key) {
       logMessage('✗ ERROR: Cache key is required', 'error')
       return
     }
-    sendMessage({ action: 'get', cache: key })
+    const msg = { action: 'get', cache: key }
+    if (limit > 0) msg.limit = limit
+    sendMessage(msg)
   }
 
   function scheduleReconnect() {
@@ -168,7 +172,7 @@ export function useWebSocketClient(config = {}) {
     if (connected && socket && socket.readyState === WebSocket.OPEN) {
       sendAuth()
       if (cacheKey.value) {
-        getCache()
+        getCache(cacheLimit.value)
       }
       if (feedName.value) {
         subscribe()
@@ -206,6 +210,7 @@ export function useWebSocketClient(config = {}) {
     sendAuth,
     subscribe,
     unsubscribe,
-    getCache
+    getCache,
+    cacheLimit
   }
 }
