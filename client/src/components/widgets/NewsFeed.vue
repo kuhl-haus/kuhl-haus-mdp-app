@@ -24,6 +24,16 @@
         {{ activeTicker }}
         <button class="pill-clear" @click="activeTicker = null" title="Clear ticker filter">×</button>
       </span>
+
+      <!-- Article count -->
+      <span class="article-count">
+        <template v-if="filteredNews.length !== newsItems.length">
+          {{ filteredNews.length }} / {{ newsItems.length }}
+        </template>
+        <template v-else>
+          {{ newsItems.length }}
+        </template>
+      </span>
     </div>
 
     <!-- Mobile: card list -->
@@ -453,6 +463,14 @@ const filteredNews = computed(() => {
   background: rgba(139, 92, 246, 0.15);
   border-color: rgba(139, 92, 246, 0.5);
   color: #a78bfa;
+}
+
+.article-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: #555;
+  white-space: nowrap;
+  padding: 2px 6px;
 }
 
 .active-ticker-pill {
