@@ -238,7 +238,12 @@ const searchQuery    = ref('')
 const LS_MAX_ARTICLES_KEY = 'newsfeed:maxArticles'
 const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000]
 const maxArticles = ref(parseInt(localStorage.getItem(LS_MAX_ARTICLES_KEY) || '1000', 10))
-watch(maxArticles, v => localStorage.setItem(LS_MAX_ARTICLES_KEY, String(v)))
+watch(maxArticles, v => {
+  localStorage.setItem(LS_MAX_ARTICLES_KEY, String(v))
+  cacheLimit.value = v
+  newsItems.value = []
+  getCache(v)
+})
 const hasTickersOnly = ref(localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true')
 const tableWrap      = ref(null)
 
@@ -320,11 +325,12 @@ onUnmounted(() => {
 
 // ── WebSocket ──────────────────────────────────────────────────────────────────
 
-const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
+const { lastDataAt, isConnected, reconnecting, getCache, cacheLimit } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey: appConfig.apiKey || 'secret',
   feedName: props.feedName,
   cacheKey: props.cacheKey,
+  cacheLimit: maxArticles.value,
   onData: (data) => {
     const incoming = (Array.isArray(data) ? data : [data]).filter(item => item && item.title)
     if (!incoming.length) return
