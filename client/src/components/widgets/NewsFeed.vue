@@ -34,6 +34,11 @@
           {{ newsItems.length }}
         </template>
       </span>
+
+      <!-- Max articles selector -->
+      <select v-model.number="maxArticles" class="max-articles-select" title="Max articles loaded">
+        <option v-for="n in MAX_ARTICLES_OPTIONS" :key="n" :value="n">{{ n }}</option>
+      </select>
     </div>
 
     <!-- Mobile: card list -->
@@ -230,6 +235,10 @@ const newsItems      = ref([])
 const selected       = ref(null)
 const activeTicker   = ref(null)
 const searchQuery    = ref('')
+const LS_MAX_ARTICLES_KEY = 'newsfeed:maxArticles'
+const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000]
+const maxArticles = ref(parseInt(localStorage.getItem(LS_MAX_ARTICLES_KEY) || '1000', 10))
+watch(maxArticles, v => localStorage.setItem(LS_MAX_ARTICLES_KEY, String(v)))
 const hasTickersOnly = ref(localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true')
 const tableWrap      = ref(null)
 
@@ -323,7 +332,8 @@ const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
     const seen = new Set(newsItems.value.map(a => a.link))
     const fresh = incoming.filter(a => !seen.has(a.link))
     if (!fresh.length) return
-    newsItems.value = [...fresh, ...newsItems.value]
+    const combined = [...fresh, ...newsItems.value]
+    newsItems.value = combined.slice(0, maxArticles.value)
   },
   autoConnect: true,
 })
@@ -459,6 +469,17 @@ const filteredNews = computed(() => {
 }
 .search-input:focus { outline: none; border-color: #8b5cf6; }
 .search-input::placeholder { color: #555; }
+
+.max-articles-select {
+  padding: 3px 6px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+}
+.max-articles-select:focus { outline: none; border-color: #8b5cf6; }
 .filter-btn--active {
   background: rgba(139, 92, 246, 0.15);
   border-color: rgba(139, 92, 246, 0.5);
