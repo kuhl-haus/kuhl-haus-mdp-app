@@ -535,7 +535,7 @@ const filteredNews = computed(() => {
 /* ── Table ── */
 .news-table-wrap {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .news-table {
