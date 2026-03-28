@@ -33,6 +33,7 @@ const availableWidgets = [
   { type: 'top-volume', label: 'Top Volume', icon: '📊' },
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
   { type: 'news-feed-fast', label: 'News Feed Fast', icon: '⚡' },
+  { type: 'news-feed-v2', label: 'News Feed V2', icon: '🗞️' },
 ]
 
 const selectWidget = (widgetType) => {

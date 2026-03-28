@@ -57,6 +57,7 @@ import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
 import NewsFeedFast from './widgets/NewsFeedFast.vue'
+import NewsFeedV2 from './widgets/NewsFeedV2.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
@@ -75,6 +76,7 @@ const widgetComponents = {
   'top-gappers': TopGappers,
   'news-feed':   NewsFeed,
   'news-feed-fast': NewsFeedFast,
+  'news-feed-v2':   NewsFeedV2,
 }
 
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
