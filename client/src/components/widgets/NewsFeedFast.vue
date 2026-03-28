@@ -828,7 +828,7 @@ const filteredNews = computed(() => {
 .vs-row {
   display: flex;
   align-items: center;
-  height: 40px;
+  height: 28px;
   border-bottom: 1px solid #1a1a1a;
   cursor: pointer;
 }
@@ -840,6 +840,7 @@ const filteredNews = computed(() => {
   white-space: nowrap;
   flex-shrink: 0;
   font-size: 12px;
+  line-height: 1.2;
 }
 
 .vs-td.col-title {
