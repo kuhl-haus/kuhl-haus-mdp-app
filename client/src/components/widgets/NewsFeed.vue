@@ -236,7 +236,7 @@ const selected       = ref(null)
 const activeTicker   = ref(null)
 const searchQuery    = ref('')
 const LS_MAX_ARTICLES_KEY = 'newsfeed:maxArticles'
-const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000]
+const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000, 4000, 8000, 10000]
 const maxArticles = ref(parseInt(localStorage.getItem(LS_MAX_ARTICLES_KEY) || '1000', 10))
 watch(maxArticles, v => {
   localStorage.setItem(LS_MAX_ARTICLES_KEY, String(v))
