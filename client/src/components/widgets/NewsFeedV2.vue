@@ -116,16 +116,13 @@
                   :class="['sentiment-dot', sentimentClass(item.sentiment)]"
                   :title="item.sentiment"
                 ></span>
-                <span class="vs-headline">{{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span></span>
-                <div class="vs-tickers">
-                  <span
-                    v-for="co in usCompanies(item)"
-                    :key="co.ticker"
-                    :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
-                    :title="activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`"
-                    @click.stop="toggleTickerFilter(co.ticker)"
-                  >{{ co.ticker }}</span>
-                </div>
+                <span class="vs-headline">{{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span></span><span
+                  v-for="co in usCompanies(item)"
+                  :key="co.ticker"
+                  :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
+                  :title="activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`"
+                  @click.stop="toggleTickerFilter(co.ticker)"
+                >{{ co.ticker }}</span>
               </div>
             </div>
           </DynamicScrollerItem>
@@ -856,7 +853,9 @@ const filteredNews = computed(() => {
 
 .vs-td.col-title {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: 4px;
   min-width: 0;
   flex: 1;
@@ -869,9 +868,4 @@ const filteredNews = computed(() => {
   word-break: break-word;
 }
 
-.vs-tickers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
 </style>
