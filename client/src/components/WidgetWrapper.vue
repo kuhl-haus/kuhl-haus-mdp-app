@@ -4,7 +4,22 @@
       class="widget-header"
       :style="linkColor ? { borderBottom: `1px solid ${linkColorHex}`, boxShadow: `0 1px 0 0 ${linkColorHex}` } : {}"
     >
-      <span class="widget-title">{{ widgetType }}</span>
+      <!-- Title: editable when unlocked, double-click to edit -->
+      <input
+        v-if="isEditingTitle"
+        ref="titleInput"
+        v-model="editingLabel"
+        class="widget-title widget-title--input"
+        @blur="commitLabel"
+        @keyup.enter="commitLabel"
+        @keyup.escape="cancelLabel"
+      />
+      <span
+        v-else
+        class="widget-title"
+        :title="!isLocked ? 'Double-click to rename' : ''"
+        @dblclick="!isLocked && startEditLabel()"
+      >{{ userLabel || widgetType }}</span>
 
       <!-- Link color selector — only when unlocked -->
       <div v-if="!isLocked" class="link-color-selector">
@@ -53,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import TopVolume from './widgets/TopVolume.vue'
 import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
@@ -70,8 +85,8 @@ const props = defineProps({
   linkColor:  { type: String,  default: null },
   isMobile:   { type: Boolean, default: false },
   settings:   { type: Object,  default: () => ({}) },
+  userLabel:  { type: String,  default: '' },
 })
-defineEmits(['close', 'update-col-widths', 'update-link-color', 'update-settings'])
 
 const widgetComponents = {
   'top-gainers': TopGainers,
@@ -85,6 +100,28 @@ const widgetComponents = {
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
 
 const linkColorHex = computed(() => props.linkColor ? LINK_COLOR_MAP[props.linkColor] : null)
+
+// ── Inline label editing ──
+const isEditingTitle = ref(false)
+const editingLabel = ref('')
+const titleInput = ref(null)
+const emit = defineEmits(['close', 'update-col-widths', 'update-link-color', 'update-settings', 'update-label'])
+
+const startEditLabel = () => {
+  editingLabel.value = props.userLabel || ''
+  isEditingTitle.value = true
+  nextTick(() => titleInput.value?.select())
+}
+const commitLabel = () => {
+  isEditingTitle.value = false
+  const val = editingLabel.value.trim()
+  if (val !== props.userLabel) {
+    emit('update-label', val)
+  }
+}
+const cancelLabel = () => {
+  isEditingTitle.value = false
+}
 
 // Freshness tracking
 const activeWidget = ref(null)
@@ -144,6 +181,15 @@ const freshnessIcon = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.widget-title--input {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #fff;
+  padding: 1px 4px;
+  outline: none;
+  min-width: 0;
 }
 
 /* ── Link color selector ── */
