@@ -233,10 +233,12 @@
             :is-locked="true"
             :col-widths="item.colWidths || {}"
             :link-color="item.linkColor || null"
+            :settings="item.settings || {}"
             :is-mobile="true"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
             @update-link-color="(c) => updateLinkColor(item.i, c)"
+            @update-settings="(s) => updateSettings(item.i, s)"
         />
       </div>
     </div>
@@ -268,10 +270,12 @@
             :is-locked="isLocked"
             :col-widths="item.colWidths || {}"
             :link-color="item.linkColor || null"
+            :settings="item.settings || {}"
             :is-mobile="false"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
             @update-link-color="(c) => updateLinkColor(item.i, c)"
+            @update-settings="(s) => updateSettings(item.i, s)"
         />
       </GridItem>
     </GridLayout>
@@ -762,6 +766,14 @@ const updateColWidths = (widgetId, colWidths) => {
   const item = layout.value.find(i => i.i === widgetId)
   if (item) {
     item.colWidths = { ...colWidths }
+    autoSaveLayout()
+  }
+}
+
+const updateSettings = (widgetId, settings) => {
+  const item = layout.value.find(i => i.i === widgetId)
+  if (item) {
+    item.settings = { ...settings }
     autoSaveLayout()
   }
 }

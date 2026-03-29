@@ -44,7 +44,9 @@
         :col-widths="colWidths"
         :link-color="linkColor"
         :is-mobile="isMobile"
+        :settings="settings"
         @update-col-widths="$emit('update-col-widths', $event)"
+        @update-settings="$emit('update-settings', $event)"
       />
     </div>
   </div>
@@ -67,8 +69,9 @@ const props = defineProps({
   colWidths:  { type: Object,  default: () => ({}) },
   linkColor:  { type: String,  default: null },
   isMobile:   { type: Boolean, default: false },
+  settings:   { type: Object,  default: () => ({}) },
 })
-defineEmits(['close', 'update-col-widths', 'update-link-color'])
+defineEmits(['close', 'update-col-widths', 'update-link-color', 'update-settings'])
 
 const widgetComponents = {
   'top-gainers': TopGainers,
