@@ -234,11 +234,13 @@
             :col-widths="item.colWidths || {}"
             :link-color="item.linkColor || null"
             :settings="item.settings || {}"
+            :user-label="item.userLabel || ''"
             :is-mobile="true"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
             @update-link-color="(c) => updateLinkColor(item.i, c)"
             @update-settings="(s) => updateSettings(item.i, s)"
+            @update-label="(l) => updateLabel(item.i, l)"
         />
       </div>
     </div>
@@ -271,11 +273,13 @@
             :col-widths="item.colWidths || {}"
             :link-color="item.linkColor || null"
             :settings="item.settings || {}"
+            :user-label="item.userLabel || ''"
             :is-mobile="false"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
             @update-link-color="(c) => updateLinkColor(item.i, c)"
             @update-settings="(s) => updateSettings(item.i, s)"
+            @update-label="(l) => updateLabel(item.i, l)"
         />
       </GridItem>
     </GridLayout>
@@ -774,6 +778,14 @@ const updateSettings = (widgetId, settings) => {
   const item = layout.value.find(i => i.i === widgetId)
   if (item) {
     item.settings = { ...settings }
+    autoSaveLayout()
+  }
+}
+
+const updateLabel = (widgetId, label) => {
+  const item = layout.value.find(i => i.i === widgetId)
+  if (item) {
+    item.userLabel = label || ''
     autoSaveLayout()
   }
 }
