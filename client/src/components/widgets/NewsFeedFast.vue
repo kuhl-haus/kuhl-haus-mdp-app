@@ -100,7 +100,7 @@
         v-else
         class="vs-scroller"
         :items="filteredNews"
-        :item-size="40"
+        :item-size="22"
         key-field="link"
         v-slot="{ item }"
       >
@@ -828,19 +828,19 @@ const filteredNews = computed(() => {
 .vs-row {
   display: flex;
   align-items: center;
-  height: 28px;
-  border-bottom: 1px solid #1a1a1a;
+  height: 22px;
+  border-bottom: 1px solid #111;
   cursor: pointer;
 }
 .vs-row:hover { background: #111; }
 
 .vs-td {
-  padding: 0 8px;
+  padding: 0 6px;
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 0;
   font-size: 12px;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .vs-td.col-title {
