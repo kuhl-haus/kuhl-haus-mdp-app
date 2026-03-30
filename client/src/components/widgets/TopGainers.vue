@@ -57,14 +57,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import GenericScannerTable from './GenericScannerTable.vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 
+const emit = defineEmits(['update-settings'])
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
   linkColor: { type: String,  default: null },
+  isMobile:  { type: Boolean, default: false },
+  settings:  { type: Object,  default: () => ({}) },
 })
 
 const appConfig = window.__APP_CONFIG__ || {}
@@ -78,12 +81,20 @@ const toNum = (val) => {
 
 const sortKey = ref('pct_change_since_open')
 const sortDir = ref('desc')
-const volumeThreshold = ref('100')
-const relVolumeThreshold = ref('5')
-const minPriceThreshold = ref(2)
-const maxPriceThreshold = ref(20)
-const minChangePercent = ref(10)
+const volumeThreshold = ref(props.settings.volumeThreshold ?? '100')
+const relVolumeThreshold = ref(props.settings.relVolumeThreshold ?? '5')
+const minPriceThreshold = ref(props.settings.minPriceThreshold ?? 2)
+const maxPriceThreshold = ref(props.settings.maxPriceThreshold ?? 20)
+const minChangePercent = ref(props.settings.minChangePercent ?? 10)
 
+
+// Persist filter settings to layout
+watch(
+  [() => volumeThreshold.value, () => relVolumeThreshold.value, () => minPriceThreshold.value, () => maxPriceThreshold.value, () => minChangePercent.value],
+  () => {
+    emit('update-settings', { volumeThreshold: volumeThreshold.value, relVolumeThreshold: relVolumeThreshold.value, minPriceThreshold: minPriceThreshold.value, maxPriceThreshold: maxPriceThreshold.value, minChangePercent: minChangePercent.value })
+  }
+)
 const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey: appConfig.apiKey || 'secret',
