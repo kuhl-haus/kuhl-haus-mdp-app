@@ -192,7 +192,7 @@
  * @emits update-col-widths   - Column widths changed, payload: { time, title, source, tickers }
  */
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { useWidgetBus } from '@/composables/useWidgetBus.js'
+import { useWidgetBus, setNewsTimestamp } from '@/composables/useWidgetBus.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
@@ -345,6 +345,15 @@ const { lastDataAt, isConnected, reconnecting, getCache, cacheLimit } = useWebSo
     const seen = new Set(newsItems.value.map(a => a.link))
     const fresh = incoming.filter(a => !seen.has(a.link))
     if (!fresh.length) return
+    // Update news freshness timestamps for scanner widgets
+    for (const article of fresh) {
+      const ts = article.publishDate ? new Date(article.publishDate).getTime() : Date.now()
+      if (isFinite(ts)) {
+        for (const co of article.companies ?? []) {
+          if (co.ticker) setNewsTimestamp(co.ticker, ts)
+        }
+      }
+    }
     const combined = [...fresh, ...newsItems.value]
     newsItems.value = combined.slice(0, maxArticles.value)
   },
