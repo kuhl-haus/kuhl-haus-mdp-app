@@ -808,17 +808,18 @@ const filteredNews = computed(() => {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #0d0d0d;
-  border-bottom: 1px solid #222;
-  font-size: 11px;
-  color: #666;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   user-select: none;
 }
 
 .vs-th {
-  padding: 6px 8px;
+  padding: 3px 8px;
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 0;
