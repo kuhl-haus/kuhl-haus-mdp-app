@@ -3,13 +3,21 @@
     <thead>
     <tr>
       <th
-          v-for="col in columns"
+          v-for="col in visibleColumns"
           :key="col.key"
           @click="$emit('sort', col.key)"
           :class="{ sorted: sortKey === col.key }"
+          :style="colStyle(col)"
+          style="position: relative;"
       >
         <span v-html="col.label"></span>
         <span v-if="sortKey === col.key">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+        <span
+          v-if="!isLocked"
+          class="col-resize-handle"
+          @mousedown.prevent="startResize($event, col.key)"
+          title="Drag to resize"
+        ></span>
       </th>
     </tr>
     </thead>
@@ -21,7 +29,7 @@
         style="cursor:pointer"
         @click="$emit('row-click', row)"
     >
-      <td v-for="col in columns" :key="col.key" :class="getCellClass(col, row)">
+      <td v-for="col in visibleColumns" :key="col.key" :class="getCellClass(col, row)">
         <template v-if="col.render">
           <component :is="col.render(row)" />
         </template>
@@ -51,19 +59,57 @@
 </template>
 
 <script setup>
-import { h } from 'vue'
+import { h, ref, watch, computed, onUnmounted } from 'vue'
 import { getFlameVariant, getFlameTooltip, newsTimestamps } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
-  data: { type: Array, required: true },
-  columns: { type: Array, required: true },
-  sortKey: { type: String, default: '' },
-  sortDir: { type: String, default: 'asc' },
+  data:       { type: Array,   required: true },
+  columns:    { type: Array,   required: true },
+  sortKey:    { type: String,  default: '' },
+  sortDir:    { type: String,  default: 'asc' },
   rowClassFn: { type: Function, default: null },
   activeTicker: { type: String, default: null },
+  isLocked:   { type: Boolean, default: true },
+  colWidths:  { type: Object,  default: () => ({}) },
+  hiddenCols: { type: Array,   default: () => [] },
 })
 
-defineEmits(['sort', 'row-click'])
+const emit = defineEmits(['sort', 'row-click', 'update-col-widths'])
+
+// ── Column widths & resize ────────────────────────────────────────────────────
+const localWidths = ref({ ...props.colWidths })
+watch(() => props.colWidths, (v) => { if (v) localWidths.value = { ...v } })
+
+const colStyle = (col) => {
+  const w = localWidths.value[col.key]
+  return w ? { width: `${w}px`, minWidth: `${w}px` } : {}
+}
+
+let resizeState = null
+const startResize = (e, colKey) => {
+  if (props.isLocked) return
+  const startWidth = localWidths.value[colKey] || e.target.closest('th')?.offsetWidth || 80
+  resizeState = { colKey, startX: e.clientX, startWidth }
+  const onMove = (me) => {
+    if (!resizeState) return
+    const newWidth = Math.max(40, resizeState.startWidth + me.clientX - resizeState.startX)
+    localWidths.value = { ...localWidths.value, [resizeState.colKey]: newWidth }
+  }
+  const onUp = () => {
+    resizeState = null
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onUp)
+    emit('update-col-widths', { ...localWidths.value })
+  }
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onUp)
+}
+onUnmounted(() => { resizeState = null })
+
+// Filter visible columns
+const visibleColumns = computed(() =>
+  props.columns.filter(col => !props.hiddenCols.includes(col.key))
+)
 
 // ── Flame freshness icons ──────────────────────────────────────────────────────
 const FLAME_SRCS = {
@@ -183,6 +229,22 @@ tr:hover {
   display: inline-block;
   vertical-align: middle;
   flex-shrink: 0;
+}
+
+/* ── Column resize handle ── */
+.col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 1;
+}
+.col-resize-handle:hover,
+.col-resize-handle:active {
+  background: rgba(139, 92, 246, 0.5);
 }
 
 .close, .prev_day_close, .change, .prev_day_volume, .avg_volume {

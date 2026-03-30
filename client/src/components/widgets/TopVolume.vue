@@ -43,6 +43,25 @@
         <input type="checkbox" v-model="showGappersOnly" />
         Gappers Only
       </label>
+      <!-- Column visibility gear menu -->
+      <div class="col-menu-wrap" ref="colMenuRef">
+        <button class="col-menu-btn" @click="showColMenu = !showColMenu" title="Show/hide columns">⚙️</button>
+        <div v-if="showColMenu" class="col-menu-popover">
+          <div class="col-menu-title">Columns</div>
+          <label v-for="col in columns" :key="col.key" class="col-menu-item">
+            <input
+              type="checkbox"
+              :checked="!hiddenCols.includes(col.key)"
+              :disabled="col.key === 'symbol'"
+              @change="e => {
+                if (e.target.checked) hiddenCols.value = hiddenCols.value.filter(k => k !== col.key)
+                else if (col.key !== 'symbol') hiddenCols.value = [...hiddenCols.value, col.key]
+              }"
+            />
+            {{ col.label }}
+          </label>
+        </div>
+      </div>
     </div>
 
     <GenericScannerTable
@@ -52,6 +71,10 @@
         :sort-dir="sortDir"
         :row-class-fn="getRowClass"
         :active-ticker="activeTicker"
+        :is-locked="isLocked"
+        :col-widths="colWidths"
+        :hidden-cols="hiddenCols"
+        @update-col-widths="$emit('update-col-widths', $event)"
         @sort="sortBy"
         @row-click="onRowClick"
     />
@@ -59,14 +82,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import GenericScannerTable from './GenericScannerTable.vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 
-const emit = defineEmits(['update-settings'])
+const emit = defineEmits(['update-settings', 'update-col-widths'])
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
+  colWidths:  { type: Object,  default: () => ({}) },
   linkColor: { type: String,  default: null },
   isMobile:  { type: Boolean, default: false },
   settings:  { type: Object,  default: () => ({}) },
@@ -90,11 +114,26 @@ const minPriceThreshold = ref(props.settings.minPriceThreshold ?? 2)
 const maxPriceThreshold = ref(props.settings.maxPriceThreshold ?? 20)
 
 
+// Column visibility
+const hiddenCols = ref(props.settings.hiddenCols ?? [])
+const showColMenu = ref(false)
+const colMenuRef = ref(null)
+
+const handleClickOutside = (e) => {
+  if (colMenuRef.value && !colMenuRef.value.contains(e.target)) {
+    showColMenu.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', handleClickOutside))
+onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
+
+
 // Persist filter settings to layout
 watch(
-  [() => volumeThreshold.value, () => relVolumeThreshold.value, () => showGappersOnly.value, () => minPriceThreshold.value, () => maxPriceThreshold.value],
+  [() => hiddenCols.value,
+   () => volumeThreshold.value, () => relVolumeThreshold.value, () => showGappersOnly.value, () => minPriceThreshold.value, () => maxPriceThreshold.value],
   () => {
-    emit('update-settings', { volumeThreshold: volumeThreshold.value, relVolumeThreshold: relVolumeThreshold.value, showGappersOnly: showGappersOnly.value, minPriceThreshold: minPriceThreshold.value, maxPriceThreshold: maxPriceThreshold.value })
+    emit('update-settings', { hiddenCols: hiddenCols.value, volumeThreshold: volumeThreshold.value, relVolumeThreshold: relVolumeThreshold.value, showGappersOnly: showGappersOnly.value, minPriceThreshold: minPriceThreshold.value, maxPriceThreshold: maxPriceThreshold.value })
   }
 )
 const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
@@ -268,4 +307,54 @@ const getRowClass = (row) => {
   height: 100%;
   overflow: auto;
 }
+.col-menu-wrap {
+  position: relative;
+}
+
+.col-menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.col-menu-btn:hover { background: #2a2a2a; }
+
+.col-menu-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px;
+  min-width: 160px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.col-menu-title {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.col-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #ccc;
+  padding: 3px 0;
+  cursor: pointer;
+  user-select: none;
+}
+.col-menu-item input { cursor: pointer; }
+.col-menu-item:has(input:disabled) { opacity: 0.4; cursor: default; }
 </style>
