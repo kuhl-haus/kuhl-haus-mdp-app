@@ -114,6 +114,11 @@ const maxPriceThreshold = ref(props.settings.maxPriceThreshold ?? 20)
 // Column visibility
 const hiddenCols = ref(props.settings.hiddenCols ?? [])
 const showColMenu = ref(false)
+
+// Sync hiddenCols when settings change (e.g. layout load after browser refresh)
+watch(() => props.settings.hiddenCols, (v) => {
+  hiddenCols.value = v ?? []
+})
 const colMenuRef = ref(null)
 
 const handleClickOutside = (e) => {
