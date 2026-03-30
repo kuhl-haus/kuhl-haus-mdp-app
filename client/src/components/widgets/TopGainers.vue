@@ -113,10 +113,16 @@ const minChangePercent = ref(props.settings.minChangePercent ?? 10)
 const hiddenCols = ref(props.settings.hiddenCols ?? [])
 const showColMenu = ref(false)
 
-// Sync hiddenCols when settings change (e.g. layout load after browser refresh)
-watch(() => props.settings.hiddenCols, (v) => {
-  hiddenCols.value = v ?? []
+// Sync all filter state when settings prop changes (layout load after refresh)
+watch(() => props.settings, (s) => {
+  volumeThreshold.value    = s.volumeThreshold    ?? '100'
+  relVolumeThreshold.value = s.relVolumeThreshold ?? '5'
+  minPriceThreshold.value  = s.minPriceThreshold  ?? 2
+  maxPriceThreshold.value  = s.maxPriceThreshold  ?? 20
+  minChangePercent.value   = s.minChangePercent   ?? 10
+  hiddenCols.value         = s.hiddenCols         ?? []
 })
+
 const colMenuRef = ref(null)
 
 const handleClickOutside = (e) => {
