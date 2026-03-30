@@ -452,8 +452,8 @@ const loadDefaultLayout = () => {
 }
 
 // Auto-save
-const autoSaveLayout = () => {
-  if (!autosaveEnabled.value) return
+const autoSaveLayout = (forceSave = false) => {
+  if (!autosaveEnabled.value && !forceSave) return
   if (autoSaveTimeout) {
     clearTimeout(autoSaveTimeout)
   }
@@ -762,7 +762,7 @@ const updateLinkColor = (widgetId, linkColor) => {
   const item = layout.value.find(i => i.i === widgetId)
   if (item) {
     item.linkColor = linkColor || null
-    autoSaveLayout()
+    autoSaveLayout(true)
   }
 }
 
@@ -770,7 +770,7 @@ const updateColWidths = (widgetId, colWidths) => {
   const item = layout.value.find(i => i.i === widgetId)
   if (item) {
     item.colWidths = { ...colWidths }
-    autoSaveLayout()
+    autoSaveLayout(true)
   }
 }
 
@@ -778,7 +778,7 @@ const updateSettings = (widgetId, settings) => {
   const item = layout.value.find(i => i.i === widgetId)
   if (item) {
     item.settings = { ...settings }
-    autoSaveLayout()
+    autoSaveLayout(true)
   }
 }
 
@@ -786,7 +786,7 @@ const updateLabel = (widgetId, label) => {
   const item = layout.value.find(i => i.i === widgetId)
   if (item) {
     item.userLabel = label || ''
-    autoSaveLayout()
+    autoSaveLayout(true)
   }
 }
 
