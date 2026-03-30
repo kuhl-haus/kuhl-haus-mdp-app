@@ -230,7 +230,7 @@
         <WidgetWrapper
             :widget-id="item.i"
             :widget-type="item.type"
-            :is-locked="true"
+            :is-locked="isLocked"
             :col-widths="item.colWidths || {}"
             :link-color="item.linkColor || null"
             :settings="item.settings || {}"
