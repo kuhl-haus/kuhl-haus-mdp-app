@@ -619,7 +619,7 @@ const filteredNews = computed(() => {
   color: #a78bfa;
   pointer-events: none;
 }
-.col-title  { color: #ddd; font-size: 16px; line-height: 1.4; }
+.vs-td.col-title  { color: #ddd; font-size: 16px; line-height: 1.4; }
 
 /* Sentiment dot */
 .sentiment-dot {
