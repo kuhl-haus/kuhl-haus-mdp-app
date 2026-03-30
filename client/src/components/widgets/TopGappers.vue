@@ -87,6 +87,14 @@ const minPriceThreshold = ref(props.settings.minPriceThreshold ?? 2)
 const maxPriceThreshold = ref(props.settings.maxPriceThreshold ?? 20)
 const minChangePercent = ref(props.settings.minChangePercent ?? 10)
 
+// Persist filter settings to layout
+watch(
+  [() => volumeThreshold.value, () => relVolumeThreshold.value, () => minPriceThreshold.value, () => maxPriceThreshold.value, () => minChangePercent.value],
+  () => {
+    emit('update-settings', { volumeThreshold: volumeThreshold.value, relVolumeThreshold: relVolumeThreshold.value, minPriceThreshold: minPriceThreshold.value, maxPriceThreshold: maxPriceThreshold.value, minChangePercent: minChangePercent.value })
+  }
+)
+
 // Initialize WebSocket client
 const { connect, lastDataAt, isConnected, reconnecting } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
