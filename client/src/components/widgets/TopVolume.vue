@@ -53,11 +53,7 @@
               type="checkbox"
               :checked="!hiddenCols.includes(col.key)"
               :disabled="col.key === 'symbol'"
-              @change="e => {
-                if (e.target.checked) hiddenCols.value = hiddenCols.value.filter(k => k !== col.key)
-                else if (col.key !== 'symbol') hiddenCols.value = [...hiddenCols.value, col.key]
-              }"
-            />
+              @change="toggleCol(col.key, $event.target.checked)"
             {{ col.label }}
           </label>
         </div>
@@ -127,10 +123,21 @@ const handleClickOutside = (e) => {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
+const toggleCol = (key, visible) => {
+  if (key === 'symbol') return  // symbol is always visible
+  if (visible) {
+    hiddenCols.value = hiddenCols.value.filter(k => k !== key)
+  } else {
+    if (!hiddenCols.value.includes(key)) {
+      hiddenCols.value = [...hiddenCols.value, key]
+    }
+  }
+}
+
 
 // Persist filter settings to layout
 watch(
-  [() => hiddenCols.value,
+  [() => [...hiddenCols.value],
    () => volumeThreshold.value, () => relVolumeThreshold.value, () => showGappersOnly.value, () => minPriceThreshold.value, () => maxPriceThreshold.value],
   () => {
     emit('update-settings', { hiddenCols: hiddenCols.value, volumeThreshold: volumeThreshold.value, relVolumeThreshold: relVolumeThreshold.value, showGappersOnly: showGappersOnly.value, minPriceThreshold: minPriceThreshold.value, maxPriceThreshold: maxPriceThreshold.value })
