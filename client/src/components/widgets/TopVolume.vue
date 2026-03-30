@@ -54,6 +54,7 @@
               :checked="!hiddenCols.includes(col.key)"
               :disabled="col.key === 'symbol'"
               @change="toggleCol(col.key, $event.target.checked)"
+            />
             {{ col.label }}
           </label>
         </div>
