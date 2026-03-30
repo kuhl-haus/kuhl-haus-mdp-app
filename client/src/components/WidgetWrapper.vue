@@ -17,8 +17,11 @@
       <span
         v-else
         class="widget-title"
-        :title="!isLocked ? 'Double-click to rename' : ''"
+        :title="!isLocked ? (isMobile ? 'Long-press to rename' : 'Double-click to rename') : ''"
         @dblclick="!isLocked && startEditLabel()"
+        @touchstart.passive="onTitleTouchStart"
+        @touchend.passive="onTitleTouchEnd"
+        @touchmove.passive="onTitleTouchEnd"
       >{{ userLabel || widgetType }}</span>
 
       <!-- Link color selector — only when unlocked -->
@@ -123,6 +126,24 @@ const cancelLabel = () => {
   isEditingTitle.value = false
 }
 
+// ── Long-press to rename (mobile) ──
+let longPressTimer = null
+const LONG_PRESS_MS = 500
+
+const onTitleTouchStart = () => {
+  if (props.isLocked) return
+  longPressTimer = setTimeout(() => {
+    startEditLabel()
+  }, LONG_PRESS_MS)
+}
+
+const onTitleTouchEnd = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+}
+
 // Freshness tracking
 const activeWidget = ref(null)
 const now = ref(Date.now())
@@ -132,6 +153,7 @@ onUnmounted(() => clearInterval(intervalId))
 const oscillating = ref(true)
 const oscillateId = setInterval(() => { oscillating.value = !oscillating.value }, 250)
 onUnmounted(() => { clearInterval(oscillateId) })
+onUnmounted(() => { if (longPressTimer) clearTimeout(longPressTimer) })
 
 const lastDataAt    = computed(() => activeWidget.value?.lastDataAt ?? null)
 const isConnected   = computed(() => activeWidget.value?.isConnected ?? true)
