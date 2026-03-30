@@ -32,7 +32,17 @@
           </div>
         </template>
         <template v-else>
-          {{ formatCell(col, row) }}
+          <span>{{ formatCell(col, row) }}</span>
+          <img
+            v-if="col.key === 'symbol' && getFlame(row.symbol)"
+            :src="getFlame(row.symbol).src"
+            :title="getFlame(row.symbol).tooltip"
+            width="14" height="14"
+            class="flame-icon"
+            @touchstart.passive="onFlameTouchStart($event, row.symbol)"
+            @touchend.passive="onFlameTouchEnd"
+            @touchmove.passive="onFlameTouchEnd"
+          />
         </template>
       </td>
     </tr>
@@ -42,6 +52,7 @@
 
 <script setup>
 import { h } from 'vue'
+import { getFlameVariant, getFlameTooltip, newsTimestamps } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
   data: { type: Array, required: true },
@@ -53,6 +64,36 @@ const props = defineProps({
 })
 
 defineEmits(['sort', 'row-click'])
+
+// ── Flame freshness icons ──────────────────────────────────────────────────────
+const FLAME_SRCS = {
+  red:    new URL('@/assets/icons/flame-red.svg',    import.meta.url).href,
+  orange: new URL('@/assets/icons/flame-orange.svg', import.meta.url).href,
+  yellow: new URL('@/assets/icons/flame-yellow.svg', import.meta.url).href,
+  white:  new URL('@/assets/icons/flame-white.svg',  import.meta.url).href,
+  blue:   new URL('@/assets/icons/flame-blue.svg',   import.meta.url).href,
+  dark:   new URL('@/assets/icons/flame-dark.svg',   import.meta.url).href,
+}
+
+// Reactive: re-evaluates when newsTimestamps changes
+const getFlame = (ticker) => {
+  void newsTimestamps[ticker]  // reactive dependency
+  const variant = getFlameVariant(ticker)
+  if (!variant) return null
+  return { src: FLAME_SRCS[variant], tooltip: getFlameTooltip(ticker) }
+}
+
+// Mobile long-press tooltip (500ms, matches widget rename pattern)
+let flameLongPressTimer = null
+const onFlameTouchStart = (e, ticker) => {
+  flameLongPressTimer = setTimeout(() => {
+    const tooltip = getFlameTooltip(ticker)
+    if (tooltip) alert(tooltip)  // simple fallback; upgrade to popover in follow-up
+  }, 500)
+}
+const onFlameTouchEnd = () => {
+  if (flameLongPressTimer) { clearTimeout(flameLongPressTimer); flameLongPressTimer = null }
+}
 
 const toNum = (val) => {
   const n = Number(val)
@@ -133,6 +174,15 @@ tr:hover {
 .symbol {
   font-weight: 600;
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.flame-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .close, .prev_day_close, .change, .prev_day_volume, .avg_volume {
