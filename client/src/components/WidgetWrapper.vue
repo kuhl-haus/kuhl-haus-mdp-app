@@ -43,14 +43,6 @@
         ></button>
       </div>
 
-      <!-- Link color dot — always visible when linked -->
-      <span
-        v-else-if="linkColor"
-        class="link-dot"
-        :style="{ background: linkColorHex }"
-        :title="`Linked: ${linkColor}`"
-      ></span>
-
       <span class="freshness-icon">{{ freshnessIcon }}</span>
       <button @click="$emit('close', widgetId)" class="close-btn">✕</button>
     </div>
@@ -246,15 +238,6 @@ const freshnessIcon = computed(() => {
   font-size: 10px;
 }
 .color-swatch--none.color-swatch--active { color: #aaa; }
-
-/* ── Link dot (locked mode) ── */
-.link-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
 
 /* ── Freshness + close ── */
 .freshness-icon {
