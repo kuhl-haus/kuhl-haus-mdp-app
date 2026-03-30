@@ -114,6 +114,17 @@ const maxPriceThreshold = ref(props.settings.maxPriceThreshold ?? 20)
 // Column visibility
 const hiddenCols = ref(props.settings.hiddenCols ?? [])
 const showColMenu = ref(false)
+
+// Sync all filter state when settings prop changes (layout load after refresh)
+watch(() => props.settings, (s) => {
+  volumeThreshold.value    = s.volumeThreshold    ?? '100'
+  relVolumeThreshold.value = s.relVolumeThreshold ?? '5'
+  showGappersOnly.value    = s.showGappersOnly    ?? false
+  minPriceThreshold.value  = s.minPriceThreshold  ?? 2
+  maxPriceThreshold.value  = s.maxPriceThreshold  ?? 20
+  hiddenCols.value         = s.hiddenCols         ?? []
+})
+
 const colMenuRef = ref(null)
 
 const handleClickOutside = (e) => {
