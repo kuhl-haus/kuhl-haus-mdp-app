@@ -75,7 +75,6 @@
 
       <!-- Freshness -->
       <div class="quote-freshness">
-        <span>{{ freshnessIcon }}</span>
         Updated {{ dataAge }}
       </div>
     </div>
@@ -176,28 +175,14 @@ watch(isConnected, (connected) => {
   }
 })
 
-// Freshness display
-const now = ref(Date.now())
-const tickId = setInterval(() => { now.value = Date.now() }, 1000)
-onUnmounted(() => clearInterval(tickId))
+// Freshness display — timestamp of last data received
 
 const dataAge = computed(() => {
   if (!lastDataAt.value) return '—'
-  const s = Math.floor((now.value - lastDataAt.value) / 1000)
-  if (s < 60)  return `${s}s ago`
-  const m = Math.floor(s / 60)
-  if (m < 60)  return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24)  return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
-})
-
-const freshnessIcon = computed(() => {
-  if (!lastDataAt.value) return '⚫'
-  const s = (now.value - lastDataAt.value) / 1000
-  if (s < 5)   return '🟢'
-  if (s < 60)  return '🟡'
-  return '🔴'
+  return new Date(lastDataAt.value).toLocaleString(undefined, {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
 })
 
 // Formatting helpers
