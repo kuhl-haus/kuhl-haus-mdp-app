@@ -11,7 +11,7 @@
         @keyup.enter="applyInput"
         @keyup.escape="inputTicker = ''"
       />
-      <button class="quote-go-btn" @click="applyInput" title="Load quote">Go</button>
+      <button class="quote-go-btn" @click="applyInput" @touchend.prevent="applyInput" title="Load quote">Go</button>
     </div>
 
     <!-- No ticker yet -->
@@ -96,7 +96,7 @@ const props = defineProps({
 defineEmits(['update-settings'])
 
 const appConfig = window.__APP_CONFIG__ || {}
-const { activeTickers } = useWidgetBus()
+const { activeTickers, setActiveTicker } = useWidgetBus()
 
 // Manual entry — not persisted, ephemeral
 const inputTicker = ref('')
@@ -111,9 +111,12 @@ const activeTicker = computed(() => busTicker.value || manualTicker.value || nul
 
 const applyInput = () => {
   const t = inputTicker.value.trim().toUpperCase()
-  if (t) {
-    manualTicker.value = t
-    inputTicker.value = ''
+  if (!t) return
+  manualTicker.value = t
+  inputTicker.value = ''
+  // Broadcast to widget bus so linked widgets (news feed, etc.) also update
+  if (props.linkColor) {
+    setActiveTicker(props.linkColor, t)
   }
 }
 
