@@ -127,33 +127,54 @@ watch(busTicker, (t) => {
 const quoteData = ref(null)
 const lastDataAt = ref(null)
 
-// WebSocket client
-const { feedName, isConnected, reconnecting, connect, subscribe, unsubscribe } = useWebSocketClient({
+// WebSocket client — always-on connection, swap feed on ticker change
+const currentFeed = ref('')
+
+const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsubscribe } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey: appConfig.apiKey || 'secret',
   feedName: '',
+  cacheKey: '',
   onData: (data) => {
+    // Only accept data for the current ticker
+    if (!data || (data.symbol && data.symbol !== activeTicker.value)) return
     quoteData.value = data
     lastDataAt.value = Date.now()
   },
-  autoConnect: false,
+  autoConnect: true,
 })
 
 // Switch subscription whenever activeTicker changes
-watch(activeTicker, async (newTicker, oldTicker) => {
-  if (oldTicker) unsubscribe()
+watch(activeTicker, (newTicker, oldTicker) => {
+  // Unsubscribe previous feed
+  if (currentFeed.value) {
+    feedName.value = currentFeed.value
+    cacheKey.value = ''
+    unsubscribe()
+    currentFeed.value = ''
+  }
   quoteData.value = null
   if (newTicker) {
-    feedName.value = `quote:${newTicker}`
-    if (!isConnected.value) {
-      connect()
-    } else {
+    const feed = `quote:${newTicker}`
+    feedName.value = feed
+    cacheKey.value = feed
+    currentFeed.value = feed
+    if (isConnected.value) {
       subscribe()
+      getCache()  // immediately fetch cached data (3-day TTL)
     }
   }
 })
 
-onUnmounted(() => unsubscribe())
+// When connection is established and we have a pending ticker, subscribe + fetch cache
+watch(isConnected, (connected) => {
+  if (connected && currentFeed.value) {
+    feedName.value = currentFeed.value
+    cacheKey.value = currentFeed.value
+    subscribe()
+    getCache()
+  }
+})
 
 // Freshness display
 const now = ref(Date.now())
