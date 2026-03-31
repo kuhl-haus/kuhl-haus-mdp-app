@@ -34,6 +34,7 @@ const availableWidgets = [
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
   { type: 'news-feed-fast', label: 'News Feed Fast', icon: '⚡' },
   { type: 'news-feed-v2', label: 'News Feed V2', icon: '🗞️' },
+  { type: 'quote', label: 'Quote', icon: '📊' },
 ]
 
 const selectWidget = (widgetType) => {
