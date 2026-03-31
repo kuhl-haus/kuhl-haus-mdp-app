@@ -30,7 +30,10 @@
     <div v-else class="quote-body">
       <!-- Header: symbol + price + change -->
       <div class="quote-header">
-        <div class="quote-symbol">{{ quoteData.symbol }}</div>
+        <div class="quote-symbol">
+          {{ quoteData.symbol }}
+          <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="quote-flame-icon" />
+        </div>
         <div class="quote-price">${{ fmt(quoteData.close, 2) }}</div>
         <div :class="['quote-change', changeClass]">
           {{ quoteData.change >= 0 ? '+' : '' }}{{ fmt(quoteData.change, 2) }}
@@ -83,7 +86,7 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { useWidgetBus } from '@/composables/useWidgetBus.js'
+import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 const props = defineProps({
@@ -97,6 +100,22 @@ defineEmits(['update-settings'])
 
 const appConfig = window.__APP_CONFIG__ || {}
 const { activeTickers, setActiveTicker } = useWidgetBus()
+
+// ── Flame freshness icon ──────────────────────────────────────────────────────
+const FLAME_SRCS = {
+  red:    new URL('@/assets/icons/flame-red.svg',    import.meta.url).href,
+  orange: new URL('@/assets/icons/flame-orange.svg', import.meta.url).href,
+  yellow: new URL('@/assets/icons/flame-yellow.svg', import.meta.url).href,
+  white:  new URL('@/assets/icons/flame-white.svg',  import.meta.url).href,
+  blue:   new URL('@/assets/icons/flame-blue.svg',   import.meta.url).href,
+  dark:   new URL('@/assets/icons/flame-dark.svg',   import.meta.url).href,
+}
+const quoteFlame = computed(() => {
+  if (!activeTicker.value) return null
+  const variant = getFlameVariant(activeTicker.value)
+  if (!variant) return null
+  return { src: FLAME_SRCS[variant], tooltip: getFlameTooltip(activeTicker.value) }
+})
 
 // Manual entry — not persisted, ephemeral
 const inputTicker = ref('')
@@ -299,7 +318,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
 }
 .quote-symbol { font-size: 18px; font-weight: 700; color: #fff; }
 .quote-price  { font-size: 20px; font-weight: 600; font-family: 'Courier New', monospace; color: #fff; }
-.quote-change { font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace; }
+.quote-change { font-size: 18px; font-weight: 600; font-family: 'Courier New', monospace; }
+.quote-flame-icon { width: 14px; height: 14px; vertical-align: middle; margin-left: 4px; position: relative; top: -2px; }
 
 .quote-from-open { font-size: 14px; color: #aaa; }
 .quote-intraday  { font-weight: 600; }
