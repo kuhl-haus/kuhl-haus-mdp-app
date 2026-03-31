@@ -226,7 +226,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
   overflow-y: auto;
   background: #1e1e1e;
   color: #e0e0e0;
-  font-size: 13px;
+  font-size: 14px;
   padding: 8px;
   box-sizing: border-box;
   display: flex;
@@ -247,7 +247,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
   border: 1px solid #333;
   border-radius: 4px;
   color: #e0e0e0;
-  font-size: 13px;
+  font-size: 14px;
   padding: 4px 8px;
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
@@ -260,7 +260,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
   border: 1px solid #444;
   border-radius: 4px;
   color: #e0e0e0;
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 10px;
   cursor: pointer;
   flex-shrink: 0;
@@ -301,14 +301,14 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
 .quote-price  { font-size: 20px; font-weight: 600; font-family: 'Courier New', monospace; color: #fff; }
 .quote-change { font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace; }
 
-.quote-from-open { font-size: 12px; color: #888; }
+.quote-from-open { font-size: 14px; color: #aaa; }
 .quote-intraday  { font-weight: 600; }
 
 .quote-section-label {
-  font-size: 10px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #555;
+  color: #999;
   margin-top: 2px;
 }
 
@@ -324,8 +324,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
   padding: 2px 0;
   border-bottom: 1px solid #1a1a1a;
 }
-.quote-k { color: #666; font-size: 12px; }
-.quote-v { font-family: 'Courier New', monospace; font-size: 12px; color: #e0e0e0; }
+.quote-k { color: #aaa; font-size: 15px; }
+.quote-v { font-family: 'Courier New', monospace; font-size: 15px; color: #e0e0e0; }
 
 .positive { color: #4ade80; }
 .negative { color: #f87171; }
@@ -336,8 +336,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
 .quote-freshness {
   margin-top: auto;
   padding-top: 6px;
-  font-size: 11px;
-  color: #444;
+  font-size: 13px;
+  color: #888;
   text-align: right;
 }
 </style>
