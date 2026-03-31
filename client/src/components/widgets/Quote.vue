@@ -1,12 +1,26 @@
 <template>
   <div class="quote-widget">
-    <!-- No ticker linked yet -->
-    <div v-if="!activeTicker" class="quote-empty">
-      <span class="quote-empty-icon">📊</span>
-      <span class="quote-empty-text">Link to a scanner widget and click a row to display a quote</span>
+    <!-- Ticker input bar — always visible -->
+    <div class="quote-controls">
+      <input
+        v-model="inputTicker"
+        class="quote-input"
+        placeholder="Enter ticker (e.g. AAPL)"
+        maxlength="10"
+        spellcheck="false"
+        @keyup.enter="applyInput"
+        @keyup.escape="inputTicker = ''"
+      />
+      <button class="quote-go-btn" @click="applyInput" title="Load quote">Go</button>
     </div>
 
-    <!-- Ticker linked, waiting for data -->
+    <!-- No ticker yet -->
+    <div v-if="!activeTicker" class="quote-empty">
+      <span class="quote-empty-icon">📊</span>
+      <span class="quote-empty-text">Enter a ticker above, or link to a scanner and click a row</span>
+    </div>
+
+    <!-- Ticker set, waiting for data -->
     <div v-else-if="!quoteData" class="quote-empty">
       <span class="quote-empty-icon">⏳</span>
       <span class="quote-empty-text">Waiting for data for <strong>{{ activeTicker }}</strong>...</span>
@@ -61,7 +75,7 @@
 
       <!-- Freshness -->
       <div class="quote-freshness">
-        <span :style="{ color: freshnessColor }">{{ freshnessIcon }}</span>
+        <span>{{ freshnessIcon }}</span>
         Updated {{ dataAge }}
       </div>
     </div>
@@ -85,32 +99,49 @@ defineEmits(['update-settings'])
 const appConfig = window.__APP_CONFIG__ || {}
 const { activeTickers } = useWidgetBus()
 
-// Ticker driven entirely by the widget bus — not persisted
-const activeTicker = computed(() =>
-  props.linkColor ? activeTickers[props.linkColor] : null
+// Manual entry — not persisted, ephemeral
+const inputTicker = ref('')
+
+// Active ticker: widget bus takes precedence when linked; manual entry otherwise
+// Widget bus updates reset manual input; manual entry overrides bus for that ticker
+const busTicker = computed(() =>
+  props.linkColor ? (activeTickers[props.linkColor] || null) : null
 )
+const manualTicker = ref('')
+const activeTicker = computed(() => busTicker.value || manualTicker.value || null)
+
+const applyInput = () => {
+  const t = inputTicker.value.trim().toUpperCase()
+  if (t) {
+    manualTicker.value = t
+    inputTicker.value = ''
+  }
+}
+
+// When bus fires, clear manual override so bus drives
+watch(busTicker, (t) => {
+  if (t) manualTicker.value = ''
+})
 
 // Quote data
 const quoteData = ref(null)
 const lastDataAt = ref(null)
 
-// WebSocket client — feed changes dynamically with ticker
+// WebSocket client
 const { feedName, isConnected, reconnecting, connect, subscribe, unsubscribe } = useWebSocketClient({
   wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey: appConfig.apiKey || 'secret',
-  feedName: activeTicker.value ? `quote:${activeTicker.value}` : '',
+  feedName: '',
   onData: (data) => {
     quoteData.value = data
     lastDataAt.value = Date.now()
   },
-  autoConnect: !!activeTicker.value,
+  autoConnect: false,
 })
 
-// Switch subscription when ticker changes
+// Switch subscription whenever activeTicker changes
 watch(activeTicker, async (newTicker, oldTicker) => {
-  if (oldTicker) {
-    unsubscribe()
-  }
+  if (oldTicker) unsubscribe()
   quoteData.value = null
   if (newTicker) {
     feedName.value = `quote:${newTicker}`
@@ -122,14 +153,12 @@ watch(activeTicker, async (newTicker, oldTicker) => {
   }
 })
 
-onUnmounted(() => {
-  unsubscribe()
-})
+onUnmounted(() => unsubscribe())
 
 // Freshness display
 const now = ref(Date.now())
-const intervalId = setInterval(() => { now.value = Date.now() }, 1000)
-onUnmounted(() => clearInterval(intervalId))
+const tickId = setInterval(() => { now.value = Date.now() }, 1000)
+onUnmounted(() => clearInterval(tickId))
 
 const dataAge = computed(() => {
   if (!lastDataAt.value) return '—'
@@ -148,14 +177,6 @@ const freshnessIcon = computed(() => {
   if (s < 5)   return '🟢'
   if (s < 60)  return '🟡'
   return '🔴'
-})
-
-const freshnessColor = computed(() => {
-  if (!lastDataAt.value) return '#555'
-  const s = (now.value - lastDataAt.value) / 1000
-  if (s < 5)  return '#22c55e'
-  if (s < 60) return '#eab308'
-  return '#ef4444'
 })
 
 // Formatting helpers
@@ -201,8 +222,43 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 
+/* Ticker input */
+.quote-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.quote-input {
+  flex: 1;
+  background: #121212;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 13px;
+  padding: 4px 8px;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  outline: none;
+}
+.quote-input:focus { border-color: #8b5cf6; }
+.quote-input::placeholder { color: #444; text-transform: none; }
+.quote-go-btn {
+  background: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.quote-go-btn:hover { background: #3d3d3d; }
+
+/* Empty states */
 .quote-empty {
   flex: 1;
   display: flex;
@@ -212,64 +268,45 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
   gap: 10px;
   color: #555;
   text-align: center;
-  padding: 24px;
+  padding: 16px;
 }
 .quote-empty-icon { font-size: 28px; }
 .quote-empty-text { font-size: 12px; line-height: 1.5; max-width: 200px; }
 
+/* Quote body */
 .quote-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-/* Header */
 .quote-header {
   display: flex;
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
   border-bottom: 1px solid #2a2a2a;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
-.quote-symbol {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-}
-.quote-price {
-  font-size: 20px;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-  color: #fff;
-}
-.quote-change {
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-}
+.quote-symbol { font-size: 18px; font-weight: 700; color: #fff; }
+.quote-price  { font-size: 20px; font-weight: 600; font-family: 'Courier New', monospace; color: #fff; }
+.quote-change { font-size: 13px; font-weight: 600; font-family: 'Courier New', monospace; }
 
-/* From open */
-.quote-from-open {
-  font-size: 12px;
-  color: #888;
-}
-.quote-intraday { font-weight: 600; }
+.quote-from-open { font-size: 12px; color: #888; }
+.quote-intraday  { font-weight: 600; }
 
-/* Section label */
 .quote-section-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #555;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
-/* Key-value grid */
 .quote-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3px 8px;
+  gap: 2px 8px;
 }
 .quote-kv {
   display: flex;
@@ -281,17 +318,15 @@ defineExpose({ lastDataAt, isConnected, reconnecting })
 .quote-k { color: #666; font-size: 12px; }
 .quote-v { font-family: 'Courier New', monospace; font-size: 12px; color: #e0e0e0; }
 
-/* Colors */
 .positive { color: #4ade80; }
 .negative { color: #f87171; }
 .extreme  { color: #f97316; font-weight: 700; }
 .high     { color: #eab308; font-weight: 600; }
 .medium   { color: #a3a3a3; }
 
-/* Freshness */
 .quote-freshness {
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
   font-size: 11px;
   color: #444;
   text-align: right;
