@@ -32,7 +32,7 @@ const availableWidgets = [
   { type: 'top-gappers', label: 'Top Gappers', icon: '🔝' },
   { type: 'top-volume', label: 'Top Volume', icon: '📊' },
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
-  { type: 'quote', label: 'Quote', icon: '📊' },
+  { type: 'quote', label: 'Quote', icon: '⚡' },
 ]
 
 const selectWidget = (widgetType) => {
