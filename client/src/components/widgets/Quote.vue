@@ -16,7 +16,7 @@
 
     <!-- No ticker yet -->
     <div v-if="!activeTicker" class="quote-empty">
-      <span class="quote-empty-icon">📊</span>
+      <span class="quote-empty-icon">⚡</span>
       <span class="quote-empty-text">Enter a ticker above, or link to a scanner and click a row</span>
     </div>
 
