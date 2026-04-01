@@ -68,8 +68,6 @@ import TopVolume from './widgets/TopVolume.vue'
 import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
-import NewsFeedFast from './widgets/NewsFeedFast.vue'
-import NewsFeedV2 from './widgets/NewsFeedV2.vue'
 import Quote from './widgets/Quote.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
@@ -89,8 +87,6 @@ const widgetComponents = {
   'top-volume':  TopVolume,
   'top-gappers': TopGappers,
   'news-feed':   NewsFeed,
-  'news-feed-fast': NewsFeedFast,
-  'news-feed-v2':   NewsFeedV2,
   'quote':           Quote,
 }
 

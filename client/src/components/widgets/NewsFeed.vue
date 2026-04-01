@@ -68,60 +68,61 @@
       </div>
     </div>
 
-    <!-- Desktop: table -->
+    <!-- Desktop: virtual scroller (fixed row height) -->
     <div v-else class="news-table-wrap" ref="tableWrap">
-      <table class="news-table" :style="tableStyle">
-        <thead>
-          <tr>
-            <th
-              v-for="col in columns"
-              :key="col.key"
-              :class="['col-' + col.key, sortKey === col.key ? 'col-sorted' : '']"
-              :style="{ width: colWidthsPx[col.key], cursor: col.sortable ? 'pointer' : 'default' }"
-              @click="col.sortable && cycleSort(col.key)"
-              :title="col.sortable ? (sortKey === col.key ? (sortDir === 'asc' ? 'Sort descending' : 'Sort ascending') : 'Sort by ' + col.label) : ''"
-            >
-              {{ col.label }}<span v-if="sortKey === col.key" class="sort-indicator">{{ sortDir === 'asc' ? ' ▲' : ' ▼' }}</span>
-              <!-- Resize handle — only shown when unlocked -->
-              <span
-                v-if="!isLocked"
-                class="col-resize-handle"
-                @mousedown.prevent="startResize($event, col.key)"
-                title="Drag to resize column"
-              ></span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(item, idx) in filteredNews"
-            :key="idx"
-            class="news-row"
-            @click="openDetail(item)"
-          >
-            <td class="col-time">{{ formatTime(item.publishDate) }}</td>
-            <td class="col-title">
-              <span
-                :class="['sentiment-dot', sentimentClass(item.sentiment)]"
-                :title="item.sentiment"
-              ></span>
-              {{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span><span
-                v-for="co in usCompanies(item)"
-                :key="co.ticker"
-                :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
-                :title="activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`"
-                @click.stop="toggleTickerFilter(co.ticker)"
-              >{{ co.ticker }}</span>
-            </td>
-          </tr>
-          <tr v-if="filteredNews.length === 0">
-            <td colspan="2" class="news-empty">
-              {{ newsItems.length === 0 ? 'No articles yet.' : 'No articles match the current filter.' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div><!-- end desktop table (v-else) -->
+      <!-- Sticky sort header -->
+      <div class="vs-header" :style="tableStyle">
+        <div
+          v-for="col in columns"
+          :key="col.key"
+          :class="['vs-th', 'col-' + col.key, sortKey === col.key ? 'col-sorted' : '']"
+          :style="{ width: colWidthsPx[col.key], cursor: col.sortable ? 'pointer' : 'default' }"
+          @click="col.sortable && cycleSort(col.key)"
+          :title="col.sortable ? (sortKey === col.key ? (sortDir === 'asc' ? 'Sort descending' : 'Sort ascending') : 'Sort by ' + col.label) : ''"
+        >
+          {{ col.label }}<span v-if="sortKey === col.key" class="sort-indicator">{{ sortDir === 'asc' ? ' ▲' : ' ▼' }}</span>
+          <span
+            v-if="!isLocked"
+            class="col-resize-handle"
+            @mousedown.prevent="startResize($event, col.key)"
+            title="Drag to resize column"
+          ></span>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="filteredNews.length === 0" class="news-empty">
+        {{ newsItems.length === 0 ? 'No articles yet.' : 'No articles match the current filter.' }}
+      </div>
+
+      <!-- Virtual scroll list -->
+      <RecycleScroller
+        v-else
+        class="vs-scroller"
+        :items="filteredNews"
+        :item-size="22"
+        key-field="link"
+        v-slot="{ item }"
+      >
+        <div class="vs-row" :style="tableStyle" @click="openDetail(item)">
+          <div class="vs-td col-time">{{ formatTime(item.publishDate) }}</div>
+          <div class="vs-td col-title">
+            <span
+              :class="['sentiment-dot', sentimentClass(item.sentiment)]"
+              :title="item.sentiment"
+            ></span>
+            <span class="vs-headline">{{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span></span>
+            <span
+              v-for="co in usCompanies(item)"
+              :key="co.ticker"
+              :class="['ticker-tag', activeTicker === co.ticker ? 'ticker-tag--active' : '']"
+              :title="activeTicker === co.ticker ? 'Clear filter' : `Filter by ${co.ticker}`"
+              @click.stop="toggleTickerFilter(co.ticker)"
+            >{{ co.ticker }}</span>
+          </div>
+        </div>
+      </RecycleScroller>
+    </div><!-- end desktop virtual scroller -->
 
     <!-- Detail modal -->
     <Teleport to="body">
@@ -192,6 +193,7 @@
  */
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useWidgetBus, setNewsTimestamp } from '@/composables/useWidgetBus.js'
+import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 const props = defineProps({
@@ -541,7 +543,7 @@ const filteredNews = computed(() => {
 /* ── Table ── */
 .news-table-wrap {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .news-table {
@@ -611,7 +613,7 @@ const filteredNews = computed(() => {
   color: #a78bfa;
   pointer-events: none;
 }
-.col-title  { color: #ddd; font-size: 16px; line-height: 1.4; }
+.vs-td.col-title  { color: #ddd; font-size: 16px; line-height: 1.4; }
 
 /* Sentiment dot */
 .sentiment-dot {
@@ -807,5 +809,69 @@ const filteredNews = computed(() => {
   font-size: 13px;
   color: #ddd;
   line-height: 1.4;
+}
+
+/* ── Virtual Scroller (NewsFeedFast) ──────────────────────────────────────── */
+.vs-header {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.vs-th {
+  padding: 3px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.vs-scroller {
+  height: calc(100% - 28px); /* full height minus header */
+  overflow-y: auto;
+}
+
+.vs-row {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  border-bottom: 1px solid #111;
+  cursor: pointer;
+}
+.vs-row:hover { background: #111; }
+
+.vs-td {
+  padding: 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.vs-td.col-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.vs-headline {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
 }
 </style>

@@ -32,8 +32,6 @@ const availableWidgets = [
   { type: 'top-gappers', label: 'Top Gappers', icon: '🔝' },
   { type: 'top-volume', label: 'Top Volume', icon: '📊' },
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
-  { type: 'news-feed-fast', label: 'News Feed Fast', icon: '⚡' },
-  { type: 'news-feed-v2', label: 'News Feed V2', icon: '🗞️' },
   { type: 'quote', label: 'Quote', icon: '📊' },
 ]
 
