@@ -378,7 +378,11 @@ const sentimentClass = (s) => {
 const formatTime = (ts) => {
   if (!ts) return ''
   const d = new Date(ts)
-  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (isNaN(d.getTime())) return ''
+  const month = d.getMonth() + 1          // no zero-padding needed, JS returns 1-12
+  const day   = d.getDate()               // no zero-padding needed, JS returns 1-31
+  const time  = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return `${month}/${day} ${time}`
 }
 
 const formatDateTime = (ts) => {
