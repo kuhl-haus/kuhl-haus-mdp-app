@@ -54,8 +54,13 @@
       <div class="quote-section-label">Today</div>
       <div class="quote-grid">
         <div class="quote-kv"><span class="quote-k">Open</span><span class="quote-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
+<!-- TODO: https://github.com/kuhl-haus/kuhl-haus-mdp/issues/53
+           Feature: tracke high-of-day and low-of-day prices.
+           The high and low in the quote data is from the 1-second aggregate message, not the day.
+           They are commented out until this feature is live.
         <div class="quote-kv"><span class="quote-k">High</span><span class="quote-v">${{ fmt(quoteData.high, 2) }}</span></div>
         <div class="quote-kv"><span class="quote-k">Low</span><span class="quote-v">${{ fmt(quoteData.low, 2) }}</span></div>
+-->
         <div class="quote-kv"><span class="quote-k">VWAP</span><span class="quote-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
       </div>
 
