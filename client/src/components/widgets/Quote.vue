@@ -76,6 +76,9 @@
       <!-- Previous day -->
       <div class="quote-section-label">Previous Day</div>
       <div class="quote-grid">
+        <div class="quote-kv"><span class="quote-k">PD Open</span><span class="quote-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
+        <div class="quote-kv"><span class="quote-k">PD High</span><span class="quote-v">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
+        <div class="quote-kv"><span class="quote-k">PD Low</span><span class="quote-v">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
         <div class="quote-kv"><span class="quote-k">PD Close</span><span class="quote-v">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
         <div class="quote-kv"><span class="quote-k">PD Volume</span><span class="quote-v">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
         <div class="quote-kv"><span class="quote-k">PD VWAP</span><span class="quote-v">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
