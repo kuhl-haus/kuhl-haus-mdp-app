@@ -86,7 +86,7 @@
 
       <!-- Freshness -->
       <div class="quote-freshness">
-        Updated {{ dataAge }}
+        As of {{ dataAge }}
       </div>
     </div>
   </div>
@@ -205,11 +205,11 @@ watch(isConnected, (connected) => {
   }
 })
 
-// Freshness display — timestamp of last data received
-
+// Freshness display — end_timestamp from the agg event (Unix milliseconds)
 const dataAge = computed(() => {
-  if (!lastDataAt.value) return '—'
-  return new Date(lastDataAt.value).toLocaleString(undefined, {
+  const ts = quoteData.value?.end_timestamp
+  if (!ts) return '—'
+  return new Date(ts).toLocaleString(undefined, {
     month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   })
