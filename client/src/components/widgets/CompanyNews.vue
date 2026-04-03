@@ -269,7 +269,7 @@ onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
 
 // ── Article cache & settings ──────────────────────────────────────────────────
 
-const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000, 4000, 8000, 10000]
+const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000, 4000, 8000, 10000, 20000]
 const maxArticles = ref(props.settings.maxArticles ?? 1000)
 
 watch(maxArticles, v => {
