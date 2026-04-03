@@ -276,7 +276,7 @@ const searchQuery = ref('')
 
 const currentFeed = ref('')
 
-const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsubscribe, cacheLimit } = useWebSocketClient({
+const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsubscribe, connect, cacheLimit } = useWebSocketClient({
   wsUrl:     appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey:   appConfig.apiKey || 'secret',
   feedName:  '',
@@ -291,7 +291,7 @@ const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsu
     const combined = [...fresh, ...newsItems.value]
     newsItems.value = combined.slice(0, maxArticles.value)
   },
-  autoConnect: true,
+  autoConnect: false,  // connect manually when ticker is set
 })
 
 // Re-subscribe when ticker changes
@@ -307,8 +307,13 @@ watch(activeTicker, (newTicker, oldTicker) => {
     currentFeed.value = feed
     feedName.value = feed
     cacheKey.value = feed
-    subscribe()
-    getCache()
+    if (!isConnected.value) {
+      // First ticker set — connect now (autoConnect was false to avoid subscribing with empty feed)
+      connect()
+    } else {
+      subscribe()
+      getCache()
+    }
   }
 })
 
