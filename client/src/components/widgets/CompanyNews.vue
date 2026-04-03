@@ -270,13 +270,13 @@ watch(() => props.settings, (s) => {
 
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 
-const newsItems  = ref([])
-const selected   = ref(null)
+const newsItems = ref([])
+const selected  = ref(null)
 const searchQuery = ref('')
 
 const currentFeed = ref('')
 
-const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsubscribe, connect, cacheLimit } = useWebSocketClient({
+const { feedName, cacheKey, isConnected, reconnecting, lastDataAt, getCache, subscribe, unsubscribe, connect, cacheLimit } = useWebSocketClient({
   wsUrl:     appConfig.wsEndpoint || 'ws://localhost:4202/ws',
   authKey:   appConfig.apiKey || 'secret',
   feedName:  '',
@@ -297,8 +297,6 @@ const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsu
 // Re-subscribe when ticker changes
 watch(activeTicker, (newTicker, oldTicker) => {
   if (oldTicker) {
-    feedName.value = currentFeed.value
-    cacheKey.value = ''
     unsubscribe()
   }
   newsItems.value = []
@@ -308,26 +306,18 @@ watch(activeTicker, (newTicker, oldTicker) => {
     feedName.value = feed
     cacheKey.value = feed
     if (!isConnected.value) {
-      // First ticker set — connect now (autoConnect was false to avoid subscribing with empty feed)
+      // Not yet connected — connect now. The composable's internal watcher
+      // handles subscribe + getCache once the connection is established.
       connect()
     } else {
+      // Already connected — subscribe and fetch immediately
       subscribe()
       getCache()
     }
   }
 })
 
-// Re-subscribe after reconnect
-watch(isConnected, (connected) => {
-  if (connected && activeTicker.value && currentFeed.value) {
-    feedName.value = currentFeed.value
-    cacheKey.value = currentFeed.value
-    subscribe()
-    getCache()
-  }
-})
-
-defineExpose({ lastDataAt: ref(null), isConnected, reconnecting })
+defineExpose({ lastDataAt, isConnected, reconnecting })
 
 // ── Filtering & sorting ───────────────────────────────────────────────────────
 
