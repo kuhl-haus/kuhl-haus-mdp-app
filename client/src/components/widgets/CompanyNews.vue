@@ -414,8 +414,8 @@ const openDetail = (item) => { selected.value = item }
 }
 .cn-input {
   flex: 1;
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: #121212;
+  border: 1px solid #333;
   border-radius: 4px;
   color: #e0e0e0;
   font-size: 14px;
@@ -424,7 +424,7 @@ const openDetail = (item) => { selected.value = item }
   text-transform: uppercase;
 }
 .cn-input:focus { outline: none; border-color: #8b5cf6; }
-.cn-input::placeholder { color: #444; text-transform: none; }
+.cn-input::placeholder { color: #666; text-transform: none; }
 .cn-go-btn {
   background: #2d2d2d;
   border: 1px solid #444;
@@ -464,13 +464,14 @@ const openDetail = (item) => { selected.value = item }
 .search-input {
   flex: 1;
   min-width: 80px;
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: #121212;
+  border: 1px solid #333;
   border-radius: 3px;
   color: #ccc;
   font-size: 12px;
   padding: 2px 6px;
 }
+.search-input::placeholder { color: #666; }
 .search-input:focus { outline: none; border-color: #8b5cf6; }
 .article-count {
   font-size: 11px;
@@ -495,21 +496,24 @@ const openDetail = (item) => { selected.value = item }
 }
 .vs-header {
   display: flex;
-  background: #252525;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #1a1a1a;
   border-bottom: 1px solid #333;
-  user-select: none;
-  flex-shrink: 0;
-}
-.vs-th {
-  padding: 3px 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #888;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  user-select: none;
+  flex-shrink: 0;
+}
+.vs-th {
+  padding: 3px 8px;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
   position: relative;
   cursor: pointer;
 }
@@ -524,7 +528,7 @@ const openDetail = (item) => { selected.value = item }
   cursor: pointer;
   min-height: 22px;
 }
-.vs-row:hover { background: #2a2a2a; }
+.vs-row:hover { background: #111; }
 .vs-td {
   padding: 1px 6px;
   overflow: hidden;
@@ -533,7 +537,7 @@ const openDetail = (item) => { selected.value = item }
   font-size: 12px;
 }
 .vs-td.col-time  { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.vs-td.col-title { flex: 1; display: flex; align-items: center; gap: 4px; }
+.vs-td.col-title { flex: 1; display: flex; align-items: center; gap: 4px; color: #ddd; font-size: 16px; line-height: 1.4; }
 .vs-headline     { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .headline-source { color: #666; font-size: 11px; }
 
@@ -628,7 +632,7 @@ const openDetail = (item) => { selected.value = item }
   border: 1px solid #444;
   border-radius: 3px;
   color: #a78bfa;
-  font-size: 11px;
+  font-size: 10px;
   padding: 1px 5px;
   cursor: default;
   white-space: nowrap;
