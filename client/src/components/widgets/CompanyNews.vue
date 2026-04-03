@@ -66,7 +66,13 @@
         >
           <div class="news-card-header">
             <span class="news-card-time">{{ formatTime(item.publishDate) }}</span>
-            <span v-for="co in usCompanies(item)" :key="co.ticker" class="ticker-tag">{{ co.ticker }}</span>
+            <span
+              v-for="co in usCompanies(item)"
+              :key="co.ticker"
+              class="ticker-tag ticker-tag--clickable"
+              :title="`Switch to ${co.ticker}`"
+              @click.stop="switchTicker(co.ticker)"
+            >{{ co.ticker }}</span>
           </div>
           <div class="news-card-title">
             <span :class="['sentiment-dot', sentimentClass(item.sentiment)]" :title="item.sentiment"></span>
@@ -116,7 +122,13 @@
                 :title="item.sentiment"
               ></span>
               <span class="vs-headline">{{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span></span>
-            <span v-for="co in usCompanies(item)" :key="co.ticker" class="ticker-tag">{{ co.ticker }}</span>
+            <span
+              v-for="co in usCompanies(item)"
+              :key="co.ticker"
+              class="ticker-tag ticker-tag--clickable"
+              :title="`Switch to ${co.ticker}`"
+              @click.stop="switchTicker(co.ticker)"
+            >{{ co.ticker }}</span>
             </div>
           </div>
         </RecycleScroller>
@@ -349,6 +361,11 @@ const filteredNews = computed(() => {
 
 const isUsTicker  = (co) => US_EXCHANGES.has(co.primaryListing?.exchangeCode)
 const usCompanies = (item) => item.companies?.filter(isUsTicker) ?? []
+
+const switchTicker = (ticker) => {
+  manualTicker.value = ticker
+  if (props.linkColor) setActiveTicker(props.linkColor, ticker)
+}
 
 const shortSource = (src) => src ? src.replace(/^www\./, '').replace(/\.[^.]+$/, '') : ''
 
@@ -616,4 +633,6 @@ const openDetail = (item) => { selected.value = item }
   cursor: default;
   white-space: nowrap;
 }
+.ticker-tag--clickable { cursor: pointer; }
+.ticker-tag--clickable:hover { background: #3d3d3d; border-color: #a78bfa; }
 </style>
