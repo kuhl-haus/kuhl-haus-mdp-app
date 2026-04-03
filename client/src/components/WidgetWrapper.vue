@@ -67,6 +67,7 @@ import { ref, computed, nextTick, onUnmounted } from 'vue'
 import TopVolume from './widgets/TopVolume.vue'
 import TopGappers from './widgets/TopGappers.vue'
 import TopGainers from './widgets/TopGainers.vue'
+import CompanyNews from './widgets/CompanyNews.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
 import Quote from './widgets/Quote.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
@@ -86,6 +87,7 @@ const widgetComponents = {
   'top-gainers': TopGainers,
   'top-volume':  TopVolume,
   'top-gappers': TopGappers,
+  'company-news': CompanyNews,
   'news-feed':   NewsFeed,
   'quote':           Quote,
 }
