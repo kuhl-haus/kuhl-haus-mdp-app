@@ -69,8 +69,8 @@
             <span
               v-for="co in usCompanies(item)"
               :key="co.ticker"
-              class="ticker-tag ticker-tag--clickable"
-              :title="`Switch to ${co.ticker}`"
+              :class="['ticker-tag', 'ticker-tag--clickable', co.ticker === activeTicker ? 'ticker-tag--active' : '']"
+              :title="co.ticker === activeTicker ? 'Currently viewing' : `Switch to ${co.ticker}`"
               @click.stop="switchTicker(co.ticker)"
             >{{ co.ticker }}</span>
           </div>
@@ -125,8 +125,8 @@
             <span
               v-for="co in usCompanies(item)"
               :key="co.ticker"
-              class="ticker-tag ticker-tag--clickable"
-              :title="`Switch to ${co.ticker}`"
+              :class="['ticker-tag', 'ticker-tag--clickable', co.ticker === activeTicker ? 'ticker-tag--active' : '']"
+              :title="co.ticker === activeTicker ? 'Currently viewing' : `Switch to ${co.ticker}`"
               @click.stop="switchTicker(co.ticker)"
             >{{ co.ticker }}</span>
             </div>
@@ -634,5 +634,6 @@ const openDetail = (item) => { selected.value = item }
   white-space: nowrap;
 }
 .ticker-tag--clickable { cursor: pointer; }
-.ticker-tag--clickable:hover { background: #3d3d3d; border-color: #a78bfa; }
+.ticker-tag--clickable:hover { background: rgba(139, 92, 246, 0.28); border-color: rgba(139, 92, 246, 0.5); }
+.ticker-tag--active { background: rgba(139, 92, 246, 0.35); border-color: rgba(139, 92, 246, 0.7); color: #fff; font-weight: 700; }
 </style>
