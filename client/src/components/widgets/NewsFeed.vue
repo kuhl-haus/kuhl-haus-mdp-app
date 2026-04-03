@@ -81,12 +81,6 @@
           :title="col.sortable ? (sortKey === col.key ? (sortDir === 'asc' ? 'Sort descending' : 'Sort ascending') : 'Sort by ' + col.label) : ''"
         >
           {{ col.label }}<span v-if="sortKey === col.key" class="sort-indicator">{{ sortDir === 'asc' ? ' ▲' : ' ▼' }}</span>
-          <span
-            v-if="!isLocked"
-            class="col-resize-handle"
-            @mousedown.prevent="startResize($event, col.key)"
-            title="Drag to resize column"
-          ></span>
         </div>
       </div>
 
@@ -179,13 +173,11 @@
 /**
  * NewsFeed widget — subscribes to the WDS news:feed:latest channel.
  *
- * Column widths are resizable when the dashboard is unlocked (isLocked=false).
  * Widths are stored as numbers (px) and persisted via update-col-widths emit
  * which DashboardGrid saves into the layout item.
  *
  * @prop {string}  feedName  - WDS feed to subscribe to
  * @prop {string}  cacheKey  - WDS cache key for initial state
- * @prop {boolean} isLocked  - Dashboard lock state; hides resize handles when true
  * @prop {object}  colWidths - Saved column widths { time, title, source, tickers }
  *
  * @emits ticker-click        - US ticker badge clicked, payload: symbol string
@@ -199,7 +191,6 @@ import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 const props = defineProps({
   feedName:  { type: String,  default: 'news:feed:latest' },
   cacheKey:  { type: String,  default: 'news:feed:latest' },
-  isLocked:  { type: Boolean, default: true },
   colWidths: { type: Object,  default: () => ({}) },
   linkColor: { type: String,  default: null },
   isMobile:  { type: Boolean, default: false },
@@ -289,46 +280,7 @@ const colWidthsPx = computed(() => {
   }
 })
 
-// ── Column resize drag ─────────────────────────────────────────────────────────
 
-let resizeState = null
-
-const startResize = (e, colKey) => {
-  if (props.isLocked) return
-  // title column is auto — we compute its current px width from DOM
-  let startWidth
-  if (colKey === 'title' && tableWrap.value) {
-    const th = tableWrap.value.querySelector('th.col-title')
-    startWidth = th ? th.offsetWidth : 300
-  } else {
-    startWidth = localWidths.value[colKey] || DEFAULT_WIDTHS[colKey] || 100
-  }
-
-  resizeState = { colKey, startX: e.clientX, startWidth }
-
-  const onMove = (me) => {
-    if (!resizeState) return
-    const delta = me.clientX - resizeState.startX
-    const newWidth = Math.max(40, resizeState.startWidth + delta)
-    localWidths.value = { ...localWidths.value, [resizeState.colKey]: newWidth }
-  }
-
-  const onUp = () => {
-    resizeState = null
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onUp)
-    // Persist: emit to DashboardGrid for layout save
-    emit('update-col-widths', { ...localWidths.value })
-  }
-
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onUp)
-}
-
-onUnmounted(() => {
-  // Safety cleanup if component unmounts mid-drag
-  resizeState = null
-})
 
 // Escape key dismisses open modal
 const onKeyUp = (e) => { if (e.key === 'Escape') selected.value = null }
@@ -581,22 +533,6 @@ const filteredNews = computed(() => {
 }
 
 /* Resize handle */
-.col-resize-handle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 0.1s;
-  z-index: 1;
-}
-.col-resize-handle:hover,
-.col-resize-handle:active {
-  background: rgba(139, 92, 246, 0.5);
-}
-
 .news-row {
   cursor: pointer;
   border-bottom: 1px solid #1c1c1c;
