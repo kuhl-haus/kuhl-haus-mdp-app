@@ -66,6 +66,7 @@
         >
           <div class="news-card-header">
             <span class="news-card-time">{{ formatTime(item.publishDate) }}</span>
+            <span v-for="co in usCompanies(item)" :key="co.ticker" class="ticker-tag">{{ co.ticker }}</span>
           </div>
           <div class="news-card-title">
             <span :class="['sentiment-dot', sentimentClass(item.sentiment)]" :title="item.sentiment"></span>
@@ -115,6 +116,7 @@
                 :title="item.sentiment"
               ></span>
               <span class="vs-headline">{{ item.title }}<span v-if="item.source" class="headline-source"> — {{ shortSource(item.source) }}</span></span>
+            <span v-for="co in usCompanies(item)" :key="co.ticker" class="ticker-tag">{{ co.ticker }}</span>
             </div>
           </div>
         </RecycleScroller>
@@ -198,7 +200,8 @@ const props = defineProps({
 const emit = defineEmits(['update-settings'])
 
 const { activeTickers, setActiveTicker } = useWidgetBus()
-const appConfig = window.__APP_CONFIG__ || {}
+const appConfig    = window.__APP_CONFIG__ || {}
+const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 
 // ── Ticker input & widget bus ─────────────────────────────────────────────────
 
@@ -343,6 +346,9 @@ const filteredNews = computed(() => {
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const isUsTicker  = (co) => US_EXCHANGES.has(co.primaryListing?.exchangeCode)
+const usCompanies = (item) => item.companies?.filter(isUsTicker) ?? []
 
 const shortSource = (src) => src ? src.replace(/^www\./, '').replace(/\.[^.]+$/, '') : ''
 
