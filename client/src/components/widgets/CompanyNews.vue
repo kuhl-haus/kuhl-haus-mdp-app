@@ -78,7 +78,7 @@
       </div>
 
       <!-- Desktop: virtual scroller -->
-      <div v-else class="news-table-wrap" ref="tableWrap">
+      <div v-else class="news-table-wrap">
         <!-- Sticky sort header -->
         <div class="vs-header" :style="tableStyle">
           <div
@@ -90,12 +90,6 @@
             :title="col.sortable ? (sortKey === col.key ? (sortDir === 'asc' ? 'Sort descending' : 'Sort ascending') : 'Sort by ' + col.label) : ''"
           >
             {{ col.label }}<span v-if="sortKey === col.key" class="sort-indicator">{{ sortDir === 'asc' ? ' ▲' : ' ▼' }}</span>
-            <span
-              v-if="!isLocked"
-              class="col-resize-handle"
-              @mousedown.prevent="startResize($event, col.key)"
-              title="Drag to resize column"
-            ></span>
           </div>
         </div>
 
@@ -185,28 +179,23 @@
  * No tickers-only filter (all articles in the per-ticker cache are already
  * ticker-matched). No active-ticker filter pill (single-ticker view).
  *
- * @prop {boolean} isLocked  - Dashboard lock state; hides resize handles when true
- * @prop {object}  colWidths - Saved column widths { time, title }
  * @prop {string}  linkColor - Widget bus link color
  * @prop {boolean} isMobile  - Mobile layout mode
  * @prop {object}  settings  - Persisted settings { maxArticles }
  *
- * @emits update-col-widths  - Column widths changed, payload: { time, title }
  * @emits update-settings    - Settings changed, payload: updated settings object
  */
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWidgetBus } from '@/composables/useWidgetBus.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 const props = defineProps({
-  isLocked:  { type: Boolean, default: true },
-  colWidths: { type: Object,  default: () => ({}) },
   linkColor: { type: String,  default: null },
   isMobile:  { type: Boolean, default: false },
   settings:  { type: Object,  default: () => ({}) },
 })
-const emit = defineEmits(['update-col-widths', 'update-settings'])
+const emit = defineEmits(['update-settings'])
 
 const { activeTickers, setActiveTicker } = useWidgetBus()
 const appConfig = window.__APP_CONFIG__ || {}
@@ -232,7 +221,7 @@ const applyInput = () => {
 // When bus fires, clear manual override
 watch(busTicker, (t) => { if (t) manualTicker.value = '' })
 
-// ── Column widths ─────────────────────────────────────────────────────────────
+// ── Column layout (fixed — no resize) ────────────────────────────────────────
 
 const DEFAULT_WIDTHS = { time: 90, title: 0 }
 const columns = [
@@ -252,46 +241,16 @@ const cycleSort = (colKey) => {
   }
 }
 
-const localWidths = ref({ ...DEFAULT_WIDTHS, ...props.colWidths })
-watch(() => props.colWidths, (v) => {
-  if (v && Object.keys(v).length) localWidths.value = { ...DEFAULT_WIDTHS, ...v }
-})
-
-const tableStyle   = computed(() => ({ tableLayout: 'fixed', width: '100%' }))
-const colWidthsPx  = computed(() => ({
-  time:  localWidths.value.time ? `${localWidths.value.time}px` : `${DEFAULT_WIDTHS.time}px`,
+const tableStyle  = computed(() => ({ tableLayout: 'fixed', width: '100%' }))
+const colWidthsPx = computed(() => ({
+  time:  `${DEFAULT_WIDTHS.time}px`,
   title: 'auto',
 }))
 
-let resizeState = null
-const tableWrap = ref(null)
-
-const startResize = (e, colKey) => {
-  if (props.isLocked) return
-  let startWidth
-  if (colKey === 'title' && tableWrap.value) {
-    const th = tableWrap.value.querySelector('th.col-title')
-    startWidth = th ? th.offsetWidth : 300
-  } else {
-    startWidth = localWidths.value[colKey] || DEFAULT_WIDTHS[colKey] || 100
-  }
-  resizeState = { colKey, startX: e.clientX, startWidth }
-  const onMove = (me) => {
-    if (!resizeState) return
-    const delta = me.clientX - resizeState.startX
-    localWidths.value = { ...localWidths.value, [resizeState.colKey]: Math.max(40, resizeState.startWidth + delta) }
-  }
-  const onUp = () => {
-    resizeState = null
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onUp)
-    emit('update-col-widths', { ...localWidths.value })
-  }
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onUp)
-}
-
-onUnmounted(() => { resizeState = null })
+// Escape key dismisses open modal
+const onKeyUp = (e) => { if (e.key === 'Escape') selected.value = null }
+onMounted(()   => document.addEventListener('keyup', onKeyUp))
+onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
 
 // ── Article cache & settings ──────────────────────────────────────────────────
 
@@ -539,14 +498,6 @@ const openDetail = (item) => { selected.value = item }
 .vs-th.col-title { flex: 1; }
 .col-sorted { color: #a78bfa; }
 .sort-indicator { font-size: 9px; margin-left: 2px; }
-.col-resize-handle {
-  position: absolute;
-  right: 0; top: 0; bottom: 0;
-  width: 6px;
-  cursor: col-resize;
-  background: transparent;
-}
-.col-resize-handle:hover { background: #8b5cf6; }
 .vs-scroller { flex: 1; overflow-y: auto; }
 .vs-row {
   display: flex;
