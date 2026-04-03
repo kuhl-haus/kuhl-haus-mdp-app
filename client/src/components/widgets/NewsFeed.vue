@@ -191,7 +191,7 @@
  * @emits ticker-click        - US ticker badge clicked, payload: symbol string
  * @emits update-col-widths   - Column widths changed, payload: { time, title, source, tickers }
  */
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWidgetBus, setNewsTimestamp } from '@/composables/useWidgetBus.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
@@ -329,6 +329,11 @@ onUnmounted(() => {
   // Safety cleanup if component unmounts mid-drag
   resizeState = null
 })
+
+// Escape key dismisses open modal
+const onKeyUp = (e) => { if (e.key === 'Escape') selected.value = null }
+onMounted(()   => document.addEventListener('keyup', onKeyUp))
+onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
 
 // ── WebSocket ──────────────────────────────────────────────────────────────────
 

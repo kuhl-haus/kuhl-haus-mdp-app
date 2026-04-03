@@ -194,7 +194,7 @@
  * @emits update-col-widths  - Column widths changed, payload: { time, title }
  * @emits update-settings    - Settings changed, payload: updated settings object
  */
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWidgetBus } from '@/composables/useWidgetBus.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
@@ -292,6 +292,11 @@ const startResize = (e, colKey) => {
 }
 
 onUnmounted(() => { resizeState = null })
+
+// Escape key dismisses open modal
+const onKeyUp = (e) => { if (e.key === 'Escape') selected.value = null }
+onMounted(()   => document.addEventListener('keyup', onKeyUp))
+onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
 
 // ── Article cache & settings ──────────────────────────────────────────────────
 
