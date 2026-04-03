@@ -537,8 +537,8 @@ const openDetail = (item) => { selected.value = item }
   font-size: 12px;
 }
 .vs-td.col-time  { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.vs-td.col-title { flex: 1; display: flex; align-items: center; gap: 4px; color: #ddd; font-size: 16px; line-height: 1.4; }
-.vs-headline     { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.vs-td.col-title { flex: 1; display: flex; align-items: center; gap: 4px; color: #ddd; line-height: 1.4; }
+.vs-headline     { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-size: 14px; }
 .headline-source { color: #666; font-size: 11px; }
 
 /* ── Sentiment dots ── */
