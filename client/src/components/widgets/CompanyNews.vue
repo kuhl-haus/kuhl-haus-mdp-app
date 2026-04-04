@@ -546,7 +546,8 @@ const openDetail = (item) => { selected.value = item }
   display: inline-block;
   width: 6px; height: 6px;
   border-radius: 50%;
-  flex-shrink: 0;
+  margin-right: 5px;
+  vertical-align: middle;
 }
 .sentiment-dot.positive { background: #22c55e; }
 .sentiment-dot.negative { background: #ef4444; }
@@ -577,7 +578,7 @@ const openDetail = (item) => { selected.value = item }
   margin-bottom: 4px;
 }
 .news-card-time  { font-size: 11px; color: #666; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.news-card-title { font-size: 13px; color: #ddd; line-height: 1.4; display: flex; gap: 5px; align-items: center; }
+.news-card-title { font-size: 13px; color: #ddd; line-height: 1.4; }
 
 /* ── Empty ── */
 .news-empty {
