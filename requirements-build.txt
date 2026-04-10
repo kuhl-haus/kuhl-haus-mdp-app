@@ -1,5 +1,0 @@
-setuptools
-setuptools-scm
-pdm-backend
-pytest
-pytest-cov

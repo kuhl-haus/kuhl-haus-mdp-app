@@ -47,6 +47,7 @@ Tracker = "https://github.com/kuhl-haus/kuhl-haus-mdp-app/issues"
 [project.optional-dependencies]
 testing = [
     "setuptools",
+    "setuptools-scm",
     "pdm-backend",
     "pytest",
     "pytest-cov",
