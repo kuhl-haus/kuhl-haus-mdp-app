@@ -159,26 +159,11 @@ describe('EnhancedQuote', () => {
     expect(rows[2].text()).toContain('—')
   })
 
-  it('hides short interest section when all short interest fields are null', async () => {
+  it('does not render short interest section (temporarily disabled)', async () => {
+    // Short interest section is disabled pending refs #85
     const wrapper = mountWidget()
-    wrapper.vm.manualTicker = 'TSLA'
-    await wrapper.vm.$nextTick()
-    wrapper.vm.quoteData = {
-      symbol: 'TSLA',
-      close: 250.00,
-      change: 5.00,
-      pct_change: 2.04,
-      pct_change_since_open: 1.5,
-      change_since_open: 3.75,
-      end_timestamp: Date.now(),
-      short_interest: null,
-      days_to_cover: null,
-      short_volume_ratio: null,
-    }
-    await wrapper.vm.$nextTick()
     const shortSection = wrapper.find('.eq-short-loading')
-    expect(shortSection.exists()).toBe(true)
-    expect(shortSection.text()).toContain('Short interest data loading')
+    expect(shortSection.exists()).toBe(false)
   })
 
   it('hides company section when all company fields are null', async () => {
