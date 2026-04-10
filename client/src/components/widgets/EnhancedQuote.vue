@@ -245,7 +245,7 @@ watch(activeTicker, (newTicker) => {
   }
   quoteData.value = null
   if (newTicker) {
-    const feed = `enhanced_quote:${newTicker}`
+    const feed = `daily_range:${newTicker}`
     feedName.value = feed
     cacheKey.value = feed
     currentFeed.value = feed
