@@ -88,7 +88,7 @@ describe('useWebSocketClient', () => {
   // connect / disconnect
   // ------------------------------------------------------------------
 
-  it('test_connect_creates_websocket_with_correct_url', () => {
+  it('test_connect_creates_websocket_with_correct_url', async () => {
     const client = makeClient()
     client.connect()
     expect(MockWebSocket.instances.length).toBe(1)
@@ -121,7 +121,7 @@ describe('useWebSocketClient', () => {
     expect(parseSent(mockWs)).toContainEqual({ action: 'ping' })
   })
 
-  it('test_sendMessage_with_closed_socket_expect_returns_false', () => {
+  it('test_sendMessage_with_closed_socket_expect_returns_false', async () => {
     const client = makeClient()
     const result = client.sendMessage({ action: 'ping' })
     expect(result).toBe(false)
@@ -163,7 +163,7 @@ describe('useWebSocketClient', () => {
     expect(cacheMsg.limit).toBeUndefined()
   })
 
-  it('test_cacheLimit_with_initial_value_expect_propagated_to_getCache', () => {
+  it('test_cacheLimit_with_initial_value_expect_propagated_to_getCache', async () => {
     const client = makeClient({ cacheLimit: 10 })
     const mockWs = await connectAndOpen(client)
     // The watch fires getCache(cacheLimit.value) on connect — check it sent limit=10
@@ -194,7 +194,7 @@ describe('useWebSocketClient', () => {
     expect(messages).toContainEqual({ action: 'unsubscribe', feed: 'quote:AAPL' })
   })
 
-  it('test_subscribe_with_empty_feedName_expect_no_message_sent', () => {
+  it('test_subscribe_with_empty_feedName_expect_no_message_sent', async () => {
     const client = makeClient({ feedName: '' })
     const mockWs = await connectAndOpen(client)
     mockWs.sent = []
@@ -207,7 +207,7 @@ describe('useWebSocketClient', () => {
   // onData callback
   // ------------------------------------------------------------------
 
-  it('test_onData_called_with_data_on_message_with_data_wrapper', () => {
+  it('test_onData_called_with_data_on_message_with_data_wrapper', async () => {
     const received = []
     const client = makeClient({ onData: d => received.push(d) })
     const mockWs = await connectAndOpen(client)
@@ -216,7 +216,7 @@ describe('useWebSocketClient', () => {
     expect(received[0]).toEqual({ symbol: 'AAPL', close: 170.0 })
   })
 
-  it('test_onData_called_with_raw_message_when_no_data_wrapper', () => {
+  it('test_onData_called_with_raw_message_when_no_data_wrapper', async () => {
     const received = []
     const client = makeClient({ onData: d => received.push(d) })
     const mockWs = await connectAndOpen(client)
