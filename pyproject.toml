@@ -50,6 +50,7 @@ testing = [
     "setuptools-scm",
     "pdm-backend",
     "pytest",
+    "pytest-asyncio",
     "pytest-cov",
 ]
 
@@ -75,6 +76,7 @@ includes = ["src/kuhl_haus"]
 addopts = ["--verbose"]
 norecursedirs = ["dist", "build", ".tox"]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [tool.devpi.upload]
 no_vcs = 1
