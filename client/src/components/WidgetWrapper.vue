@@ -70,6 +70,7 @@ import TopGainers from './widgets/TopGainers.vue'
 import CompanyNews from './widgets/CompanyNews.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
 import Quote from './widgets/Quote.vue'
+import EnhancedQuote from './widgets/EnhancedQuote.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
@@ -90,6 +91,7 @@ const widgetComponents = {
   'company-news': CompanyNews,
   'news-feed':   NewsFeed,
   'quote':           Quote,
+  'enhanced-quote':  EnhancedQuote,
 }
 
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
