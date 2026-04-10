@@ -9,14 +9,14 @@ ARG user=py4web
 RUN groupadd -r -g 999 $user && \
     useradd -m -r -g $user -u 999 $user
 
-COPY requirements.txt /home/$user/
-
 RUN chown "${user}:${user}" -R /home/$user/
 
 USER $user
 WORKDIR /home/$user/
 
+# Base venv with py4web runtime — app deps installed in app.Dockerfile via pip install -e .
 RUN python3 -m venv venv && \
     . venv/bin/activate && \
-    python3 -m pip install -r requirements.txt -U
+    python3 -m pip install --upgrade pip setuptools && \
+    python3 -m pip install py4web
 
