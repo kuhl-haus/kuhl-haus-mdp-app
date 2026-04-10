@@ -50,6 +50,30 @@
         </span>
       </div>
 
+      <!-- Company -->
+      <div class="eq-section-label">Company</div>
+      <div v-if="allCompanyNull" class="eq-company-loading">Company data loading...</div>
+      <div v-else class="eq-grid eq-grid--full">
+        <div class="eq-kv"><span class="eq-k">Name</span><span class="eq-v">{{ quoteData.name || '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Exchange</span><span class="eq-v">{{ quoteData.primary_exchange || '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Sector</span><span class="eq-v">{{ quoteData.sic_description || '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Market Cap</span><span class="eq-v">{{ quoteData.market_cap != null ? '$' + fmtVol(quoteData.market_cap) : '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Employees</span><span class="eq-v">{{ quoteData.total_employees != null ? fmtVol(quoteData.total_employees) : '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Listed</span><span class="eq-v">{{ quoteData.list_date || '—' }}</span></div>
+        <div v-if="quoteData.homepage_url" class="eq-kv eq-kv--full">
+          <span class="eq-k">Website</span>
+          <a :href="quoteData.homepage_url" target="_blank" rel="noopener noreferrer" class="eq-link">{{ truncateUrl(quoteData.homepage_url) }}</a>
+        </div>
+        <div v-else class="eq-kv"><span class="eq-k">Website</span><span class="eq-v">—</span></div>
+      </div>
+
+      <!-- Today -->
+      <div class="eq-section-label">Today</div>
+      <div class="eq-grid">
+        <div class="eq-kv"><span class="eq-k">Open</span><span class="eq-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
+        <div class="eq-kv"><span class="eq-k">VWAP</span><span class="eq-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
+      </div>
+
       <!-- Session H/L -->
       <div class="eq-section-label">Session H/L</div>
       <div class="eq-session-hl">
@@ -81,14 +105,7 @@
           </span>
         </div>
       </div>
-
-      <!-- Today -->
-      <div class="eq-section-label">Today</div>
-      <div class="eq-grid">
-        <div class="eq-kv"><span class="eq-k">Open</span><span class="eq-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-        <div class="eq-kv"><span class="eq-k">VWAP</span><span class="eq-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
-      </div>
-
+      
       <!-- Short Interest — temporarily disabled (refs #85) -->
       <!-- TODO: re-enable once short interest/volume enrichment is stable
       <div class="eq-section-label">Short Interest</div>
@@ -109,22 +126,6 @@
         <div class="eq-kv"><span class="eq-k">Float</span><span class="eq-v">{{ fmtVol(floatShares) }}</span></div>
       </div>
 
-      <!-- Company -->
-      <div class="eq-section-label">Company</div>
-      <div v-if="allCompanyNull" class="eq-company-loading">Company data loading...</div>
-      <div v-else class="eq-grid eq-grid--full">
-        <div class="eq-kv"><span class="eq-k">Name</span><span class="eq-v">{{ quoteData.name || '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Exchange</span><span class="eq-v">{{ quoteData.primary_exchange || '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Sector</span><span class="eq-v">{{ quoteData.sic_description || '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Market Cap</span><span class="eq-v">{{ quoteData.market_cap != null ? '$' + fmtVol(quoteData.market_cap) : '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Employees</span><span class="eq-v">{{ quoteData.total_employees != null ? fmtVol(quoteData.total_employees) : '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Listed</span><span class="eq-v">{{ quoteData.list_date || '—' }}</span></div>
-        <div v-if="quoteData.homepage_url" class="eq-kv eq-kv--full">
-          <span class="eq-k">Website</span>
-          <a :href="quoteData.homepage_url" target="_blank" rel="noopener noreferrer" class="eq-link">{{ truncateUrl(quoteData.homepage_url) }}</a>
-        </div>
-        <div v-else class="eq-kv"><span class="eq-k">Website</span><span class="eq-v">—</span></div>
-      </div>
 
       <!-- Previous Day -->
       <div class="eq-section-label">Previous Day</div>
