@@ -14,6 +14,16 @@ from py4web.core import required_folder
 WDS_ENDPOINT = os.environ.get("WDS_ENDPOINT", f"ws://localhost:4020/ws")  # Widget Data Service Endpoint
 WDS_API_KEY = os.environ.get("WDS_API_KEY", "secret")  # Widget Data Service API KEY
 
+# Market Data Cache / Widget Data Cache Redis URLs
+MDC_REDIS_URL = os.environ.get("MDC_REDIS_URL", "redis://localhost:6379/0")
+WDC_REDIS_URL = os.environ.get("WDC_REDIS_URL", "redis://localhost:6379/1")
+
+# Massive API key (for enrichment proxy)
+MASSIVE_API_KEY = os.environ.get("MASSIVE_API_KEY", "")
+
+# Finlight API key (for news proxy)
+FINLIGHT_API_KEY = os.environ.get("FINLIGHT_API_KEY", "")
+
 # mode (default or development)
 MODE = os.environ.get("PY4WEB_MODE")
 
