@@ -50,19 +50,20 @@
         </span>
       </div>
 
-      <!-- Company -->
+      <!-- Company — populated via REST /api/market_data/company/{symbol} -->
       <div class="eq-section-label">Company</div>
-      <div v-if="allCompanyNull" class="eq-company-loading">Company data loading...</div>
+      <div v-if="companyLoading" class="eq-company-loading">Company data loading...</div>
+      <div v-else-if="allCompanyNull" class="eq-company-loading">Company data unavailable</div>
       <div v-else class="eq-grid eq-grid--full">
-        <div class="eq-kv"><span class="eq-k">Name</span><span class="eq-v">{{ quoteData.name || '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Exchange</span><span class="eq-v">{{ quoteData.primary_exchange || '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Sector</span><span class="eq-v">{{ quoteData.sic_description || '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Market Cap</span><span class="eq-v">{{ quoteData.market_cap != null ? '$' + fmtVol(quoteData.market_cap) : '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Employees</span><span class="eq-v">{{ quoteData.total_employees != null ? fmtVol(quoteData.total_employees) : '—' }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Listed</span><span class="eq-v">{{ quoteData.list_date || '—' }}</span></div>
-        <div v-if="quoteData.homepage_url" class="eq-kv eq-kv--full">
+        <div class="eq-kv"><span class="eq-k">Name</span><span class="eq-v">{{ companyData.name || '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Exchange</span><span class="eq-v">{{ companyData.primary_exchange || '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Sector</span><span class="eq-v">{{ companyData.sic_description || '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Market Cap</span><span class="eq-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Employees</span><span class="eq-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Listed</span><span class="eq-v">{{ companyData.list_date || '—' }}</span></div>
+        <div v-if="companyData.homepage_url" class="eq-kv eq-kv--full">
           <span class="eq-k">Website</span>
-          <a :href="quoteData.homepage_url" target="_blank" rel="noopener noreferrer" class="eq-link">{{ truncateUrl(quoteData.homepage_url) }}</a>
+          <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eq-link">{{ truncateUrl(companyData.homepage_url) }}</a>
         </div>
         <div v-else class="eq-kv"><span class="eq-k">Website</span><span class="eq-v">—</span></div>
       </div>
@@ -219,6 +220,28 @@ watch(busTicker, (t) => {
 const quoteData = ref(null)
 const lastDataAt = ref(null)
 
+// Company enrichment — fetched via REST on ticker change
+const companyData = ref({})
+const companyLoading = ref(false)
+
+const fetchCompany = async (symbol) => {
+  if (!symbol) return
+  companyLoading.value = true
+  companyData.value = {}
+  try {
+    const resp = await fetch(`/api/market_data/company/${symbol}`)
+    if (resp.ok) {
+      const json = await resp.json()
+      companyData.value = json.data || {}
+    }
+  } catch (e) {
+    // Network error — leave companyData empty, UI shows unavailable
+    console.warn(`[EnhancedQuote] company fetch failed for ${symbol}:`, e)
+  } finally {
+    companyLoading.value = false
+  }
+}
+
 // WebSocket client — always-on connection, swap feed on ticker change
 const currentFeed = ref('')
 
@@ -244,7 +267,9 @@ watch(activeTicker, (newTicker) => {
     currentFeed.value = ''
   }
   quoteData.value = null
+  companyData.value = {}
   if (newTicker) {
+    fetchCompany(newTicker)
     const feed = `daily_range:${newTicker}`
     feedName.value = feed
     cacheKey.value = feed
@@ -321,14 +346,15 @@ const allShortNull = computed(() => {
 
 // Company: null if all company fields are null
 const allCompanyNull = computed(() => {
-  if (!quoteData.value) return true
-  return quoteData.value.name == null &&
-         quoteData.value.primary_exchange == null &&
-         quoteData.value.sic_description == null &&
-         quoteData.value.market_cap == null &&
-         quoteData.value.total_employees == null &&
-         quoteData.value.list_date == null &&
-         quoteData.value.homepage_url == null
+  const d = companyData.value
+  if (!d) return true
+  return d.name == null &&
+         d.primary_exchange == null &&
+         d.sic_description == null &&
+         d.market_cap == null &&
+         d.total_employees == null &&
+         d.list_date == null &&
+         d.homepage_url == null
 })
 
 const truncateUrl = (url) => {
@@ -336,7 +362,7 @@ const truncateUrl = (url) => {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
 }
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading })
 </script>
 
 <style scoped>

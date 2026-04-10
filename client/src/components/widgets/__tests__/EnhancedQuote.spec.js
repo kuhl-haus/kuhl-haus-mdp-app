@@ -55,6 +55,11 @@ function mountWidget(props = {}) {
 describe('EnhancedQuote', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Mock fetch for company enrichment endpoint
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ symbol: 'TSLA', data: {}, available: false }),
+    })
   })
 
   it('renders without crashing', () => {
@@ -166,30 +171,59 @@ describe('EnhancedQuote', () => {
     expect(shortSection.exists()).toBe(false)
   })
 
-  it('hides company section when all company fields are null', async () => {
+  it('shows unavailable state when fetch returns empty data', async () => {
+    // Mock fetch returning empty company data
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ symbol: 'TSLA', data: {}, available: false }),
+    })
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = {
-      symbol: 'TSLA',
-      close: 250.00,
-      change: 5.00,
-      pct_change: 2.04,
-      pct_change_since_open: 1.5,
-      change_since_open: 3.75,
-      end_timestamp: Date.now(),
-      name: null,
-      primary_exchange: null,
-      sic_description: null,
-      market_cap: null,
-      total_employees: null,
-      list_date: null,
-      homepage_url: null,
+      symbol: 'TSLA', close: 250.00, change: 5.00,
+      pct_change: 2.04, pct_change_since_open: 1.5,
+      change_since_open: 3.75, end_timestamp: Date.now(),
     }
+    // Wait for fetchCompany to complete
+    await new Promise(r => setTimeout(r, 0))
     await wrapper.vm.$nextTick()
-    const companyLoading = wrapper.find('.eq-company-loading')
-    expect(companyLoading.exists()).toBe(true)
-    expect(companyLoading.text()).toContain('Company data loading')
+    const msg = wrapper.find('.eq-company-loading')
+    expect(msg.exists()).toBe(true)
+    expect(msg.text()).toContain('unavailable')
+  })
+
+  it('shows company data when fetch returns populated data', async () => {
+    // Mock fetch returning real company data
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        symbol: 'AAPL',
+        data: {
+          name: 'Apple Inc.',
+          primary_exchange: 'XNAS',
+          sic_description: 'Electronic Computers',
+          market_cap: 2500000000000,
+          total_employees: 164000,
+          list_date: '1980-12-12',
+          homepage_url: 'https://apple.com',
+        },
+      }),
+    })
+    const wrapper = mountWidget()
+    wrapper.vm.manualTicker = 'AAPL'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = {
+      symbol: 'AAPL', close: 170.00, change: 1.00,
+      pct_change: 0.59, pct_change_since_open: 0.3,
+      change_since_open: 0.5, end_timestamp: Date.now(),
+    }
+    // Wait for fetchCompany to complete
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+    const body = wrapper.find('.eq-body')
+    expect(body.text()).toContain('Apple Inc.')
+    expect(body.text()).toContain('Electronic Computers')
   })
 
   it('hides splits section when splits array is empty', async () => {
