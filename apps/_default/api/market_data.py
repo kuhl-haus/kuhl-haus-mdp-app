@@ -16,6 +16,7 @@ from py4web import action, request
 from kuhl_haus.mdp.analyzers.analyzer import AnalyzerOptions
 from kuhl_haus.mdp.enum.widget_data_cache_keys import WidgetDataCacheKeys
 from kuhl_haus.mdp.enum.widget_data_cache_ttl import WidgetDataCacheTTL
+from kuhl_haus.mdp.helpers.structured_logging import setup_logging
 
 from ..common import auth, session
 from ..settings import (
@@ -24,6 +25,7 @@ from ..settings import (
     WDC_REDIS_URL,
 )
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Enrichment TTLs (seconds) — consistent with DailyRangeAnalyzer conventions
@@ -84,19 +86,19 @@ def company(symbol: str):
     # Cache miss — call Massive
     try:
         client = _get_massive_client()
-        response = client.get_ticker_details(symbol)
-        if response and getattr(response, "results", None):
-            r = response.results
+        # get_ticker_details() returns TickerDetails directly (not wrapped in .results)
+        ticker_details = client.get_ticker_details(symbol)
+        if ticker_details and getattr(ticker_details, "name", None):
             data = {
-                "name": getattr(r, "name", None),
-                "description": getattr(r, "description", None),
-                "homepage_url": getattr(r, "homepage_url", None),
-                "list_date": getattr(r, "list_date", None),
-                "market_cap": getattr(r, "market_cap", None),
-                "primary_exchange": getattr(r, "primary_exchange", None),
-                "sic_description": getattr(r, "sic_description", None),
-                "total_employees": getattr(r, "total_employees", None),
-                "share_class_shares_outstanding": getattr(r, "share_class_shares_outstanding", None),
+                "name": getattr(ticker_details, "name", None),
+                "description": getattr(ticker_details, "description", None),
+                "homepage_url": getattr(ticker_details, "homepage_url", None),
+                "list_date": getattr(ticker_details, "list_date", None),
+                "market_cap": getattr(ticker_details, "market_cap", None),
+                "primary_exchange": getattr(ticker_details, "primary_exchange", None),
+                "sic_description": getattr(ticker_details, "sic_description", None),
+                "total_employees": getattr(ticker_details, "total_employees", None),
+                "share_class_shares_outstanding": getattr(ticker_details, "share_class_shares_outstanding", None),
             }
             logger.info(f"[company:{symbol}] API hit — caching (TTL={_OVERVIEW_TTL}s) name={data.get('name')!r}")
             try:
