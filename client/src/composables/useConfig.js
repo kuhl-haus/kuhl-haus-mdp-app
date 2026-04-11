@@ -24,8 +24,9 @@ export function useConfig() {
       const data = await response.json()
       config.value = {
         apiKey: data.api_key,
-        wsEndpoint: data.ws_endpoint
-        // ...data  // Capture any additional fields
+        wsEndpoint: data.ws_endpoint,
+        massiveApiKey: data.massive_api_key,
+        finlightApiKey: data.finlight_api_key,
       }
 
       return config.value

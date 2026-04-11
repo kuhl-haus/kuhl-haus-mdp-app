@@ -38,6 +38,8 @@ from .common import (
 )
 from .settings import (
     APP_FOLDER,
+    FINLIGHT_API_KEY,
+    MASSIVE_API_KEY,
     WDS_API_KEY,
     WDS_ENDPOINT,
 )
@@ -106,6 +108,8 @@ def get_config():
 
     return dict(
         api_key=WDS_API_KEY,
-        ws_endpoint=WDS_ENDPOINT  # ,
+        ws_endpoint=WDS_ENDPOINT,
+        massive_api_key=MASSIVE_API_KEY,
+        finlight_api_key=FINLIGHT_API_KEY,
         # version_info=version_info,
     )

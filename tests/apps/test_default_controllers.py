@@ -67,6 +67,8 @@ def _import_controllers(wds_api_key='test-api-key', wds_endpoint='ws://localhost
     mock_settings = MagicMock()
     mock_settings.WDS_API_KEY = wds_api_key
     mock_settings.WDS_ENDPOINT = wds_endpoint
+    mock_settings.MASSIVE_API_KEY = ''
+    mock_settings.FINLIGHT_API_KEY = ''
     mock_settings.APP_FOLDER = '/tmp'
 
     sys.modules['apps._default.common'] = mock_common
@@ -138,13 +140,17 @@ def test_app_with_authenticated_user_expect_config_returned():
 # ---------------------------------------------------------------------------
 
 def test_get_config_with_authenticated_user_expect_api_key_and_endpoint():
-    """get_config() returns WDS api_key and ws_endpoint."""
+    """get_config() returns WDS api_key, ws_endpoint, massive_api_key, finlight_api_key."""
     controllers = _import_controllers(
         wds_api_key='config-api-key',
         wds_endpoint='ws://config:4202/ws',
     )
+    controllers.MASSIVE_API_KEY = 'massive-key'
+    controllers.FINLIGHT_API_KEY = 'finlight-key'
 
     result = controllers.get_config()
 
     assert result['api_key'] == 'config-api-key'
     assert result['ws_endpoint'] == 'ws://config:4202/ws'
+    assert result['massive_api_key'] == 'massive-key'
+    assert result['finlight_api_key'] == 'finlight-key'
