@@ -95,8 +95,8 @@ def app():
     )
 
 
-# Market data enrichment proxy (controllers package)
-from .controllers import market_data  # noqa: F401 — registers routes
+# Market data enrichment proxy (api package)
+from .api import market_data  # noqa: F401 — registers routes
 
 # API endpoint to validate session and get API key
 @action('api/get_config', method='GET')
