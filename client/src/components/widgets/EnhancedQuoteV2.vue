@@ -110,8 +110,7 @@
           </div>
         </div>
 
-        <!-- Short Interest — temporarily disabled (refs #85) -->
-        <!--
+        <!-- Short Interest -->
         <div class="eqv2-card eqv2-short-card">
           <div class="eqv2-card-label">Short Interest</div>
           <div v-if="allShortNull" class="eqv2-muted-msg">Short interest data loading...</div>
@@ -121,7 +120,6 @@
             <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(quoteData.short_volume_ratio, 1) }}%</span></div>
           </div>
         </div>
-        -->
 
         <!-- Volume card -->
         <div class="eqv2-card eqv2-volume-card">
@@ -762,6 +760,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     grid-template-areas:
       "company today"
       "company session"
+      "company short"
       "company volume"
       "prev    prev";
     gap: 8px;
@@ -769,6 +768,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv2-company-card { grid-area: company; }
   .eqv2-today-card   { grid-area: today; }
   .eqv2-session-card { grid-area: session; }
+  .eqv2-short-card   { grid-area: short; }
   .eqv2-volume-card  { grid-area: volume; }
   .eqv2-prev-card    { grid-area: prev; }
 }
@@ -779,7 +779,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-areas:
       "company today   volume"
-      "company session volume"
+      "company session short"
       "prev    prev    prev";
   }
 }

@@ -107,8 +107,7 @@
         </div>
       </div>
       
-      <!-- Short Interest — temporarily disabled (refs #85) -->
-      <!-- TODO: re-enable once short interest/volume enrichment is stable
+      <!-- Short Interest -->
       <div class="eq-section-label">Short Interest</div>
       <div v-if="allShortNull" class="eq-short-loading">Short interest data loading...</div>
       <div v-else class="eq-grid">
@@ -116,7 +115,6 @@
         <div class="eq-kv"><span class="eq-k">Days to Cover</span><span class="eq-v">{{ fmt(quoteData.days_to_cover, 1) }}</span></div>
         <div class="eq-kv"><span class="eq-k">Short Vol Ratio</span><span class="eq-v">{{ fmt(quoteData.short_volume_ratio, 1) }}%</span></div>
       </div>
-      -->
 
       <!-- Volume -->
       <div class="eq-section-label">Volume</div>
