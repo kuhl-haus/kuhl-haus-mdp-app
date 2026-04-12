@@ -276,9 +276,9 @@ describe('EnhancedQuoteV2', () => {
       after_hours_low: null,
     }
     await wrapper.vm.$nextTick()
-    const sessionMinis = wrapper.findAll('.eqv2-session-mini')
-    expect(sessionMinis[0].text()).toContain('—') // PRE
-    expect(sessionMinis[2].text()).toContain('—') // AH
+    const sessionChips = wrapper.findAll('.eqv2-session-chip')
+    expect(sessionChips[0].text()).toContain('—') // PRE
+    expect(sessionChips[2].text()).toContain('—') // AH
   })
 
   it('exposes required interface (lastDataAt, isConnected, etc.)', () => {
@@ -456,9 +456,9 @@ describe('EnhancedQuoteV2', () => {
       expect(hero.text()).toContain('Motor Vehicles')
     })
 
-    it('renders logo in hero when logo_url is present', async () => {
+    it('renders logo in hero via proxy src when activeTicker is set', async () => {
       // Arrange
-      mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers', logo_url: 'https://example.com/logo.png' })
+      mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers' })
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'AAPL'
       await wrapper.vm.$nextTick()
@@ -466,25 +466,46 @@ describe('EnhancedQuoteV2', () => {
       await new Promise(r => setTimeout(r, 0))
       await wrapper.vm.$nextTick()
 
-      // Assert
+      // Assert: proxy src used (not companyData.logo_url)
       const logo = wrapper.find('.eqv2-hero-logo')
       expect(logo.exists()).toBe(true)
-      expect(logo.attributes('src')).toBe('https://example.com/logo.png')
+      expect(logo.attributes('src')).toBe('/api/market_data/logo/AAPL')
     })
 
-    it('hero renders correctly when logo_url is null — no broken img element', async () => {
+    it('hides logo when logoError is true', async () => {
       // Arrange
-      mockCompanyFetch({ name: 'No Logo Corp', sic_description: 'Services', logo_url: null })
+      mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers' })
       const wrapper = mountWidget()
-      wrapper.vm.manualTicker = 'NOLG'
+      wrapper.vm.manualTicker = 'AAPL'
       await wrapper.vm.$nextTick()
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
       await new Promise(r => setTimeout(r, 0))
       await wrapper.vm.$nextTick()
 
-      // Assert: no img rendered (v-if guard), but name still shows
+      // Simulate @error handler firing
+      wrapper.vm.logoError = true
+      await wrapper.vm.$nextTick()
+
+      // Assert: img no longer visible
       expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(false)
-      expect(wrapper.find('.eqv2-hero').text()).toContain('No Logo Corp')
+    })
+
+    it('resets logoError to false when ticker changes', async () => {
+      // Arrange: set logoError, then change ticker
+      mockCompanyFetch({ name: 'Apple Inc.' })
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'AAPL'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      wrapper.vm.logoError = true
+      await wrapper.vm.$nextTick()
+
+      // Act: change ticker
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+
+      // Assert: logoError reset
+      expect(wrapper.vm.logoError).toBe(false)
     })
   })
 
@@ -592,6 +613,125 @@ describe('EnhancedQuoteV2', () => {
 
       // Assert: expanded state cleared — no see-more button since new company has no desc
       expect(wrapper.find('.eqv2-company-desc-wrap').exists()).toBe(false)
+    })
+  })
+
+  describe('Since open', () => {
+    async function mountWithQuote(quoteOverrides) {
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE, ...quoteOverrides }
+      await wrapper.vm.$nextTick()
+      return wrapper
+    }
+
+    it('renders "since open" label (not "Open:")', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithQuote({})
+
+      // Assert
+      expect(wrapper.find('.eqv2-since-open').text()).toContain('since open')
+      expect(wrapper.find('.eqv2-since-open').text()).not.toContain('Open:')
+    })
+
+    it('renders dollar delta from change_since_open when present', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithQuote({ pct_change_since_open: 1.5, change_since_open: 3.75 })
+
+      // Assert: dollar amount shown in parens with sign and $
+      const text = wrapper.find('.eqv2-since-open').text()
+      expect(text).toContain('$3.75')
+      expect(text).toContain('+')
+    })
+
+    it('renders negative dollar delta correctly', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithQuote({ pct_change_since_open: -1.5, change_since_open: -3.75 })
+
+      // Assert
+      const text = wrapper.find('.eqv2-since-open').text()
+      expect(text).toContain('$3.75')  // absolute value displayed
+      expect(text).toContain('-')
+    })
+
+    it('omits dollar delta when change_since_open is null', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithQuote({ pct_change_since_open: 1.5, change_since_open: null })
+
+      // Assert: pct shown, no dollar amount
+      const text = wrapper.find('.eqv2-since-open').text()
+      expect(text).toContain('1.50%')
+      expect(text).not.toContain('$')
+    })
+  })
+
+  describe('Session H/L chip style', () => {
+    async function mountWithSessionData(sessionOverrides) {
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE, ...sessionOverrides }
+      await wrapper.vm.$nextTick()
+      return wrapper
+    }
+
+    it('renders PRE, REG, AH chips in session card', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithSessionData({})
+
+      // Assert
+      const chips = wrapper.findAll('.eqv2-session-chip')
+      expect(chips.length).toBe(3)
+      const labels = chips.map(c => c.find('.eqv2-chip-label').text())
+      expect(labels).toContain('PRE')
+      expect(labels).toContain('REG')
+      expect(labels).toContain('AH')
+    })
+
+    it('renders H and L values inside each session chip', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithSessionData({})
+
+      // Assert: PRE chip (index 0) shows H and L values from SAMPLE_QUOTE
+      const preChip = wrapper.findAll('.eqv2-session-chip')[0]
+      expect(preChip.text()).toContain('252.00')  // pre_market_high
+      expect(preChip.text()).toContain('248.00')  // pre_market_low
+    })
+
+    it('shows dash in session chip when values are null', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithSessionData({
+        pre_market_high: null,
+        pre_market_low: null,
+      })
+
+      // Assert: PRE chip shows dash
+      expect(wrapper.findAll('.eqv2-session-chip')[0].text()).toContain('—')
+    })
+
+    it('session card uses .eqv2-session-chip markup (chip style, not mini-row)', async () => {
+      // Arrange / Act
+      const wrapper = await mountWithSessionData({})
+
+      // Assert: chip class present, old mini class absent
+      expect(wrapper.find('.eqv2-session-chip').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-session-mini').exists()).toBe(false)
+    })
+  })
+
+  describe('Previous Day card always rendered', () => {
+    it('Previous Day card is always present regardless of other data', async () => {
+      // Arrange / Act
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert
+      expect(wrapper.find('.eqv2-prev-card').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-prev-row').exists()).toBe(true)
     })
   })
 
