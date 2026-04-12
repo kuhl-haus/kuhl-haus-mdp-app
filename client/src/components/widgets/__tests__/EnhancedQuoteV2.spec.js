@@ -197,7 +197,11 @@ describe('EnhancedQuoteV2', () => {
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await new Promise(r => setTimeout(r, 0))
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.eqv2-company-card').text()).toContain('Tesla Inc.')
+    // Company name + sic_description now rendered in the hero card
+    expect(wrapper.find('.eqv2-hero').text()).toContain('Tesla Inc.')
+    expect(wrapper.find('.eqv2-hero').text()).toContain('Motor Vehicles')
+    // Company card shows exchange and website
+    expect(wrapper.find('.eqv2-company-card').text()).toContain('XNAS')
   })
 
   it('renders relative volume bar', async () => {
