@@ -292,6 +292,7 @@ describe('EnhancedQuoteV2', () => {
     it('formats billions correctly', async () => {
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE, accumulated_volume: 1500000000 }
       await wrapper.vm.$nextTick()
       expect(wrapper.find('.eqv2-volume-card').text()).toContain('1.5B')
@@ -300,6 +301,7 @@ describe('EnhancedQuoteV2', () => {
     it('formats millions correctly', async () => {
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE, accumulated_volume: 25000000 }
       await wrapper.vm.$nextTick()
       expect(wrapper.find('.eqv2-volume-card').text()).toContain('25.0M')
@@ -308,6 +310,7 @@ describe('EnhancedQuoteV2', () => {
     it('formats thousands correctly', async () => {
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE, accumulated_volume: 5500 }
       await wrapper.vm.$nextTick()
       expect(wrapper.find('.eqv2-volume-card').text()).toContain('5.5K')
