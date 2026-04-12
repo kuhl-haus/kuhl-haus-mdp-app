@@ -385,7 +385,7 @@ describe('EnhancedQuoteV2', () => {
     })
 
     it('resets short interest data when ticker changes', async () => {
-      // Arrange
+      // Arrange: load TSLA with real SI data
       mockFetchForSI()
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
@@ -394,14 +394,18 @@ describe('EnhancedQuoteV2', () => {
       await new Promise(r => setTimeout(r, 0))
       await wrapper.vm.$nextTick()
 
-      // Act: change ticker
+      // Act: change ticker — new fetch returns null data
       global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) })
       wrapper.vm.manualTicker = 'AAPL'
       await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE, symbol: 'AAPL' }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
 
-      // Assert: shortInterestData reset while new fetch pending
-      const exposed = wrapper.vm.shortInterestData
-      expect(exposed).toEqual({})
+      // Assert: previous ticker's short interest values are gone from the DOM
+      const shortCard = wrapper.find('.eqv2-short-card')
+      expect(shortCard.text()).not.toContain('12.0M')
+      expect(shortCard.text()).toContain('unavailable')
     })
 
     it('handles fetch network error gracefully — shows unavailable, does not throw', async () => {
