@@ -6,6 +6,7 @@ pipeline so both the MDS and SCP share the same enrichment layer.
 
 Routes:
     GET /api/market_data/company/<symbol>        — Massive ticker overview
+    GET /api/market_data/logo/<symbol>           — Company logo image proxy
     GET /api/market_data/news/<symbol>           — Finlight ticker news
     GET /api/market_data/short_interest/<symbol> — Massive FINRA short interest
     GET /api/market_data/short_volume/<symbol>   — Massive short volume ratio
@@ -13,7 +14,9 @@ Routes:
 import json
 import logging
 
-from py4web import action, request
+import requests as requests_lib
+
+from py4web import HTTP, action, request, response
 
 from kuhl_haus.mdp.analyzers.analyzer import AnalyzerOptions
 from kuhl_haus.mdp.enum.widget_data_cache_keys import WidgetDataCacheKeys
@@ -40,9 +43,15 @@ _SV_TTL = 86400                 # 1 day — short volume is T+1
 
 
 def _get_wdc():
-    """Return a synchronous Redis client for WDC."""
+    """Return a synchronous Redis client for WDC (str values)."""
     import redis as redis_lib
     return redis_lib.from_url(WDC_REDIS_URL, decode_responses=True)
+
+
+def _get_wdc_bytes():
+    """Return a synchronous Redis client for WDC (raw bytes — for binary values)."""
+    import redis as redis_lib
+    return redis_lib.from_url(WDC_REDIS_URL, decode_responses=False)
 
 
 def _get_massive_client():
@@ -125,6 +134,93 @@ def company(symbol: str):
         except Exception:
             pass
         return dict(symbol=symbol, data={}, error="Company data temporarily unavailable")
+
+
+# ---------------------------------------------------------------------------
+# Company logo proxy
+# ---------------------------------------------------------------------------
+
+@action("api/market_data/logo/<symbol>", method=["GET"])
+@action.uses(session, auth.user)
+def logo(symbol: str):
+    """Return company logo bytes, proxied from Massive API with Redis cache.
+
+    Requires session auth (same as all market data endpoints).
+    Cache: enrichment:logo:{symbol} in WDC Redis (30-day TTL), raw bytes.
+    Reads logo_url from enrichment:overview:{symbol} (written by company endpoint).
+    Returns 404 if overview cache is missing, logo_url absent, or Massive returns non-200.
+    """
+    symbol = symbol.upper().strip()
+    logo_cache_key = f"enrichment:logo:{symbol}"
+    overview_cache_key = f"enrichment:overview:{symbol}"
+
+    # Check byte cache first
+    try:
+        wdc_bytes = _get_wdc_bytes()
+        cached_bytes = wdc_bytes.get(logo_cache_key)
+        if cached_bytes:
+            content_type = _detect_image_content_type(cached_bytes)
+            response.headers["Content-Type"] = content_type
+            logger.debug(f"[logo:{symbol}] cache hit ({len(cached_bytes)} bytes)")
+            return cached_bytes
+    except Exception as e:
+        logger.error(f"[logo:{symbol}] Redis bytes read error: {e}")
+
+    # Read logo_url from overview cache
+    logo_url = None
+    try:
+        wdc = _get_wdc()
+        overview_raw = wdc.get(overview_cache_key)
+        if overview_raw:
+            overview = json.loads(overview_raw)
+            logo_url = overview.get("logo_url")
+    except Exception as e:
+        logger.error(f"[logo:{symbol}] Redis overview read error: {e}")
+
+    if not logo_url:
+        logger.debug(f"[logo:{symbol}] no logo_url in overview cache")
+        raise HTTP(404)
+
+    # Fetch from Massive (authenticated)
+    try:
+        url = f"{logo_url}?apiKey={MASSIVE_API_KEY}"
+        resp = requests_lib.get(url, timeout=10)
+        if resp.status_code != 200:
+            logger.warning(f"[logo:{symbol}] Massive returned {resp.status_code}")
+            raise HTTP(404)
+        img_bytes = resp.content
+        content_type = resp.headers.get("Content-Type", "image/png").split(";")[0].strip()
+        try:
+            wdc_bytes = _get_wdc_bytes()
+            wdc_bytes.setex(logo_cache_key, _OVERVIEW_TTL, img_bytes)
+        except Exception as e:
+            logger.error(f"[logo:{symbol}] Redis bytes write error: {e}")
+        response.headers["Content-Type"] = content_type
+        logger.info(f"[logo:{symbol}] fetched from Massive ({len(img_bytes)} bytes)")
+        return img_bytes
+    except HTTP:
+        raise
+    except Exception as e:
+        logger.error(f"[logo:{symbol}] fetch error: {e}")
+        raise HTTP(404)
+
+
+def _detect_image_content_type(data: bytes) -> str:
+    """Detect image MIME type from magic bytes.
+
+    SVG check scans the first 512 bytes to handle both bare '<svg' and
+    XML-declaration-prefixed '<?xml ...><svg' variants without false-positives
+    on non-SVG XML (XHTML, RSS, etc.).
+    """
+    if data[:4] == b'\x89PNG':
+        return "image/png"
+    if data[:3] == b'GIF':
+        return "image/gif"
+    if data[:2] == b'\xff\xd8':
+        return "image/jpeg"
+    if b'<svg' in data[:512]:
+        return "image/svg+xml"
+    return "image/png"  # safe fallback
 
 
 # ---------------------------------------------------------------------------
