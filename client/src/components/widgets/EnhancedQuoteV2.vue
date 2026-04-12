@@ -31,11 +31,18 @@
       <!-- Price Hero -->
       <div class="eqv2-hero">
         <div class="eqv2-hero-left">
-          <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
-          <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
-          <span class="eqv2-price">${{ fmt(quoteData.close, 2) }}</span>
+          <div class="eqv2-hero-identity">
+            <img v-if="companyData.logo_url" :src="companyData.logo_url" class="eqv2-hero-logo" :alt="companyData.name" />
+            <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
+            <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
+          </div>
+          <div v-if="companyData.name || companyData.sic_description" class="eqv2-hero-company">
+            <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
+            <span v-if="companyData.sic_description" class="eqv2-hero-sic"> · {{ companyData.sic_description }}</span>
+          </div>
         </div>
         <div class="eqv2-hero-right">
+          <span class="eqv2-price">${{ fmt(quoteData.close, 2) }}</span>
           <span :class="['eqv2-change-badge', changeClass]">
             {{ quoteData.change >= 0 ? '+' : '' }}{{ fmt(quoteData.change, 2) }}
             ({{ quoteData.pct_change >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change, 2) }}%)
@@ -57,25 +64,27 @@
           <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
           <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
           <div v-else>
-            <!-- Company header: logo + name + exchange -->
-            <div class="eqv2-company-header">
-              <img v-if="companyData.logo_url" :src="companyData.logo_url" class="eqv2-company-logo" :alt="companyData.name" />
-              <div class="eqv2-company-name-block">
-                <div class="eqv2-company-name">{{ companyData.name || '—' }}</div>
-                <div class="eqv2-company-meta">{{ [companyData.primary_exchange, companyData.sic_description].filter(Boolean).join(' · ') || '—' }}</div>
-              </div>
-            </div>
-            <!-- Description -->
-            <div v-if="companyData.description" class="eqv2-company-desc">{{ companyData.description }}</div>
-            <!-- Stats grid -->
             <div class="eqv2-kv-list">
-              <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+              <!-- Website first -->
               <div v-if="companyData.homepage_url" class="eqv2-kv">
                 <span class="eqv2-k">Web</span>
                 <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
               </div>
+              <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+            </div>
+            <!-- Description last, 50-char truncate + see more toggle -->
+            <div v-if="companyData.description" class="eqv2-company-desc-wrap">
+              <span class="eqv2-company-desc-text">
+                {{ descExpanded ? companyData.description : companyData.description.slice(0, 50) }}
+              </span>
+              <span v-if="!descExpanded && companyData.description.length > 50">
+                <span class="eqv2-company-desc-ellipsis">… </span>
+                <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
+              </span>
+              <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
             </div>
           </div>
         </div>
@@ -248,6 +257,7 @@ const lastDataAt = ref(null)
 // Company enrichment — fetched via REST on ticker change
 const companyData = ref({})
 const companyLoading = ref(false)
+const descExpanded = ref(false)
 
 const shortInterestData = ref({})
 const shortInterestLoading = ref(false)
@@ -320,6 +330,7 @@ watch(activeTicker, (newTicker) => {
   quoteData.value = null
   companyData.value = {}
   shortInterestData.value = {}
+  descExpanded.value = false
   if (newTicker) {
     fetchCompany(newTicker)
     fetchShortInterest(newTicker)
@@ -532,9 +543,42 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 
 .eqv2-hero-left {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.eqv2-hero-identity {
+  display: flex;
+  align-items: center;
   gap: 6px;
+}
+
+.eqv2-hero-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+
+.eqv2-hero-company {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eqv2-hero-company-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.eqv2-hero-sic {
+  color: var(--text-muted);
 }
 
 .eqv2-hero-right {
@@ -654,52 +698,32 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 .eqv2-link:hover { text-decoration: underline; }
 
-/* ── Company header ── */
-.eqv2-company-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.eqv2-company-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  object-fit: contain;
-  flex-shrink: 0;
-  background: rgba(255,255,255,0.05);
-}
-.eqv2-company-name-block {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.eqv2-company-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.eqv2-company-meta {
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.eqv2-company-desc {
+/* ── Company description see-more ── */
+.eqv2-company-desc-wrap {
+  margin-top: 6px;
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
-  margin-bottom: 6px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
+.eqv2-company-desc-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.eqv2-company-desc-ellipsis {
+  color: var(--text-muted);
+}
+.eqv2-see-more {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  font-family: system-ui, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.eqv2-see-more:hover { opacity: 0.8; }
 
 .eqv2-muted-msg {
   font-size: 11px;
@@ -836,7 +860,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 /* ── WIDE mode: 2-column grid ── */
 @container (min-width: 480px) {
   .eqv2-symbol { font-size: 20px; }
-  .eqv2-price  { font-size: 28px; }
+  .eqv2-price  { font-size: 26px; }
 
   .eqv2-session-mini-row {
     flex-direction: row;
@@ -882,8 +906,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
       "company session volume"
       "prev    prev    prev";
   }
-  .eqv2-hero-left  { gap: 10px; }
-  .eqv2-symbol     { font-size: 22px; }
-  .eqv2-price      { font-size: 30px; }
+  .eqv2-symbol { font-size: 22px; }
+  .eqv2-price  { font-size: 30px; }
 }
 </style>
