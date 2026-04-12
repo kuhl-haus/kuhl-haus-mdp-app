@@ -669,9 +669,9 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   min-width: 36px;
   text-align: right;
 }
-.eqv2-rv-val.extreme { color: #f97316; font-weight: 700; }
-.eqv2-rv-val.high    { color: #eab308; font-weight: 600; }
-.eqv2-rv-val.medium  { color: var(--text-muted); }
+.eqv2-rv-val.extreme { color: #dc2626; font-weight: 700; } /* red — matches rvBarColor */
+.eqv2-rv-val.high    { color: #f97316; font-weight: 600; } /* orange */
+.eqv2-rv-val.medium  { color: #eab308; }                   /* yellow */
 
 /* ── Previous Day chips ── */
 .eqv2-prev-chips {
