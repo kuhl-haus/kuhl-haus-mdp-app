@@ -30,21 +30,29 @@
     <div v-else class="eqv2-body">
       <!-- Price Hero -->
       <div class="eqv2-hero">
-        <div class="eqv2-ticker-row">
-          <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
-          <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
+        <div class="eqv2-hero-left">
+          <div class="eqv2-hero-identity">
+            <img v-if="companyData.logo_url" :src="companyData.logo_url" class="eqv2-hero-logo" :alt="companyData.name" />
+            <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
+            <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
+          </div>
+          <div v-if="companyData.name || companyData.sic_description" class="eqv2-hero-company">
+            <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
+            <span v-if="companyData.sic_description" class="eqv2-hero-sic"> · {{ companyData.sic_description }}</span>
+          </div>
+        </div>
+        <div class="eqv2-hero-right">
           <span class="eqv2-price">${{ fmt(quoteData.close, 2) }}</span>
           <span :class="['eqv2-change-badge', changeClass]">
             {{ quoteData.change >= 0 ? '+' : '' }}{{ fmt(quoteData.change, 2) }}
             ({{ quoteData.pct_change >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change, 2) }}%)
           </span>
-        </div>
-        <div class="eqv2-since-open">
-          Since open:
-          <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv2-pos' : 'eqv2-neg'">
-            {{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%
-            ({{ quoteData.change_since_open >= 0 ? '+' : '' }}${{ fmt(quoteData.change_since_open, 2) }})
-          </span>
+          <div class="eqv2-since-open">
+            Open:
+            <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv2-pos' : 'eqv2-neg'">
+              {{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%
+            </span>
+          </div>
         </div>
       </div>
 
@@ -55,18 +63,29 @@
           <div class="eqv2-card-label">Company</div>
           <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
           <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-          <div v-else class="eqv2-kv-list">
-            <div class="eqv2-kv"><span class="eqv2-k">Name</span><span class="eqv2-v">{{ companyData.name || '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Sector</span><span class="eqv2-v">{{ companyData.sic_description || '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
-            <div v-if="companyData.homepage_url" class="eqv2-kv">
-              <span class="eqv2-k">Web</span>
-              <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+          <div v-else>
+            <div class="eqv2-kv-list">
+              <!-- Website first -->
+              <div v-if="companyData.homepage_url" class="eqv2-kv">
+                <span class="eqv2-k">Web</span>
+                <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+              </div>
+              <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
             </div>
-            <div v-else class="eqv2-kv"><span class="eqv2-k">Web</span><span class="eqv2-v">—</span></div>
+            <!-- Description last, 50-char truncate + see more toggle -->
+            <div v-if="companyData.description" class="eqv2-company-desc-wrap">
+              <span class="eqv2-company-desc-text">
+                {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
+              </span>
+              <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
+                <span class="eqv2-company-desc-ellipsis">… </span>
+                <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
+              </span>
+              <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
+            </div>
           </div>
         </div>
 
@@ -238,6 +257,7 @@ const lastDataAt = ref(null)
 // Company enrichment — fetched via REST on ticker change
 const companyData = ref({})
 const companyLoading = ref(false)
+const descExpanded = ref(false)
 
 const shortInterestData = ref({})
 const shortInterestLoading = ref(false)
@@ -310,6 +330,7 @@ watch(activeTicker, (newTicker) => {
   quoteData.value = null
   companyData.value = {}
   shortInterestData.value = {}
+  descExpanded.value = false
   if (newTicker) {
     fetchCompany(newTicker)
     fetchShortInterest(newTicker)
@@ -404,6 +425,12 @@ const allCompanyNull = computed(() => {
 const truncateUrl = (url) => {
   if (!url) return ''
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
+}
+
+const truncateDesc = (text, maxLen = 50) => {
+  if (!text || text.length <= maxLen) return text
+  const cut = text.lastIndexOf(' ', maxLen)
+  return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
 }
 
 // Relative volume bar
@@ -513,15 +540,59 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   border: 1px solid var(--border);
   border-radius: 6px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 
-.eqv2-ticker-row {
+.eqv2-hero-left {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.eqv2-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eqv2-hero-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+
+.eqv2-hero-company {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eqv2-hero-company-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.eqv2-hero-sic {
+  color: var(--text-muted);
+}
+
+.eqv2-hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .eqv2-symbol {
@@ -558,8 +629,9 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 .eqv2-since-open {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
+  text-align: right;
 }
 .eqv2-pos { color: var(--positive); font-weight: 600; }
 .eqv2-neg { color: var(--negative); font-weight: 600; }
@@ -631,6 +703,33 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   text-align: right;
 }
 .eqv2-link:hover { text-decoration: underline; }
+
+/* ── Company description see-more ── */
+.eqv2-company-desc-wrap {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.eqv2-company-desc-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.eqv2-company-desc-ellipsis {
+  color: var(--text-muted);
+}
+.eqv2-see-more {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  font-family: system-ui, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.eqv2-see-more:hover { opacity: 0.8; }
 
 .eqv2-muted-msg {
   font-size: 11px;
@@ -767,7 +866,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 /* ── WIDE mode: 2-column grid ── */
 @container (min-width: 480px) {
   .eqv2-symbol { font-size: 20px; }
-  .eqv2-price  { font-size: 28px; }
+  .eqv2-price  { font-size: 26px; }
 
   .eqv2-session-mini-row {
     flex-direction: row;
@@ -794,8 +893,9 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
       "company volume"
       "prev    prev";
     gap: 8px;
+    align-items: start;
   }
-  .eqv2-company-card { grid-area: company; }
+  .eqv2-company-card { grid-area: company; align-self: start; }
   .eqv2-today-card   { grid-area: today; }
   .eqv2-session-card { grid-area: session; }
   .eqv2-short-card   { grid-area: short; }
@@ -808,9 +908,11 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv2-sections {
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-areas:
-      "company today   volume"
-      "company session short"
+      "company today   short"
+      "company session volume"
       "prev    prev    prev";
   }
+  .eqv2-symbol { font-size: 22px; }
+  .eqv2-price  { font-size: 30px; }
 }
 </style>

@@ -197,7 +197,11 @@ describe('EnhancedQuoteV2', () => {
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await new Promise(r => setTimeout(r, 0))
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.eqv2-company-card').text()).toContain('Tesla Inc.')
+    // Company name + sic_description now rendered in the hero card
+    expect(wrapper.find('.eqv2-hero').text()).toContain('Tesla Inc.')
+    expect(wrapper.find('.eqv2-hero').text()).toContain('Motor Vehicles')
+    // Company card shows exchange and website
+    expect(wrapper.find('.eqv2-company-card').text()).toContain('XNAS')
   })
 
   it('renders relative volume bar', async () => {
@@ -424,6 +428,170 @@ describe('EnhancedQuoteV2', () => {
       expect(wrapper.find('.eqv2-short-card').exists()).toBe(true)
       expect(wrapper.find('.eqv2-short-card').text()).toContain('unavailable')
       expect(wrapper.vm.shortInterestLoading).toBe(false)
+    })
+  })
+
+  describe('Hero company identity', () => {
+    function mockCompanyFetch(data) {
+      global.fetch = vi.fn().mockImplementation((url) => {
+        if (url.includes('short_interest') || url.includes('short_volume'))
+          return Promise.resolve({ ok: true, json: async () => ({ data: {} }) })
+        return Promise.resolve({ ok: true, json: async () => ({ data }) })
+      })
+    }
+
+    it('shows company name and sic_description in hero when available', async () => {
+      // Arrange
+      mockCompanyFetch({ name: 'Tesla Inc.', sic_description: 'Motor Vehicles', logo_url: null })
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert
+      const hero = wrapper.find('.eqv2-hero')
+      expect(hero.text()).toContain('Tesla Inc.')
+      expect(hero.text()).toContain('Motor Vehicles')
+    })
+
+    it('renders logo in hero when logo_url is present', async () => {
+      // Arrange
+      mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers', logo_url: 'https://example.com/logo.png' })
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'AAPL'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert
+      const logo = wrapper.find('.eqv2-hero-logo')
+      expect(logo.exists()).toBe(true)
+      expect(logo.attributes('src')).toBe('https://example.com/logo.png')
+    })
+
+    it('hero renders correctly when logo_url is null — no broken img element', async () => {
+      // Arrange
+      mockCompanyFetch({ name: 'No Logo Corp', sic_description: 'Services', logo_url: null })
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'NOLG'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: no img rendered (v-if guard), but name still shows
+      expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(false)
+      expect(wrapper.find('.eqv2-hero').text()).toContain('No Logo Corp')
+    })
+  })
+
+  describe('Description see-more toggle', () => {
+    const SHORT_DESC = 'Short desc.'
+    const LONG_DESC = 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, and wearables.'
+
+    function mountWithDescription(description) {
+      global.fetch = vi.fn().mockImplementation((url) => {
+        if (url.includes('short_interest') || url.includes('short_volume'))
+          return Promise.resolve({ ok: true, json: async () => ({ data: {} }) })
+        return Promise.resolve({ ok: true, json: async () => ({ data: { name: 'ACME', description } }) })
+      })
+      const wrapper = mountWidget()
+      return wrapper
+    }
+
+    it('shows full text without toggle when description is short', async () => {
+      // Arrange
+      const wrapper = mountWithDescription(SHORT_DESC)
+      wrapper.vm.manualTicker = 'ACME'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: no see-more button, full text shown
+      expect(wrapper.find('.eqv2-see-more').exists()).toBe(false)
+      expect(wrapper.find('.eqv2-company-desc-text').text()).toContain(SHORT_DESC)
+    })
+
+    it('truncates long description and shows see-more button', async () => {
+      // Arrange
+      const wrapper = mountWithDescription(LONG_DESC)
+      wrapper.vm.manualTicker = 'ACME'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert
+      const descText = wrapper.find('.eqv2-company-desc-text')
+      expect(descText.text().length).toBeLessThan(LONG_DESC.length)
+      expect(wrapper.find('.eqv2-see-more').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-see-more').text()).toContain('see more')
+    })
+
+    it('expands to full description when see-more is clicked', async () => {
+      // Arrange
+      const wrapper = mountWithDescription(LONG_DESC)
+      wrapper.vm.manualTicker = 'ACME'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Act
+      await wrapper.find('.eqv2-see-more').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Assert: full text visible, button changes to 'less'
+      expect(wrapper.find('.eqv2-company-desc-text').text()).toContain(LONG_DESC)
+      expect(wrapper.find('.eqv2-see-more').text()).toContain('less')
+    })
+
+    it('collapses back when less is clicked', async () => {
+      // Arrange
+      const wrapper = mountWithDescription(LONG_DESC)
+      wrapper.vm.manualTicker = 'ACME'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+      await wrapper.find('.eqv2-see-more').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Act
+      await wrapper.find('.eqv2-see-more').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Assert: truncated again, see-more button back
+      expect(wrapper.find('.eqv2-company-desc-text').text().length).toBeLessThan(LONG_DESC.length)
+      expect(wrapper.find('.eqv2-see-more').text()).toContain('see more')
+    })
+
+    it('resets description to collapsed when ticker changes', async () => {
+      // Arrange: load ACME with long desc, expand
+      const wrapper = mountWithDescription(LONG_DESC)
+      wrapper.vm.manualTicker = 'ACME'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+      await wrapper.find('.eqv2-see-more').trigger('click')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.eqv2-company-desc-text').text()).toContain(LONG_DESC)
+
+      // Act: change ticker
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) })
+      wrapper.vm.manualTicker = 'OTHER'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: expanded state cleared — no see-more button since new company has no desc
+      expect(wrapper.find('.eqv2-company-desc-wrap').exists()).toBe(false)
     })
   })
 
