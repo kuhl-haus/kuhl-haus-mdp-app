@@ -30,21 +30,22 @@
     <div v-else class="eqv2-body">
       <!-- Price Hero -->
       <div class="eqv2-hero">
-        <div class="eqv2-ticker-row">
+        <div class="eqv2-hero-left">
           <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
           <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
           <span class="eqv2-price">${{ fmt(quoteData.close, 2) }}</span>
+        </div>
+        <div class="eqv2-hero-right">
           <span :class="['eqv2-change-badge', changeClass]">
             {{ quoteData.change >= 0 ? '+' : '' }}{{ fmt(quoteData.change, 2) }}
             ({{ quoteData.pct_change >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change, 2) }}%)
           </span>
-        </div>
-        <div class="eqv2-since-open">
-          Since open:
-          <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv2-pos' : 'eqv2-neg'">
-            {{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%
-            ({{ quoteData.change_since_open >= 0 ? '+' : '' }}${{ fmt(quoteData.change_since_open, 2) }})
-          </span>
+          <div class="eqv2-since-open">
+            Open:
+            <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv2-pos' : 'eqv2-neg'">
+              {{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%
+            </span>
+          </div>
         </div>
       </div>
 
@@ -55,18 +56,27 @@
           <div class="eqv2-card-label">Company</div>
           <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
           <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-          <div v-else class="eqv2-kv-list">
-            <div class="eqv2-kv"><span class="eqv2-k">Name</span><span class="eqv2-v">{{ companyData.name || '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Sector</span><span class="eqv2-v">{{ companyData.sic_description || '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-            <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
-            <div v-if="companyData.homepage_url" class="eqv2-kv">
-              <span class="eqv2-k">Web</span>
-              <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+          <div v-else>
+            <!-- Company header: logo + name + exchange -->
+            <div class="eqv2-company-header">
+              <img v-if="companyData.logo_url" :src="companyData.logo_url" class="eqv2-company-logo" :alt="companyData.name" />
+              <div class="eqv2-company-name-block">
+                <div class="eqv2-company-name">{{ companyData.name || '—' }}</div>
+                <div class="eqv2-company-meta">{{ [companyData.primary_exchange, companyData.sic_description].filter(Boolean).join(' · ') || '—' }}</div>
+              </div>
             </div>
-            <div v-else class="eqv2-kv"><span class="eqv2-k">Web</span><span class="eqv2-v">—</span></div>
+            <!-- Description -->
+            <div v-if="companyData.description" class="eqv2-company-desc">{{ companyData.description }}</div>
+            <!-- Stats grid -->
+            <div class="eqv2-kv-list">
+              <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+              <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+              <div v-if="companyData.homepage_url" class="eqv2-kv">
+                <span class="eqv2-k">Web</span>
+                <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -513,15 +523,26 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   border: 1px solid var(--border);
   border-radius: 6px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 
-.eqv2-ticker-row {
+.eqv2-hero-left {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+}
+
+.eqv2-hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .eqv2-symbol {
@@ -558,8 +579,9 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 .eqv2-since-open {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
+  text-align: right;
 }
 .eqv2-pos { color: var(--positive); font-weight: 600; }
 .eqv2-neg { color: var(--negative); font-weight: 600; }
@@ -631,6 +653,53 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   text-align: right;
 }
 .eqv2-link:hover { text-decoration: underline; }
+
+/* ── Company header ── */
+.eqv2-company-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.eqv2-company-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+}
+.eqv2-company-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.eqv2-company-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eqv2-company-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eqv2-company-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 .eqv2-muted-msg {
   font-size: 11px;
@@ -794,8 +863,9 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
       "company volume"
       "prev    prev";
     gap: 8px;
+    align-items: start;
   }
-  .eqv2-company-card { grid-area: company; }
+  .eqv2-company-card { grid-area: company; align-self: start; }
   .eqv2-today-card   { grid-area: today; }
   .eqv2-session-card { grid-area: session; }
   .eqv2-short-card   { grid-area: short; }
@@ -808,9 +878,12 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv2-sections {
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-areas:
-      "company today   volume"
-      "company session short"
+      "company today   short"
+      "company session volume"
       "prev    prev    prev";
   }
+  .eqv2-hero-left  { gap: 10px; }
+  .eqv2-symbol     { font-size: 22px; }
+  .eqv2-price      { font-size: 30px; }
 }
 </style>

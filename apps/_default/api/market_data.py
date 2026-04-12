@@ -97,6 +97,7 @@ def company(symbol: str):
                 "name": getattr(ticker_details, "name", None),
                 "description": getattr(ticker_details, "description", None),
                 "homepage_url": getattr(ticker_details, "homepage_url", None),
+                "logo_url": getattr(getattr(ticker_details, "branding", None), "logo_url", None),
                 "list_date": getattr(ticker_details, "list_date", None),
                 "market_cap": getattr(ticker_details, "market_cap", None),
                 "primary_exchange": getattr(ticker_details, "primary_exchange", None),
