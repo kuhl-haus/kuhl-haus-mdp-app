@@ -234,6 +234,9 @@ def short_volume(symbol: str):
     # Cache miss — call Massive
     try:
         client = _get_massive_client()
+        # list_short_volume() returns a lazy generator (paginator), not a list.
+        # Same pattern as list_short_interest() — use next(iter(...)).
+        # Verified against legion-mcp/massive_data_provider.py.
         results = client.list_short_volume(
             ticker=symbol,
             limit=1,
