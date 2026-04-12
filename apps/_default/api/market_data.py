@@ -160,14 +160,17 @@ def short_interest(symbol: str):
     # Cache miss — call Massive
     try:
         client = _get_massive_client()
+        # list_short_interest() returns a lazy generator (paginator), not a list.
+        # Use next(iter(...)) — subscript access ([0]) raises TypeError.
+        # Verified against legion-mcp/massive_data_provider.py.
         results = client.list_short_interest(
             ticker=symbol,
             limit=1,
             order="desc",
             sort="settlement_date",
         )
-        if results:
-            r = results[0]
+        r = next(iter(results), None)
+        if r is not None:
             data = {
                 "short_interest": getattr(r, "short_interest", None),
                 "days_to_cover": getattr(r, "days_to_cover", None),
@@ -234,14 +237,17 @@ def short_volume(symbol: str):
     # Cache miss — call Massive
     try:
         client = _get_massive_client()
+        # list_short_volume() returns a lazy generator (paginator), not a list.
+        # Same pattern as list_short_interest() — use next(iter(...)).
+        # Verified against legion-mcp/massive_data_provider.py.
         results = client.list_short_volume(
             ticker=symbol,
             limit=1,
             order="desc",
             sort="date",
         )
-        if results:
-            r = results[0]
+        r = next(iter(results), None)
+        if r is not None:
             data = {
                 "short_volume": getattr(r, "short_volume", None),
                 "total_volume": getattr(r, "total_volume", None),
