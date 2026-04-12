@@ -206,14 +206,19 @@ def logo(symbol: str):
 
 
 def _detect_image_content_type(data: bytes) -> str:
-    """Detect image MIME type from magic bytes."""
+    """Detect image MIME type from magic bytes.
+
+    SVG check scans the first 512 bytes to handle both bare '<svg' and
+    XML-declaration-prefixed '<?xml ...><svg' variants without false-positives
+    on non-SVG XML (XHTML, RSS, etc.).
+    """
     if data[:4] == b'\x89PNG':
         return "image/png"
     if data[:3] == b'GIF':
         return "image/gif"
-    if data[:2] in (b'\xff\xd8',):
+    if data[:2] == b'\xff\xd8':
         return "image/jpeg"
-    if data[:4] in (b'<svg', b'<?xm'):
+    if b'<svg' in data[:512]:
         return "image/svg+xml"
     return "image/png"  # safe fallback
 
