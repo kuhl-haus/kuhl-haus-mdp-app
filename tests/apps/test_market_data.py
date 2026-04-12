@@ -15,11 +15,19 @@ from unittest.mock import MagicMock, patch
 # py4web / app import scaffolding (mirrors test_default_controllers.py pattern)
 # ---------------------------------------------------------------------------
 
+class _HTTP404(Exception):
+    """Minimal HTTP exception stub matching py4web HTTP interface."""
+    def __init__(self, status=200, *args, **kwargs):
+        self.status = status
+        super().__init__(status)
+
+
 def _stub_py4web():
     py4web = MagicMock()
     _passthrough = lambda *a, **kw: (lambda f: f)
     _passthrough.uses = lambda *a, **kw: (lambda f: f)
     py4web.action = _passthrough
+    py4web.HTTP = _HTTP404
     stubs = {
         "py4web": py4web,
         "py4web.core": MagicMock(required_folder=lambda *a: "/tmp"),
@@ -360,3 +368,105 @@ class TestShortVolume:
         assert si_key != sv_key
         assert "short_interest" in si_key
         assert "short_volume" in sv_key
+
+
+# ---------------------------------------------------------------------------
+# logo tests
+# ---------------------------------------------------------------------------
+
+class TestLogo:
+    def _make_bytes_redis_mock(self, cached_value=None):
+        """Return a mock Redis client for byte values."""
+        mock = MagicMock()
+        mock.get.return_value = cached_value
+        mock.setex.return_value = True
+        return mock
+
+    def test_logo_with_no_overview_cache_expect_404(self):
+        # Arrange
+        md = _import_market_data()
+        mock_bytes_redis = self._make_bytes_redis_mock(None)  # no cached bytes
+        mock_str_redis = _make_redis_mock(None)               # no overview cache
+
+        # Act / Assert
+        with patch.object(md, "_get_wdc_bytes", return_value=mock_bytes_redis), \
+             patch.object(md, "_get_wdc", return_value=mock_str_redis):
+            with pytest.raises(_HTTP404) as exc_info:
+                md.logo("AAPL")
+
+        assert exc_info.value.status == 404
+
+    def test_logo_with_cache_miss_fetches_polygon_and_returns_bytes(self):
+        # Arrange
+        md = _import_market_data()
+        img_bytes = b'\x89PNG\r\n\x1a\nfakeimagedata'
+        overview_data = {"name": "Apple Inc.", "logo_url": "https://api.polygon.io/v1/reference/company-branding/apple.com/logo"}
+
+        mock_bytes_redis = self._make_bytes_redis_mock(None)
+        mock_str_redis = _make_redis_mock(json.dumps(overview_data))
+
+        mock_requests = MagicMock()
+        mock_polygon_response = MagicMock()
+        mock_polygon_response.status_code = 200
+        mock_polygon_response.content = img_bytes
+        mock_polygon_response.headers = {"Content-Type": "image/png"}
+        mock_requests.get.return_value = mock_polygon_response
+
+        # Act
+        with patch.object(md, "_get_wdc_bytes", return_value=mock_bytes_redis), \
+             patch.object(md, "_get_wdc", return_value=mock_str_redis), \
+             patch.object(md, "requests_lib", mock_requests):
+            result = md.logo("AAPL")
+
+        # Assert — bytes returned, Polygon called with apiKey, bytes cached
+        assert result == img_bytes
+        call_url = mock_requests.get.call_args[0][0]
+        assert "apiKey=test-key" in call_url
+        assert "logo" in call_url
+        mock_bytes_redis.setex.assert_called_once()
+        cache_key, ttl, stored = mock_bytes_redis.setex.call_args[0]
+        assert "logo" in cache_key
+        assert ttl == 30 * 86400  # _OVERVIEW_TTL
+        assert stored == img_bytes
+
+    def test_logo_with_byte_cache_hit_skips_polygon(self):
+        # Arrange
+        md = _import_market_data()
+        img_bytes = b'\x89PNG\r\n\x1a\nfakeimagedata'
+        mock_bytes_redis = self._make_bytes_redis_mock(img_bytes)  # cache hit
+        mock_requests = MagicMock()
+
+        # Act
+        with patch.object(md, "_get_wdc_bytes", return_value=mock_bytes_redis), \
+             patch.object(md, "_get_wdc") as mock_str_redis_cls, \
+             patch.object(md, "requests_lib", mock_requests):
+            result = md.logo("AAPL")
+
+        # Assert — bytes returned, Polygon NOT called, overview Redis NOT read
+        assert result == img_bytes
+        mock_requests.get.assert_not_called()
+        mock_str_redis_cls.assert_not_called()
+
+    def test_logo_with_polygon_non_200_expect_404(self):
+        # Arrange
+        md = _import_market_data()
+        overview_data = {"name": "Apple Inc.", "logo_url": "https://api.polygon.io/v1/reference/company-branding/apple.com/logo"}
+
+        mock_bytes_redis = self._make_bytes_redis_mock(None)
+        mock_str_redis = _make_redis_mock(json.dumps(overview_data))
+
+        mock_requests = MagicMock()
+        mock_polygon_response = MagicMock()
+        mock_polygon_response.status_code = 403
+        mock_polygon_response.content = b''
+        mock_requests.get.return_value = mock_polygon_response
+
+        # Act / Assert
+        with patch.object(md, "_get_wdc_bytes", return_value=mock_bytes_redis), \
+             patch.object(md, "_get_wdc", return_value=mock_str_redis), \
+             patch.object(md, "requests_lib", mock_requests):
+            with pytest.raises(_HTTP404) as exc_info:
+                md.logo("AAPL")
+
+        assert exc_info.value.status == 404
+        mock_bytes_redis.setex.assert_not_called()  # nothing cached on failure
