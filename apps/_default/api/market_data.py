@@ -166,8 +166,8 @@ def short_interest(symbol: str):
             order="desc",
             sort="settlement_date",
         )
-        if results:
-            r = results[0]
+        r = next(iter(results), None)
+        if r is not None:
             data = {
                 "short_interest": getattr(r, "short_interest", None),
                 "days_to_cover": getattr(r, "days_to_cover", None),
@@ -240,8 +240,8 @@ def short_volume(symbol: str):
             order="desc",
             sort="date",
         )
-        if results:
-            r = results[0]
+        r = next(iter(results), None)
+        if r is not None:
             data = {
                 "short_volume": getattr(r, "short_volume", None),
                 "total_volume": getattr(r, "total_volume", None),

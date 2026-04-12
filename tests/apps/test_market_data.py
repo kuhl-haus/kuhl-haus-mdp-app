@@ -183,7 +183,7 @@ class TestShortInterest:
         mock_redis = _make_redis_mock(None)
         record = _make_short_interest_record()
         mock_massive = MagicMock()
-        mock_massive.list_short_interest.return_value = [record]
+        mock_massive.list_short_interest.return_value = iter([record])
 
         with patch.object(md, "_get_wdc", return_value=mock_redis), \
              patch.object(md, "_get_massive_client", return_value=mock_massive):
@@ -203,7 +203,7 @@ class TestShortInterest:
         md = _import_market_data()
         mock_redis = _make_redis_mock(None)
         mock_massive = MagicMock()
-        mock_massive.list_short_interest.return_value = []
+        mock_massive.list_short_interest.return_value = iter([])
 
         with patch.object(md, "_get_wdc", return_value=mock_redis), \
              patch.object(md, "_get_massive_client", return_value=mock_massive):
@@ -286,7 +286,7 @@ class TestShortVolume:
         mock_redis = _make_redis_mock(None)
         record = _make_short_volume_record()
         mock_massive = MagicMock()
-        mock_massive.list_short_volume.return_value = [record]
+        mock_massive.list_short_volume.return_value = iter([record])
 
         with patch.object(md, "_get_wdc", return_value=mock_redis), \
              patch.object(md, "_get_massive_client", return_value=mock_massive):
@@ -308,7 +308,7 @@ class TestShortVolume:
         md = _import_market_data()
         mock_redis = _make_redis_mock(None)
         mock_massive = MagicMock()
-        mock_massive.list_short_volume.return_value = []
+        mock_massive.list_short_volume.return_value = iter([])
 
         with patch.object(md, "_get_wdc", return_value=mock_redis), \
              patch.object(md, "_get_massive_client", return_value=mock_massive):
@@ -343,9 +343,9 @@ class TestShortVolume:
         si_redis = _make_redis_mock(None)
         sv_redis = _make_redis_mock(None)
         si_massive = MagicMock()
-        si_massive.list_short_interest.return_value = [_make_short_interest_record()]
+        si_massive.list_short_interest.return_value = iter([_make_short_interest_record()])
         sv_massive = MagicMock()
-        sv_massive.list_short_volume.return_value = [_make_short_volume_record()]
+        sv_massive.list_short_volume.return_value = iter([_make_short_volume_record()])
 
         with patch.object(md, "_get_wdc", return_value=si_redis), \
              patch.object(md, "_get_massive_client", return_value=si_massive):
