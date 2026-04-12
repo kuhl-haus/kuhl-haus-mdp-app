@@ -316,4 +316,115 @@ describe('EnhancedQuoteV2', () => {
       expect(wrapper.find('.eqv2-volume-card').text()).toContain('5.5K')
     })
   })
+  describe('Short Interest section', () => {
+    const SI_RESPONSE = { data: { short_interest: 12000000, days_to_cover: 2.5, avg_daily_volume: 5000000, settlement_date: '2026-03-28' } }
+    const SV_RESPONSE = { data: { short_volume: 8000000, total_volume: 20000000, short_volume_ratio: 40.0, date: '2026-04-11' } }
+
+    function mockFetchForSI() {
+      global.fetch = vi.fn().mockImplementation((url) => {
+        if (url.includes('short_interest')) return Promise.resolve({ ok: true, json: async () => SI_RESPONSE })
+        if (url.includes('short_volume')) return Promise.resolve({ ok: true, json: async () => SV_RESPONSE })
+        // company endpoint
+        return Promise.resolve({ ok: true, json: async () => ({ data: {} }) })
+      })
+    }
+
+    it('fetches short interest and short volume in parallel on ticker change', async () => {
+      // Arrange
+      mockFetchForSI()
+      const wrapper = mountWidget()
+
+      // Act
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: both endpoints called
+      const urls = global.fetch.mock.calls.map(c => c[0])
+      expect(urls.some(u => u.includes('short_interest/TSLA'))).toBe(true)
+      expect(urls.some(u => u.includes('short_volume/TSLA'))).toBe(true)
+    })
+
+    it('displays short interest values from REST response', async () => {
+      // Arrange
+      mockFetchForSI()
+      const wrapper = mountWidget()
+
+      // Act
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: short card shows merged data from both endpoints
+      const shortCard = wrapper.find('.eqv2-short-card')
+      expect(shortCard.exists()).toBe(true)
+      expect(shortCard.text()).toContain('12.0M')  // short_interest formatted
+      expect(shortCard.text()).toContain('2.5')     // days_to_cover
+      expect(shortCard.text()).toContain('40.0')    // short_volume_ratio
+    })
+
+    it('shows unavailable message when endpoints return null data', async () => {
+      // Arrange
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) })
+      const wrapper = mountWidget()
+
+      // Act
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert
+      const shortCard = wrapper.find('.eqv2-short-card')
+      expect(shortCard.text()).toContain('unavailable')
+    })
+
+    it('resets short interest data when ticker changes', async () => {
+      // Arrange: load TSLA with real SI data
+      mockFetchForSI()
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Act: change ticker — new fetch returns null data
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) })
+      wrapper.vm.manualTicker = 'AAPL'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE, symbol: 'AAPL' }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: previous ticker's short interest values are gone from the DOM
+      const shortCard = wrapper.find('.eqv2-short-card')
+      expect(shortCard.text()).not.toContain('12.0M')
+      expect(shortCard.text()).toContain('unavailable')
+    })
+
+    it('handles fetch network error gracefully — shows unavailable, does not throw', async () => {
+      // Arrange
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+      const wrapper = mountWidget()
+
+      // Act
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: no crash, unavailable shown
+      expect(wrapper.find('.eqv2-short-card').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-short-card').text()).toContain('unavailable')
+      expect(wrapper.vm.shortInterestLoading).toBe(false)
+    })
+  })
+
 })

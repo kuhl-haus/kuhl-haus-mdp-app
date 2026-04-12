@@ -109,11 +109,12 @@
       
       <!-- Short Interest -->
       <div class="eq-section-label">Short Interest</div>
-      <div v-if="allShortNull" class="eq-short-loading">Short interest data loading...</div>
+      <div v-if="shortInterestLoading" class="eq-short-loading">Short interest data loading...</div>
+      <div v-else-if="allShortNull" class="eq-short-loading">Short interest data unavailable</div>
       <div v-else class="eq-grid">
-        <div class="eq-kv"><span class="eq-k">Short Int.</span><span class="eq-v">{{ fmtVol(quoteData.short_interest) }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Days to Cover</span><span class="eq-v">{{ fmt(quoteData.days_to_cover, 1) }}</span></div>
-        <div class="eq-kv"><span class="eq-k">Short Vol Ratio</span><span class="eq-v">{{ fmt(quoteData.short_volume_ratio, 1) }}%</span></div>
+        <div class="eq-kv"><span class="eq-k">Short Int.</span><span class="eq-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Days to Cover</span><span class="eq-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
+        <div class="eq-kv"><span class="eq-k">Short Vol Ratio</span><span class="eq-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
       </div>
 
       <!-- Volume -->
@@ -222,6 +223,32 @@ const lastDataAt = ref(null)
 const companyData = ref({})
 const companyLoading = ref(false)
 
+const shortInterestData = ref({})
+const shortInterestLoading = ref(false)
+
+const fetchShortInterest = async (symbol) => {
+  if (!symbol) return
+  shortInterestLoading.value = true
+  shortInterestData.value = {}
+  try {
+    const [siResp, svResp] = await Promise.all([
+      fetch(`/api/market_data/short_interest/${symbol}`),
+      fetch(`/api/market_data/short_volume/${symbol}`),
+    ])
+    const siJson = siResp.ok ? await siResp.json() : {}
+    const svJson = svResp.ok ? await svResp.json() : {}
+    shortInterestData.value = {
+      short_interest: siJson.data?.short_interest ?? null,
+      days_to_cover: siJson.data?.days_to_cover ?? null,
+      short_volume_ratio: svJson.data?.short_volume_ratio ?? null,
+    }
+  } catch (e) {
+    console.warn(`[EnhancedQuote] short interest fetch failed for ${symbol}:`, e)
+  } finally {
+    shortInterestLoading.value = false
+  }
+}
+
 const fetchCompany = async (symbol) => {
   if (!symbol) return
   companyLoading.value = true
@@ -266,8 +293,10 @@ watch(activeTicker, (newTicker) => {
   }
   quoteData.value = null
   companyData.value = {}
+  shortInterestData.value = {}
   if (newTicker) {
     fetchCompany(newTicker)
+    fetchShortInterest(newTicker)
     const feed = `daily_range:${newTicker}`
     feedName.value = feed
     cacheKey.value = feed
@@ -336,10 +365,11 @@ const floatShares = computed(() => {
 
 // Short interest: null if all three fields are null
 const allShortNull = computed(() => {
-  if (!quoteData.value) return true
-  return quoteData.value.short_interest == null &&
-         quoteData.value.days_to_cover == null &&
-         quoteData.value.short_volume_ratio == null
+  const d = shortInterestData.value
+  if (!d) return true
+  return d.short_interest == null &&
+         d.days_to_cover == null &&
+         d.short_volume_ratio == null
 })
 
 // Company: null if all company fields are null
@@ -360,7 +390,7 @@ const truncateUrl = (url) => {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
 }
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading })
 </script>
 
 <style scoped>
