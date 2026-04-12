@@ -110,6 +110,7 @@ describe('EnhancedQuoteV2', () => {
   it('renders quote body when data is present', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.eqv2-body').exists()).toBe(true)
@@ -119,6 +120,7 @@ describe('EnhancedQuoteV2', () => {
   it('displays price and symbol correctly', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.eqv2-symbol').text()).toBe('TSLA')
@@ -128,6 +130,7 @@ describe('EnhancedQuoteV2', () => {
   it('applies positive class to change badge for gains', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE, change: 5.00, pct_change: 2.04 }
     await wrapper.vm.$nextTick()
     const badge = wrapper.find('.eqv2-change-badge')
@@ -138,6 +141,7 @@ describe('EnhancedQuoteV2', () => {
   it('applies negative class to change badge for losses', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE, change: -3.50, pct_change: -1.38 }
     await wrapper.vm.$nextTick()
     const badge = wrapper.find('.eqv2-change-badge')
@@ -148,6 +152,7 @@ describe('EnhancedQuoteV2', () => {
   it('renders section cards', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.eqv2-company-card').exists()).toBe(true)
@@ -164,6 +169,7 @@ describe('EnhancedQuoteV2', () => {
     })
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await new Promise(r => setTimeout(r, 0))
     await wrapper.vm.$nextTick()
@@ -187,6 +193,7 @@ describe('EnhancedQuoteV2', () => {
     })
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await new Promise(r => setTimeout(r, 0))
     await wrapper.vm.$nextTick()
@@ -196,6 +203,7 @@ describe('EnhancedQuoteV2', () => {
   it('renders relative volume bar', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE, relative_volume: 2.5 }
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.eqv2-rv-bar-wrap').exists()).toBe(true)
@@ -207,6 +215,7 @@ describe('EnhancedQuoteV2', () => {
   it('caps relative volume bar at 100%', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE, relative_volume: 10 }
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.eqv2-rv-bar').attributes('style')).toContain('100%')
@@ -215,6 +224,7 @@ describe('EnhancedQuoteV2', () => {
   it('renders Previous Day chips', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
     const chips = wrapper.findAll('.eqv2-chip')
@@ -231,6 +241,7 @@ describe('EnhancedQuoteV2', () => {
   it('hides splits card when splits array is empty', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE, splits: [] }
     await wrapper.vm.$nextTick()
     expect(wrapper.find('.eqv2-splits-card').exists()).toBe(false)
@@ -239,6 +250,7 @@ describe('EnhancedQuoteV2', () => {
   it('shows splits card when splits array has entries', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = {
       ...SAMPLE_QUOTE,
       splits: [{ split_to: 3, split_from: 1, execution_date: '2022-08-25' }],
@@ -251,6 +263,7 @@ describe('EnhancedQuoteV2', () => {
   it('shows session H/L dashes when values are null', async () => {
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = {
       ...SAMPLE_QUOTE,
       pre_market_high: null,
