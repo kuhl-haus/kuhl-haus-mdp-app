@@ -43,6 +43,16 @@ vi.stubGlobal('URL', class {
   static createObjectURL() { return '' }
 })
 
+// Mock vuedraggable — renders slot content without actual drag functionality
+vi.mock('vuedraggable', () => ({
+  default: {
+    name: 'draggable',
+    props: ['modelValue', 'disabled', 'group', 'itemKey', 'handle'],
+    emits: ['update:modelValue', 'start', 'end'],
+    template: '<div><slot v-for="element in modelValue" :key="element.id" name="item" :element="element" /></div>',
+  }
+}))
+
 import EnhancedQuoteV2 from '../EnhancedQuoteV2.vue'
 
 function mountWidget(props = {}) {
@@ -300,6 +310,8 @@ describe('EnhancedQuoteV2', () => {
     expect(wrapper.vm.manualTicker).toBeDefined()
     expect(wrapper.vm.companyData).toBeDefined()
     expect(wrapper.vm.companyLoading).toBeDefined()
+    expect(wrapper.vm.activeCards).toBeDefined()
+    expect(wrapper.vm.isDragging).toBeDefined()
   })
 
   describe('fmtVol helper (via rendered output)', () => {
@@ -787,6 +799,105 @@ describe('EnhancedQuoteV2', () => {
       // Assert
       expect(wrapper.find('.eqv2-prev-card').exists()).toBe(true)
       expect(wrapper.find('.eqv2-prev-row').exists()).toBe(true)
+    })
+  })
+
+  describe('Vue Draggable — card order and settings', () => {
+    const REGISTRY_IDS = ['session', 'today', 'volume', 'short', 'company']
+
+    it('activeCards falls back to CARD_REGISTRY default order when settings.cardOrder is undefined', () => {
+      // Arrange / Act
+      const wrapper = mountWidget({ settings: {} })
+
+      // Assert
+      expect(wrapper.vm.activeCards.map(c => c.id)).toEqual(REGISTRY_IDS)
+    })
+
+    it('activeCards respects settings.cardOrder when provided', () => {
+      // Arrange
+      const customOrder = ['volume', 'session', 'company', 'short', 'today']
+      const wrapper = mountWidget({ settings: { cardOrder: customOrder } })
+
+      // Assert
+      expect(wrapper.vm.activeCards.map(c => c.id)).toEqual(customOrder)
+    })
+
+    it('activeCards appends unknown-in-order cards to end', () => {
+      // Arrange: only 3 of 5 in saved order
+      const wrapper = mountWidget({ settings: { cardOrder: ['volume', 'today'] } })
+
+      // Assert: saved order first, missing cards appended
+      const ids = wrapper.vm.activeCards.map(c => c.id)
+      expect(ids[0]).toBe('volume')
+      expect(ids[1]).toBe('today')
+      expect(ids.length).toBe(5)
+    })
+
+    it('drag handles not visible when isLocked=true', async () => {
+      // Arrange
+      const wrapper = mountWidget({ isLocked: true })
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: .eqv2-drag-handle not in DOM when locked
+      expect(wrapper.find('.eqv2-drag-handle').exists()).toBe(false)
+    })
+
+    it('drag handles visible when isLocked=false', async () => {
+      // Arrange
+      const wrapper = mountWidget({ isLocked: false })
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: drag handles present
+      expect(wrapper.find('.eqv2-drag-handle').exists()).toBe(true)
+    })
+
+    it('Previous Day card is outside draggable — always rendered at bottom', async () => {
+      // Arrange
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: prev card exists and is in prev-row (not inside draggable)
+      const prevRow = wrapper.find('.eqv2-prev-row')
+      expect(prevRow.exists()).toBe(true)
+      expect(prevRow.find('.eqv2-prev-card').exists()).toBe(true)
+      // prev is NOT in activeCards
+      expect(wrapper.vm.activeCards.map(c => c.id)).not.toContain('prev')
+    })
+
+    it('onDragEnd emits update-settings payload with correct cardOrder', async () => {
+      // Arrange
+      const updateSettingsCalls = []
+      const wrapper = mount(EnhancedQuoteV2, {
+        props: { isLocked: false, settings: {} },
+        // Capture emitted events via onUpdate-settings listener
+        attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+      })
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Act: simulate col1 reorder then drag end (narrow mode — all cards in col1)
+      const reordered = ['today', 'session', 'volume', 'short', 'company']
+      wrapper.vm.onColReorder(
+        reordered.map(id => ({ id, label: id })),
+        1
+      )
+      wrapper.vm.onDragEnd()
+      await wrapper.vm.$nextTick()
+
+      // Assert: update-settings handler received correct payload
+      expect(updateSettingsCalls.length).toBe(1)
+      expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
     })
   })
 
