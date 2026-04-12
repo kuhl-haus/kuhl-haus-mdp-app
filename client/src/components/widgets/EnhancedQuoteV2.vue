@@ -78,9 +78,9 @@
             <!-- Description last, 50-char truncate + see more toggle -->
             <div v-if="companyData.description" class="eqv2-company-desc-wrap">
               <span class="eqv2-company-desc-text">
-                {{ descExpanded ? companyData.description : companyData.description.slice(0, 50) }}
+                {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
               </span>
-              <span v-if="!descExpanded && companyData.description.length > 50">
+              <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
                 <span class="eqv2-company-desc-ellipsis">… </span>
                 <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
               </span>
@@ -425,6 +425,12 @@ const allCompanyNull = computed(() => {
 const truncateUrl = (url) => {
   if (!url) return ''
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
+}
+
+const truncateDesc = (text, maxLen = 50) => {
+  if (!text || text.length <= maxLen) return text
+  const cut = text.lastIndexOf(' ', maxLen)
+  return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
 }
 
 // Relative volume bar
