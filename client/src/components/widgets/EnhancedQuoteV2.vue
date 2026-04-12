@@ -1,5 +1,5 @@
 <template>
-  <div class="eqv2-widget">
+  <div class="eqv2-widget" ref="widgetEl">
     <!-- Ticker input bar — always visible -->
     <div class="eqv2-controls">
       <input
@@ -127,8 +127,9 @@
             </div>
           </div>
 
-          <!-- Narrow-only: Short Interest (in col-1 when single column) -->
-          <div class="eqv2-card eqv2-short-card eqv2-narrow-only">
+          <!-- Short Interest + Company: only rendered here in narrow mode (isNarrow=true).
+               At wide/full, col-2 renders them. One instance at a time — no DOM duplication. -->
+          <div v-if="isNarrow" class="eqv2-card eqv2-short-card">
             <div class="eqv2-card-label">Short Interest</div>
             <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
             <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
@@ -139,8 +140,7 @@
             </div>
           </div>
 
-          <!-- Narrow-only: Company card -->
-          <div class="eqv2-card eqv2-company-card eqv2-narrow-only">
+          <div v-if="isNarrow" class="eqv2-card eqv2-company-card">
             <div class="eqv2-card-label">Company</div>
             <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
             <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
@@ -169,8 +169,9 @@
           </div>
         </div>
 
-        <!-- Col 2: Short Interest + Company (wide/full mode) -->
-        <div class="eqv2-col eqv2-col-2">
+        <!-- Col 2: Short Interest + Company — only rendered at wide/full (v-if="!isNarrow").
+             Paired with isNarrow v-if above to ensure exactly one instance in DOM. -->
+        <div v-if="!isNarrow" class="eqv2-col eqv2-col-2">
           <!-- Short Interest -->
           <div class="eqv2-card eqv2-short-card">
             <div class="eqv2-card-label">Short Interest</div>
@@ -248,9 +249,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+
+// Shared breakpoint constants — must match CSS @container thresholds exactly.
+// Referenced by ResizeObserver (JS) and CSS comments below.
+const BREAKPOINTS = { WIDE: 480, FULL: 680 }
 
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
@@ -263,6 +268,26 @@ defineEmits(['update-settings'])
 
 const appConfig = window.__APP_CONFIG__ || {}
 const { activeTickers, setActiveTicker } = useWidgetBus()
+
+// ── Layout mode (driven by ResizeObserver — single source of truth for breakpoints) ──
+const widgetEl = ref(null)   // template ref on .eqv2-widget root
+const layoutMode = ref('narrow')  // 'narrow' | 'wide' | 'full'
+const isNarrow = computed(() => layoutMode.value === 'narrow')
+
+let _resizeObserver = null
+onMounted(() => {
+  if (!widgetEl.value) return
+  _resizeObserver = new ResizeObserver((entries) => {
+    const width = entries[0]?.contentRect.width ?? 0
+    if (width >= BREAKPOINTS.FULL) layoutMode.value = 'full'
+    else if (width >= BREAKPOINTS.WIDE) layoutMode.value = 'wide'
+    else layoutMode.value = 'narrow'
+  })
+  _resizeObserver.observe(widgetEl.value)
+})
+onBeforeUnmount(() => {
+  _resizeObserver?.disconnect()
+})
 
 // ── Flame freshness icon ──────────────────────────────────────────────────────
 const FLAME_SRCS = {
@@ -507,7 +532,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError, layoutMode })
 </script>
 
 <style scoped>
@@ -934,11 +959,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 /* Previous Day always full width */
 .eqv2-prev-row { width: 100%; }
 
-/* In narrow mode, show Short + Company inside col-1 via .eqv2-narrow-only */
-/* At wide+, hide .eqv2-narrow-only; col-2 takes over */
-.eqv2-narrow-only { display: flex; flex-direction: column; }
-
 /* ── WIDE mode (480px+): two flex columns ── */
+/* BREAKPOINTS.WIDE = 480 — must match JS BREAKPOINTS.WIDE */
 @container (min-width: 480px) {   /* BREAKPOINTS.WIDE */
   .eqv2-symbol { font-size: 20px; }
   .eqv2-price  { font-size: 26px; }
@@ -956,8 +978,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv2-col-2 { display: flex; flex: 1; }
   .eqv2-prev-row { flex-basis: 100%; }
 
-  /* Hide narrow-only duplicates */
-  .eqv2-narrow-only { display: none !important; }
+  /* Col-2 shown via v-if="!isNarrow" — no CSS hide needed */
 }
 
 /* ── FULL mode (680px+): three columns — col-2 splits into today+short / company ── */

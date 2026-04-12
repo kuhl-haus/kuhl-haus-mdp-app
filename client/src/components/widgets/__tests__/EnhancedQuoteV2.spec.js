@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+// Stub ResizeObserver — jsdom does not implement it.
+// layoutMode defaults to 'narrow' (initial ref value) and tests can
+// set wrapper.vm.layoutMode directly to test wide/full layout paths.
+global.ResizeObserver = class ResizeObserver {
+  constructor() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 // Mock WebSocket globally
 class MockWebSocket {
   constructor() {
@@ -717,6 +727,51 @@ describe('EnhancedQuoteV2', () => {
       // Assert: chip class present, old mini class absent
       expect(wrapper.find('.eqv2-session-chip').exists()).toBe(true)
       expect(wrapper.find('.eqv2-session-mini').exists()).toBe(false)
+    })
+  })
+
+  describe('Layout mode — isNarrow / ResizeObserver integration', () => {
+    it('defaults to narrow layout mode (single column)', async () => {
+      // Arrange / Act
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: col-2 not rendered in narrow mode
+      expect(wrapper.vm.layoutMode).toBe('narrow')
+      expect(wrapper.find('.eqv2-col-2').exists()).toBe(false)
+    })
+
+    it('renders col-2 with company card when layoutMode is wide', async () => {
+      // Arrange
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Act: simulate ResizeObserver firing at wide width
+      wrapper.vm.layoutMode = 'wide'
+      await wrapper.vm.$nextTick()
+
+      // Assert: col-2 rendered, exactly one company card in DOM
+      expect(wrapper.find('.eqv2-col-2').exists()).toBe(true)
+      expect(wrapper.findAll('.eqv2-company-card').length).toBe(1)
+      expect(wrapper.findAll('.eqv2-short-card').length).toBe(1)
+    })
+
+    it('exactly one company card in DOM at narrow layout mode', async () => {
+      // Arrange / Act
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: only the narrow-mode instance present
+      expect(wrapper.findAll('.eqv2-company-card').length).toBe(1)
     })
   })
 
