@@ -160,6 +160,9 @@ def short_interest(symbol: str):
     # Cache miss — call Massive
     try:
         client = _get_massive_client()
+        # list_short_interest() returns a lazy generator (paginator), not a list.
+        # Use next(iter(...)) — subscript access ([0]) raises TypeError.
+        # Verified against legion-mcp/massive_data_provider.py.
         results = client.list_short_interest(
             ticker=symbol,
             limit=1,
