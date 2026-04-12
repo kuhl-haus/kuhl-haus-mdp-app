@@ -5,8 +5,10 @@ with WDC Redis caching. Cache keys and TTLs are consistent with the MDP
 pipeline so both the MDS and SCP share the same enrichment layer.
 
 Routes:
-    GET /api/market_data/company/<symbol>   — Massive ticker overview
-    GET /api/market_data/news/<symbol>      — Finlight ticker news
+    GET /api/market_data/company/<symbol>        — Massive ticker overview
+    GET /api/market_data/news/<symbol>           — Finlight ticker news
+    GET /api/market_data/short_interest/<symbol> — Massive FINRA short interest
+    GET /api/market_data/short_volume/<symbol>   — Massive short volume ratio
 """
 import json
 import logging
@@ -33,6 +35,8 @@ _OVERVIEW_TTL = 30 * 86400     # 30 days — static reference data
 _NEWS_TTL = WidgetDataCacheTTL.NEWS_TICKER.value  # 7 days
 _RETRY_TTL = 60                 # 60s — transient API failure, retry soon
 _NO_DATA_TTL = 86400            # 24h — ticker not in API, stable fact
+_SI_TTL = 86400                 # 1 day — FINRA reports bi-monthly; daily refresh is fine
+_SV_TTL = 86400                 # 1 day — short volume is T+1
 
 
 def _get_wdc():
@@ -120,6 +124,155 @@ def company(symbol: str):
         except Exception:
             pass
         return dict(symbol=symbol, data={}, error="Company data temporarily unavailable")
+
+
+# ---------------------------------------------------------------------------
+# Short interest (Massive FINRA short interest)
+# ---------------------------------------------------------------------------
+
+@action("api/market_data/short_interest/<symbol>", method=["GET"])
+@action.uses(session, auth.user)
+def short_interest(symbol: str):
+    """Return cached short interest data for a ticker.
+
+    Sourced from Massive's FINRA short interest feed via list_short_interest().
+    Returns the most recent settlement date entry for the ticker.
+
+    Cache: enrichment:short_interest:{symbol} in WDC Redis (1-day TTL).
+    """
+    symbol = symbol.upper().strip()
+    cache_key = f"enrichment:short_interest:{symbol}"
+
+    try:
+        wdc = _get_wdc()
+        cached = wdc.get(cache_key)
+        if cached:
+            data = json.loads(cached)
+            if data:
+                logger.debug(f"[short_interest:{symbol}] WDC cache hit")
+                return dict(symbol=symbol, data=data, source="cache")
+            else:
+                logger.debug(f"[short_interest:{symbol}] WDC empty sentinel — data unavailable")
+                return dict(symbol=symbol, data={}, source="cache", available=False)
+    except Exception as e:
+        logger.error(f"[short_interest:{symbol}] Redis error on read: {e}")
+
+    # Cache miss — call Massive
+    try:
+        client = _get_massive_client()
+        results = client.list_short_interest(
+            ticker=symbol,
+            limit=1,
+            order="desc",
+            sort="settlement_date",
+        )
+        if results:
+            r = results[0]
+            data = {
+                "short_interest": getattr(r, "short_interest", None),
+                "days_to_cover": getattr(r, "days_to_cover", None),
+                "avg_daily_volume": getattr(r, "avg_daily_volume", None),
+                "settlement_date": getattr(r, "settlement_date", None),
+            }
+            logger.info(
+                f"[short_interest:{symbol}] API hit — "
+                f"si={data['short_interest']} dtc={data['days_to_cover']} "
+                f"date={data['settlement_date']} (TTL={_SI_TTL}s)"
+            )
+            try:
+                wdc.setex(cache_key, _SI_TTL, json.dumps(data))
+            except Exception as e:
+                logger.error(f"[short_interest:{symbol}] Redis write error: {e}")
+            return dict(symbol=symbol, data=data, source="api")
+        else:
+            logger.warning(f"[short_interest:{symbol}] Massive returned no results — writing no-data sentinel")
+            try:
+                wdc.setex(cache_key, _NO_DATA_TTL, json.dumps({}))
+            except Exception as e:
+                logger.error(f"[short_interest:{symbol}] Redis write error: {e}")
+            return dict(symbol=symbol, data={}, source="api", available=False)
+    except Exception as e:
+        logger.error(f"[short_interest:{symbol}] Massive API error: {e}")
+        try:
+            wdc.setex(cache_key, _RETRY_TTL, json.dumps({}))
+        except Exception:
+            pass
+        return dict(symbol=symbol, data={}, error="Short interest data temporarily unavailable")
+
+
+# ---------------------------------------------------------------------------
+# Short volume (Massive short volume ratio)
+# ---------------------------------------------------------------------------
+
+@action("api/market_data/short_volume/<symbol>", method=["GET"])
+@action.uses(session, auth.user)
+def short_volume(symbol: str):
+    """Return cached short volume data for a ticker.
+
+    Sourced from Massive's short volume feed via list_short_volume().
+    Returns the most recent date entry for the ticker.
+
+    Cache: enrichment:short_volume:{symbol} in WDC Redis (1-day TTL).
+    """
+    symbol = symbol.upper().strip()
+    cache_key = f"enrichment:short_volume:{symbol}"
+
+    try:
+        wdc = _get_wdc()
+        cached = wdc.get(cache_key)
+        if cached:
+            data = json.loads(cached)
+            if data:
+                logger.debug(f"[short_volume:{symbol}] WDC cache hit")
+                return dict(symbol=symbol, data=data, source="cache")
+            else:
+                logger.debug(f"[short_volume:{symbol}] WDC empty sentinel — data unavailable")
+                return dict(symbol=symbol, data={}, source="cache", available=False)
+    except Exception as e:
+        logger.error(f"[short_volume:{symbol}] Redis error on read: {e}")
+
+    # Cache miss — call Massive
+    try:
+        client = _get_massive_client()
+        results = client.list_short_volume(
+            ticker=symbol,
+            limit=1,
+            order="desc",
+            sort="date",
+        )
+        if results:
+            r = results[0]
+            data = {
+                "short_volume": getattr(r, "short_volume", None),
+                "total_volume": getattr(r, "total_volume", None),
+                "short_volume_ratio": getattr(r, "short_volume_ratio", None),
+                "date": getattr(r, "date", None),
+                "nyse_short_volume": getattr(r, "nyse_short_volume", None),
+                "nasdaq_carteret_short_volume": getattr(r, "nasdaq_carteret_short_volume", None),
+            }
+            logger.info(
+                f"[short_volume:{symbol}] API hit — "
+                f"ratio={data['short_volume_ratio']} date={data['date']} (TTL={_SV_TTL}s)"
+            )
+            try:
+                wdc.setex(cache_key, _SV_TTL, json.dumps(data))
+            except Exception as e:
+                logger.error(f"[short_volume:{symbol}] Redis write error: {e}")
+            return dict(symbol=symbol, data=data, source="api")
+        else:
+            logger.warning(f"[short_volume:{symbol}] Massive returned no results — writing no-data sentinel")
+            try:
+                wdc.setex(cache_key, _NO_DATA_TTL, json.dumps({}))
+            except Exception as e:
+                logger.error(f"[short_volume:{symbol}] Redis write error: {e}")
+            return dict(symbol=symbol, data={}, source="api", available=False)
+    except Exception as e:
+        logger.error(f"[short_volume:{symbol}] Massive API error: {e}")
+        try:
+            wdc.setex(cache_key, _RETRY_TTL, json.dumps({}))
+        except Exception:
+            pass
+        return dict(symbol=symbol, data={}, error="Short volume data temporarily unavailable")
 
 
 # ---------------------------------------------------------------------------
