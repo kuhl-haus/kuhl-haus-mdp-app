@@ -249,7 +249,7 @@
           </draggable>
         </div>
 
-        <!-- Col 3: company card only at full width (≥680px) -->
+        <!-- Col 3: company card only at full width (≥960px) -->
         <div v-if="layoutMode === 'full'" class="eqv2-col eqv2-col-3">
           <draggable
             :model-value="col3Cards"
@@ -371,7 +371,7 @@ const activeCards = computed(() => {
 
 // Distribute activeCards across columns based on layout mode.
 // Previous Day is excluded — it's always pinned outside the draggable lists.
-// FULL (>=680px): col1=session+volume, col2=today+short, col3=company
+// FULL (>=960px): col1=session+volume, col2=today+short, col3=company
 // WIDE (480-679px): col1=first half, col2=second half (including company)
 // NARROW (<480px): col1=all cards
 const col1Cards = computed(() => {
@@ -1102,7 +1102,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 /* ── Sections: narrow (< 480px) — single flex column ── */
-/* Breakpoint constants — must match BREAKPOINTS in PR C JS: WIDE=480, FULL=680 */
+/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=480, FULL=960 */
 .eqv2-sections {
   display: flex;
   flex-direction: column;
@@ -1140,8 +1140,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   /* Col-2 shown via v-if="!isNarrow" — no CSS hide needed */
 }
 
-/* ── FULL mode (680px+): three columns — col1=session+volume, col2=today+short, col3=company ── */
-/* BREAKPOINTS.FULL = 680 — must match JS BREAKPOINTS.FULL */
+/* ── FULL mode (960px+): three columns — col1=session+volume, col2=today+short, col3=company ── */
+/* BREAKPOINTS.FULL = 960 — must match JS BREAKPOINTS.FULL */
 @container (min-width: 960px) {   /* BREAKPOINTS.FULL */
   .eqv2-symbol { font-size: 22px; }
   .eqv2-price  { font-size: 30px; }
