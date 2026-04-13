@@ -82,7 +82,7 @@
             @update:model-value="(val) => onColReorder(val, 1)"
           >
             <template #item="{ element: card }">
-              <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
+              <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
                 <div class="eqv2-card-label">
                   <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
                   {{ card.label }}
@@ -155,30 +155,14 @@
 
                 <!-- Company -->
                 <template v-else-if="card.id === 'company'">
-                  <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
-                  <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-                  <div v-else>
-                    <div class="eqv2-kv-list">
-                      <div v-if="companyData.homepage_url" class="eqv2-kv">
-                        <span class="eqv2-k">Web</span>
-                        <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
-                      </div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
-                    </div>
-                    <div v-if="companyData.description" class="eqv2-company-desc-wrap">
-                      <span class="eqv2-company-desc-text">
-                        {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
-                      </span>
-                      <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
-                        <span class="eqv2-company-desc-ellipsis">… </span>
-                        <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
-                      </span>
-                      <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
-                    </div>
-                  </div>
+                  <EQV2CompanyCard
+                    :loading="companyLoading"
+                    :all-null="allCompanyNull"
+                    :data="companyData"
+                    :expanded="descExpanded"
+                    @expand="descExpanded = true"
+                    @collapse="descExpanded = false"
+                  />
                 </template>
 
               </div>
@@ -198,8 +182,8 @@
             @end="onDragEnd()"
             @update:model-value="(val) => onColReorder(val, 2)"
           >
-            <template #item="{ element: card }" :key="card.id">
-              <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
+            <template #item="{ element: card }">
+              <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
                 <div class="eqv2-card-label">
                   <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
                   {{ card.label }}
@@ -218,30 +202,14 @@
 
                 <!-- Company -->
                 <template v-else-if="card.id === 'company'">
-                  <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
-                  <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-                  <div v-else>
-                    <div class="eqv2-kv-list">
-                      <div v-if="companyData.homepage_url" class="eqv2-kv">
-                        <span class="eqv2-k">Web</span>
-                        <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
-                      </div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
-                    </div>
-                    <div v-if="companyData.description" class="eqv2-company-desc-wrap">
-                      <span class="eqv2-company-desc-text">
-                        {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
-                      </span>
-                      <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
-                        <span class="eqv2-company-desc-ellipsis">… </span>
-                        <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
-                      </span>
-                      <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
-                    </div>
-                  </div>
+                  <EQV2CompanyCard
+                    :loading="companyLoading"
+                    :all-null="allCompanyNull"
+                    :data="companyData"
+                    :expanded="descExpanded"
+                    @expand="descExpanded = true"
+                    @collapse="descExpanded = false"
+                  />
                 </template>
 
                 <!-- Session / Today / Volume (if reordered into col-2) -->
@@ -301,37 +269,20 @@
             @update:model-value="(val) => onColReorder(val, 3)"
           >
             <template #item="{ element: card }">
-              <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
+              <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
                 <div class="eqv2-card-label">
                   <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
                   {{ card.label }}
                 </div>
-                <template v-if="card.id === 'company'">
-                  <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
-                  <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-                  <div v-else>
-                    <div class="eqv2-kv-list">
-                      <div v-if="companyData.homepage_url" class="eqv2-kv">
-                        <span class="eqv2-k">Web</span>
-                        <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
-                      </div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-                      <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
-                    </div>
-                    <div v-if="companyData.description" class="eqv2-company-desc-wrap">
-                      <span class="eqv2-company-desc-text">
-                        {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
-                      </span>
-                      <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
-                        <span class="eqv2-company-desc-ellipsis">… </span>
-                        <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
-                      </span>
-                      <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
-                    </div>
-                  </div>
-                </template>
+                <!-- Col-3 only ever contains the company card -->
+                <EQV2CompanyCard
+                  :loading="companyLoading"
+                  :all-null="allCompanyNull"
+                  :data="companyData"
+                  :expanded="descExpanded"
+                  @expand="descExpanded = true"
+                  @collapse="descExpanded = false"
+                />
               </div>
             </template>
           </draggable>
@@ -376,6 +327,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import EQV2CompanyCard from './EQV2CompanyCard.vue'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
 // Referenced by ResizeObserver (JS) and CSS comments below.
