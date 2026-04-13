@@ -73,13 +73,12 @@ describe('EQV2CompanyCard', () => {
       expect(wrapper.text()).not.toContain('Web')
     })
 
-    it('formats market cap with fmtVol (B suffix for billions)', () => {
+    it('formats market cap with fmtVol (3.2T input → 3200.0B)', () => {
       // Arrange / Act
       const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
 
-      // Assert: 3.2T market cap → "3200.0B" ... actually >= 1e12 would be T if supported
-      // fmtVol only goes to B — 3.2T = 3200.0B
-      expect(wrapper.text()).toContain('B')
+      // Assert: fmtVol has no T suffix — 3.2T (3_200_000_000_000) → 3200.0B
+      expect(wrapper.text()).toContain('3200.0B')
     })
   })
 
@@ -118,6 +117,9 @@ describe('EQV2CompanyCard', () => {
   })
 
   describe('Expand/collapse events', () => {
+    // Note: wrapper.emitted() does not capture Vue emissions from <script setup>
+    // components in VTU 2.4.x / jsdom. The attrs listener pattern is intentional —
+    // same approach used in EnhancedQuoteV2.spec.js for update-settings.
     it('emits expand when see-more button is clicked', async () => {
       // Arrange
       const expandCalls = []
