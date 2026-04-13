@@ -265,6 +265,7 @@
           :w="item.w"
           :h="item.h"
           :i="item.i"
+          drag-allow-from=".widget-header"
       >
         <WidgetWrapper
             :widget-id="item.i"
