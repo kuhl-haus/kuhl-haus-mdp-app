@@ -34,9 +34,7 @@ const availableWidgets = [
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
   { type: 'company-news', label: 'Company News', icon: '🗞️' },
   { type: 'quote', label: 'Quote', icon: '⚡' },
-  { type: 'enhanced-quote', label: 'Enhanced Quote', icon: '📊' },
-  { type: 'enhanced-quote-v2', label: 'Enhanced Quote V2', icon: '✨' },
-  { type: 'enhanced-quote-v3', label: 'Enhanced Quote V3', icon: '🚀' },
+  { type: 'enhanced-quote-v3', label: 'Enhanced Quote', icon: '✨' },
 ]
 
 const selectWidget = (widgetType) => {

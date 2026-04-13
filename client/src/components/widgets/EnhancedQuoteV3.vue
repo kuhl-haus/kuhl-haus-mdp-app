@@ -48,10 +48,10 @@
           <div class="eqv3-since-open">
             since open
             <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv3-pos' : 'eqv3-neg'">
-              {{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%
               <span v-if="quoteData.change_since_open != null">
-                ({{ quoteData.change_since_open >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData.change_since_open), 2) }})
+                {{ quoteData.change_since_open >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData.change_since_open), 2) }}
               </span>
+              ({{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%)
             </span>
           </div>
         </div>
