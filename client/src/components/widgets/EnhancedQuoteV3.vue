@@ -839,7 +839,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 .eqv3-change-badge {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   font-family: 'Roboto Mono', monospace;
   padding: 2px 8px;
@@ -858,7 +858,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 .eqv3-since-open {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted);
   text-align: right;
 }
