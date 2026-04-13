@@ -956,8 +956,11 @@ describe('EnhancedQuoteV2', () => {
       )
     })
 
-    it('onFullRowDragEnd emits update-settings with reordered full-row cardOrder including prev', async () => {
+    it('onFullRowReorder emits update-settings with reordered full-row cardOrder including prev', async () => {
       // Arrange
+      // vuedraggable fires @update:model-value (onFullRowReorder) AFTER @end,
+      // so the emit is driven directly from the updated list rather than reading
+      // a stale _fullRow ref set in @end.
       const updateSettingsCalls = []
       const wrapper = mount(EnhancedQuoteV2, {
         props: { isLocked: false, settings: {} },
@@ -969,11 +972,9 @@ describe('EnhancedQuoteV2', () => {
       wrapper.vm.layoutMode = 'full'
       await wrapper.vm.$nextTick()
 
-      // Act: simulate full-row drag — prev moved to first position
+      // Act: simulate vuedraggable @update:model-value — prev moved to first position
       const reordered = ['prev', 'today', 'volume', 'session', 'short', 'company']
-      wrapper.vm._fullRow = reordered.map(id => ({ id, label: id }))
-      await wrapper.vm.onFullRowDragEnd()
-      await wrapper.vm.$nextTick()
+      wrapper.vm.onFullRowReorder(reordered.map(id => ({ id, label: id })))
 
       // Assert: full reordered list saved including prev in its new position
       expect(updateSettingsCalls.length).toBe(1)
