@@ -12,6 +12,13 @@
         @keyup.escape="inputTicker = ''"
       />
       <button class="eqv3-go-btn" @click="applyInput" @touchend.prevent="applyInput" title="Load quote">Go</button>
+      <!-- Branding toggle — only in edit mode when both URLs are available -->
+      <button
+        v-if="!isLocked && logoUrl && iconUrl"
+        class="eqv3-branding-toggle"
+        :title="brandingMode === 'logo' ? 'Switch to icon' : 'Switch to logo'"
+        @click="toggleBranding"
+      >{{ brandingMode === 'logo' ? '🔲 icon' : '🖼 logo' }}</button>
     </div>
 
     <!-- No ticker yet -->
@@ -30,9 +37,9 @@
     <div v-else class="eqv3-body">
       <!-- Price Hero -->
       <div class="eqv3-hero">
-        <!-- Symbol block: symbol + flame icon + logo -->
+        <!-- Symbol block: symbol + flame icon + branding (logo or icon) -->
         <div class="eqv3-hero-symbol-block">
-          <img v-if="logoUrl" :src="logoUrl + '?apiKey=' + config?.massiveApiKey" class="eqv3-logo" alt="Company logo" />
+          <img v-if="activeBrandingUrl" :src="activeBrandingUrl + '?apiKey=' + config?.massiveApiKey" class="eqv3-logo" :alt="brandingMode === 'icon' ? 'Company icon' : 'Company logo'" />
           <div class="eqv3-hero-symbol-row">
             <span class="eqv3-symbol">{{ quoteData.symbol }}</span>
             <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv3-flame-icon" />
@@ -563,16 +570,29 @@ const companyData = ref({})
 const companyLoading = ref(false)
 const descExpanded = ref(false)
 const logoUrl = ref(null)
+const iconUrl = ref(null)
 
 // Short interest — fetched from Massive REST API
 const shortInterestData = ref({})
 const shortInterestLoading = ref(false)
+
+// Branding mode: 'logo' (default) or 'icon' — persisted in settings
+const brandingMode = computed(() => props.settings?.brandingMode ?? 'logo')
+const activeBrandingUrl = computed(() => {
+  if (brandingMode.value === 'icon') return iconUrl.value || logoUrl.value || null
+  return logoUrl.value || iconUrl.value || null
+})
+const toggleBranding = () => {
+  const next = brandingMode.value === 'logo' ? 'icon' : 'logo'
+  emit('update-settings', { ...props.settings, brandingMode: next })
+}
 
 const fetchCompany = async (symbol) => {
   if (!symbol) return
   companyLoading.value = true
   companyData.value = {}
   logoUrl.value = null
+  iconUrl.value = null
   try {
     const url = `https://api.massive.com/v3/reference/tickers/${symbol}?apiKey=${config.value?.massiveApiKey}`
     const resp = await fetch(url)
@@ -590,6 +610,7 @@ const fetchCompany = async (symbol) => {
         list_date: results.list_date ?? null,
       }
       logoUrl.value = results.branding?.logo_url ?? null
+      iconUrl.value = results.branding?.icon_url ?? null
     }
   } catch (e) {
     console.warn(`[EnhancedQuoteV3] company fetch failed for ${symbol}:`, e)
@@ -665,6 +686,7 @@ watch(activeTicker, (newTicker) => {
   companyData.value = {}
   shortInterestData.value = {}
   logoUrl.value = null
+  iconUrl.value = null
   descExpanded.value = false
   if (newTicker) {
     fetchCompany(newTicker)
@@ -756,7 +778,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl, iconUrl, brandingMode, activeBrandingUrl, toggleBranding })
 </script>
 
 <style scoped>
@@ -817,6 +839,18 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   flex-shrink: 0;
 }
 .eqv3-go-btn:hover { border-color: var(--accent); color: #fff; }
+.eqv3-branding-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.eqv3-branding-toggle:hover { border-color: var(--accent); color: var(--text-primary); }
 
 /* ── Empty / waiting states ── */
 .eqv3-empty {
