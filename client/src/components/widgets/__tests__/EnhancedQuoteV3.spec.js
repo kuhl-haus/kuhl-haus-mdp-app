@@ -667,6 +667,89 @@ describe('Card layout and settings', () => {
   })
 })
 
+describe('Full mode — chips-to-kv-list rendering', () => {
+  test('test_EnhancedQuoteV3_with_full_layoutMode_session_card_renders_kv_list_not_chips', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await wrapper.vm.$nextTick()
+
+    // Act: locate the session card inside the full-row draggable
+    const fullRow = wrapper.find('.eqv3-full-row-draggable')
+    expect(fullRow.exists()).toBe(true)
+
+    // Assert: no chips — kv-list rows instead
+    expect(fullRow.find('.eqv3-session-chips').exists()).toBe(false)
+    expect(fullRow.find('.eqv3-session-chip').exists()).toBe(false)
+
+    const kvItems = fullRow.findAll('.eqv3-kv')
+    const labels = kvItems.map(kv => kv.find('.eqv3-k').text())
+    expect(labels).toContain('Pre High')
+    expect(labels).toContain('Pre Low')
+    expect(labels).toContain('Reg High')
+    expect(labels).toContain('Reg Low')
+    expect(labels).toContain('AH High')
+    expect(labels).toContain('AH Low')
+
+    // Assert values from SAMPLE_QUOTE
+    const preHighRow = kvItems.find(kv => kv.find('.eqv3-k').text() === 'Pre High')
+    expect(preHighRow.find('.eqv3-v').text()).toBe('$252.00')
+    const regLowRow = kvItems.find(kv => kv.find('.eqv3-k').text() === 'Reg Low')
+    expect(regLowRow.find('.eqv3-v').text()).toBe('$247.00')
+  })
+
+  test('test_EnhancedQuoteV3_with_full_layoutMode_prev_card_renders_kv_list_not_chips', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await wrapper.vm.$nextTick()
+
+    // Act: locate the prev-day card specifically inside the full-row draggable
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    expect(prevCard.exists()).toBe(true)
+
+    // Assert: no prev-chips — kv-list rows instead
+    expect(prevCard.find('.eqv3-prev-chips').exists()).toBe(false)
+
+    const kvItems = prevCard.findAll('.eqv3-kv')
+    const labels = kvItems.map(kv => kv.find('.eqv3-k').text())
+    expect(labels).toContain('Open')
+    expect(labels).toContain('High')
+    expect(labels).toContain('Low')
+    expect(labels).toContain('Close')
+    expect(labels).toContain('Volume')
+    expect(labels).toContain('VWAP')
+
+    // Assert values from SAMPLE_QUOTE (prev_day_open=245, prev_day_close=245)
+    const openRow = kvItems.find(kv => kv.find('.eqv3-k').text() === 'Open')
+    expect(openRow.find('.eqv3-v').text()).toBe('$245.00')
+    const closeRow = kvItems.find(kv => kv.find('.eqv3-k').text() === 'Close')
+    expect(closeRow.find('.eqv3-v').text()).toBe('$245.00')
+  })
+
+  test('test_EnhancedQuoteV3_with_narrow_layoutMode_session_and_prev_still_render_chips', async () => {
+    // Arrange — narrow keeps chips (regression guard)
+    const wrapper = mountWidget()
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    // layoutMode defaults to narrow
+    await wrapper.vm.$nextTick()
+
+    // Assert: chips still present in col-1 at narrow
+    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
+    expect(wrapper.find('.eqv3-prev-row .eqv3-prev-chips').exists()).toBe(true)
+    // And full-row draggable does not exist at narrow
+    expect(wrapper.find('.eqv3-full-row-draggable').exists()).toBe(false)
+  })
+})
+
 describe('Hero identity blocks', () => {
   test('test_EnhancedQuoteV3_hero_uses_semantic_blocks_for_symbol_price_and_identity', async () => {
     // Arrange

@@ -85,33 +85,15 @@
                   {{ card.label }}
                 </div>
 
-                <!-- Session H/L -->
+                <!-- Session H/L — kv-list at full mode, chips at narrow/wide -->
                 <template v-if="card.id === 'session'">
-                  <div class="eqv3-session-chips">
-                    <div class="eqv3-session-chip">
-                      <span class="eqv3-chip-label">PRE</span>
-                      <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv3-session-chip-vals">
-                        <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span>
-                        <span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
-                      </div>
-                      <div v-else class="eqv3-session-chip-vals eqv3-muted-val">—</div>
-                    </div>
-                    <div class="eqv3-session-chip">
-                      <span class="eqv3-chip-label">REG</span>
-                      <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv3-session-chip-vals">
-                        <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span>
-                        <span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
-                      </div>
-                      <div v-else class="eqv3-session-chip-vals eqv3-muted-val">—</div>
-                    </div>
-                    <div class="eqv3-session-chip">
-                      <span class="eqv3-chip-label">AH</span>
-                      <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv3-session-chip-vals">
-                        <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span>
-                        <span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
-                      </div>
-                      <div v-else class="eqv3-session-chip-vals eqv3-muted-val">—</div>
-                    </div>
+                  <div class="eqv3-kv-list">
+                    <div class="eqv3-kv"><span class="eqv3-k">Pre High</span><span class="eqv3-v">{{ quoteData.pre_market_high != null ? '$' + fmt(quoteData.pre_market_high, 2) : '—' }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">Pre Low</span><span class="eqv3-v">{{ quoteData.pre_market_low != null ? '$' + fmt(quoteData.pre_market_low, 2) : '—' }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">Reg High</span><span class="eqv3-v">{{ quoteData.regular_session_high != null ? '$' + fmt(quoteData.regular_session_high, 2) : '—' }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">Reg Low</span><span class="eqv3-v">{{ quoteData.regular_session_low != null ? '$' + fmt(quoteData.regular_session_low, 2) : '—' }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">AH High</span><span class="eqv3-v">{{ quoteData.after_hours_high != null ? '$' + fmt(quoteData.after_hours_high, 2) : '—' }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">AH Low</span><span class="eqv3-v">{{ quoteData.after_hours_low != null ? '$' + fmt(quoteData.after_hours_low, 2) : '—' }}</span></div>
                   </div>
                 </template>
 
@@ -162,15 +144,15 @@
                   />
                 </template>
 
-                <!-- Previous Day -->
+                <!-- Previous Day — kv-list at full mode, chips at narrow/wide -->
                 <template v-else-if="card.id === 'prev'">
-                  <div class="eqv3-prev-chips">
-                    <div class="eqv3-chip"><span class="eqv3-chip-label">O</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-                    <div class="eqv3-chip"><span class="eqv3-chip-label">H</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-                    <div class="eqv3-chip"><span class="eqv3-chip-label">L</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-                    <div class="eqv3-chip"><span class="eqv3-chip-label">C</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-                    <div class="eqv3-chip"><span class="eqv3-chip-label">Vol</span><span class="eqv3-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-                    <div class="eqv3-chip"><span class="eqv3-chip-label">VWAP</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+                  <div class="eqv3-kv-list">
+                    <div class="eqv3-kv"><span class="eqv3-k">Open</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">High</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">Low</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">Close</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">Volume</span><span class="eqv3-v">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
+                    <div class="eqv3-kv"><span class="eqv3-k">VWAP</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
                   </div>
                 </template>
 
