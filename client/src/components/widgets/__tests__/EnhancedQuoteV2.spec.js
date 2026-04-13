@@ -1003,16 +1003,24 @@ describe('EnhancedQuoteV2', () => {
       wrapper.vm.layoutMode = 'wide'  // col1: [session,today,volume], col2: [short,company]
       await wrapper.vm.$nextTick()
 
-      // Act: simulate cross-column drag — card moved from col2 to col1
-      // Both @update:model-value handlers fire before @end
+      // Act: reproduce the real race condition.
+      // vuedraggable wraps each update:modelValue in nextTick(), so a cross-column drag
+      // delivers the source column override on tick 1 and the destination on tick 2.
+      // Simulate this: col1 override arrives synchronously, col2 arrives one tick later
+      // (after onDragEnd has already started and consumed the first nextTick).
       const newCol1 = ['session', 'today', 'volume', 'short'].map(id => ({ id, label: id }))
       const newCol2 = ['company'].map(id => ({ id, label: id }))
-      wrapper.vm.onColReorder(newCol1, 1)
-      wrapper.vm.onColReorder(newCol2, 2)
-      await wrapper.vm.onDragEnd()
+
+      wrapper.vm.onColReorder(newCol1, 1)  // col1 override set immediately
+      // Start onDragEnd — it will await its first nextTick before we set col2
+      const dragEndPromise = wrapper.vm.onDragEnd()
+      // After the first tick (which onDragEnd just consumed), deliver col2
+      await wrapper.vm.$nextTick()
+      wrapper.vm.onColReorder(newCol2, 2)  // col2 arrives on second tick
+      await dragEndPromise
       await wrapper.vm.$nextTick()
 
-      // Assert: all 5 cards present, col1 then col2 order
+      // Assert: all 5 cards present in correct merged order
       expect(updateSettingsCalls.length).toBe(1)
       expect(updateSettingsCalls[0].cardOrder).toEqual(
         ['session', 'today', 'volume', 'short', 'company']
