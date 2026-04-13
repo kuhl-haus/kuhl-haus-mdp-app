@@ -36,6 +36,7 @@ const availableWidgets = [
   { type: 'quote', label: 'Quote', icon: '⚡' },
   { type: 'enhanced-quote', label: 'Enhanced Quote', icon: '📊' },
   { type: 'enhanced-quote-v2', label: 'Enhanced Quote V2', icon: '✨' },
+  { type: 'enhanced-quote-v3', label: 'Enhanced Quote V3', icon: '🚀' },
 ]
 
 const selectWidget = (widgetType) => {
