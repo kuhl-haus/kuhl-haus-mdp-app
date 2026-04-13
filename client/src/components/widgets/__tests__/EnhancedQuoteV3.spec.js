@@ -116,6 +116,10 @@ const MASSIVE_TICKER_RESPONSE = {
     sic_description: 'Motor Vehicles',
     description: 'Tesla designs electric vehicles.',
     homepage_url: 'https://tesla.com',
+    primary_exchange: 'XNAS',
+    market_cap: 800000000000,
+    total_employees: 127855,
+    list_date: '2010-06-29',
     branding: {
       logo_url: 'https://api.massive.com/v1/reference/company-branding/tsla/logo.svg',
       icon_url: 'https://api.massive.com/v1/reference/company-branding/tsla/icon.png',
@@ -363,6 +367,26 @@ describe('Massive API — company data', () => {
 
     // Assert: logo removed
     expect(wrapper.find('.eqv3-logo').exists()).toBe(false)
+  })
+
+  test('test_EnhancedQuoteV3_fetchCompany_maps_exchange_marketcap_employees_listdate_to_companyData', async () => {
+    // Arrange — regression test: fetchCompany previously only mapped 4 fields,
+    // leaving exchange/market_cap/total_employees/list_date as undefined in the company card.
+    mockMassiveFetch()
+    const wrapper = mountWidget()
+
+    // Act
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+
+    // Assert: all four previously-missing fields are populated in companyData
+    expect(wrapper.vm.companyData.primary_exchange).toBe('XNAS')
+    expect(wrapper.vm.companyData.market_cap).toBe(800000000000)
+    expect(wrapper.vm.companyData.total_employees).toBe(127855)
+    expect(wrapper.vm.companyData.list_date).toBe('2010-06-29')
   })
 })
 
