@@ -414,10 +414,11 @@ const onColReorder = (newVal, colNum) => {
 
 const onDragEnd = async () => {
   isDragging.value = false
-  // Wait for both @update:model-value events to settle before reading override refs.
-  // SortableJS fires @end before @update:model-value is guaranteed to have run on
-  // both source and destination columns in a cross-column drag. Without nextTick,
-  // one column override may still be null, causing a stale cardOrder to be emitted.
+  // Wait for all @update:model-value events to settle before reading override refs.
+  // vuedraggable wraps each emission in nextTick(), and a cross-column drag fires
+  // two separate emissions (source remove + destination add) in successive ticks.
+  // Two awaits ensure both columns' overrides are set before we read them.
+  await nextTick()
   await nextTick()
   const c1 = _col1.value ?? col1Cards.value
   const c2 = _col2.value ?? col2Cards.value
