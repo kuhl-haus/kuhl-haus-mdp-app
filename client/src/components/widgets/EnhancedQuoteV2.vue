@@ -328,6 +328,7 @@ import draggable from 'vuedraggable'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import EQV2CompanyCard from './EQV2CompanyCard.vue'
+import { truncateUrl, truncateDesc, fmtVol } from './eqv2Utils.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
 // Referenced by ResizeObserver (JS) and CSS comments below.
@@ -611,14 +612,7 @@ const fmt = (val, decimals = 2) => {
   return isFinite(n) ? n.toFixed(decimals) : '—'
 }
 
-const fmtVol = (val) => {
-  const v = parseFloat(val)
-  if (!isFinite(v)) return '—'
-  if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`
-  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`
-  if (v >= 1e3) return `${(v / 1e3).toFixed(1)}K`
-  return v.toString()
-}
+// fmtVol, truncateUrl, truncateDesc — imported from eqv2Utils.js
 
 const changeClass = computed(() => {
   if (!quoteData.value) return ''
@@ -661,17 +655,6 @@ const allCompanyNull = computed(() => {
          d.list_date == null &&
          d.homepage_url == null
 })
-
-const truncateUrl = (url) => {
-  if (!url) return ''
-  return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
-}
-
-const truncateDesc = (text, maxLen = 175) => {
-  if (!text || text.length <= maxLen) return text
-  const cut = text.lastIndexOf(' ', maxLen)
-  return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
-}
 
 // Relative volume bar
 const rvBarWidth = computed(() => {

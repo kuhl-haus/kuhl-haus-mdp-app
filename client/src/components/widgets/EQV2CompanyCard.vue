@@ -1,4 +1,5 @@
 <template>
+  <div class="eqv2-company-card-body">
   <div v-if="loading" class="eqv2-muted-msg">Company data loading...</div>
   <div v-else-if="allNull" class="eqv2-muted-msg">Company data unavailable</div>
   <div v-else>
@@ -18,40 +19,25 @@
       </span>
       <span v-if="!expanded && truncateDesc(data.description) !== data.description">
         <span class="eqv2-company-desc-ellipsis">… </span>
-        <button class="eqv2-see-more" @click="$emit('expand')">see more</button>
+        <button class="eqv2-see-more" @click="onExpand">see more</button>
       </span>
-      <button v-if="expanded" class="eqv2-see-more" @click="$emit('collapse')"> less</button>
+      <button v-if="expanded" class="eqv2-see-more" @click="onCollapse"> less</button>
     </div>
+  </div>
   </div>
 </template>
 
 <script setup>
-const props = defineProps({
+import { truncateUrl, truncateDesc, fmtVol } from './eqv2Utils.js'
+
+defineProps({
   loading: { type: Boolean, default: false },
   allNull: { type: Boolean, default: false },
   data: { type: Object, default: () => ({}) },
   expanded: { type: Boolean, default: false },
 })
 
-defineEmits(['expand', 'collapse'])
-
-const truncateUrl = (url) => {
-  if (!url) return ''
-  return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
-}
-
-const truncateDesc = (text, maxLen = 175) => {
-  if (!text || text.length <= maxLen) return text
-  const cut = text.lastIndexOf(' ', maxLen)
-  return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
-}
-
-const fmtVol = (n) => {
-  if (n == null || isNaN(n)) return '—'
-  if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(2) + 'T'
-  if (Math.abs(n) >= 1e9)  return (n / 1e9).toFixed(2) + 'B'
-  if (Math.abs(n) >= 1e6)  return (n / 1e6).toFixed(2) + 'M'
-  if (Math.abs(n) >= 1e3)  return (n / 1e3).toFixed(1) + 'K'
-  return String(n)
-}
+const emit = defineEmits(['expand', 'collapse'])
+const onExpand = () => emit('expand')
+const onCollapse = () => emit('collapse')
 </script>
