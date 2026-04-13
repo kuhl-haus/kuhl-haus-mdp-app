@@ -60,19 +60,21 @@
         </div>
       </div>
 
-      <!-- Adaptive sections: flex columns at wide/full, single col at narrow -->
+      <!-- Adaptive sections -->
       <div :class="['eqv2-sections', { 'eqv2-dragging': isDragging }]">
-        <!-- Col 1: draggable card list (all cards at narrow; first half at wide/full) -->
-        <div class="eqv2-col eqv2-col-1">
+
+        <!-- FULL mode (≥960px): single horizontal draggable row — hero left, all cards right -->
+        <template v-if="layoutMode === 'full'">
           <draggable
-            :model-value="col1Cards"
+            :model-value="fullRowCards"
             group="eqv2-cards"
             item-key="id"
             :disabled="isLocked"
             handle=".eqv2-drag-handle"
+            class="eqv2-full-row-draggable"
             @start="isDragging = true"
-            @end="onDragEnd()"
-            @update:model-value="(val) => onColReorder(val, 1)"
+            @end="onFullRowDragEnd()"
+            @update:model-value="(val) => (_fullRow.value = val)"
           >
             <template #item="{ element: card }">
               <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
@@ -158,143 +160,224 @@
                   />
                 </template>
 
+                <!-- Previous Day -->
+                <template v-else-if="card.id === 'prev'">
+                  <div class="eqv2-prev-chips">
+                    <div class="eqv2-chip"><span class="eqv2-chip-label">O</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
+                    <div class="eqv2-chip"><span class="eqv2-chip-label">H</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
+                    <div class="eqv2-chip"><span class="eqv2-chip-label">L</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
+                    <div class="eqv2-chip"><span class="eqv2-chip-label">C</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
+                    <div class="eqv2-chip"><span class="eqv2-chip-label">Vol</span><span class="eqv2-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
+                    <div class="eqv2-chip"><span class="eqv2-chip-label">VWAP</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+                  </div>
+                </template>
+
               </div>
             </template>
           </draggable>
-        </div>
+        </template>
 
-        <!-- Col 2: second half of cards at wide/full; at full excludes company (v-if="!isNarrow") -->
-        <div v-if="!isNarrow" class="eqv2-col eqv2-col-2">
-          <draggable
-            :model-value="col2Cards"
-            group="eqv2-cards"
-            item-key="id"
-            :disabled="isLocked"
-            handle=".eqv2-drag-handle"
-            @start="isDragging = true"
-            @end="onDragEnd()"
-            @update:model-value="(val) => onColReorder(val, 2)"
-          >
-            <template #item="{ element: card }">
-              <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
-                <div class="eqv2-card-label">
-                  <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
-                  {{ card.label }}
+        <!-- NARROW / WIDE mode: two columns + pinned Previous Day row -->
+        <template v-else>
+          <!-- Col 1: all cards at narrow; first half at wide -->
+          <div class="eqv2-col eqv2-col-1">
+            <draggable
+              :model-value="col1Cards"
+              group="eqv2-cards"
+              item-key="id"
+              :disabled="isLocked"
+              handle=".eqv2-drag-handle"
+              @start="isDragging = true"
+              @end="onDragEnd()"
+              @update:model-value="(val) => onColReorder(val, 1)"
+            >
+              <template #item="{ element: card }">
+                <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
+                  <div class="eqv2-card-label">
+                    <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
+                    {{ card.label }}
+                  </div>
+
+                  <!-- Session H/L -->
+                  <template v-if="card.id === 'session'">
+                    <div class="eqv2-session-chips">
+                      <div class="eqv2-session-chip">
+                        <span class="eqv2-chip-label">PRE</span>
+                        <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv2-session-chip-vals">
+                          <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span>
+                          <span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
+                        </div>
+                        <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                      </div>
+                      <div class="eqv2-session-chip">
+                        <span class="eqv2-chip-label">REG</span>
+                        <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv2-session-chip-vals">
+                          <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span>
+                          <span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
+                        </div>
+                        <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                      </div>
+                      <div class="eqv2-session-chip">
+                        <span class="eqv2-chip-label">AH</span>
+                        <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv2-session-chip-vals">
+                          <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span>
+                          <span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
+                        </div>
+                        <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- Today -->
+                  <template v-else-if="card.id === 'today'">
+                    <div class="eqv2-kv-list">
+                      <div class="eqv2-kv"><span class="eqv2-k">Open</span><span class="eqv2-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">VWAP</span><span class="eqv2-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
+                    </div>
+                  </template>
+
+                  <!-- Volume -->
+                  <template v-else-if="card.id === 'volume'">
+                    <div class="eqv2-kv-list">
+                      <div class="eqv2-kv"><span class="eqv2-k">Volume</span><span class="eqv2-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Avg Vol</span><span class="eqv2-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Float</span><span class="eqv2-v">{{ fmtVol(floatShares) }}</span></div>
+                    </div>
+                    <div class="eqv2-rv-row">
+                      <span class="eqv2-k">Rel. Vol</span>
+                      <div class="eqv2-rv-bar-wrap">
+                        <div class="eqv2-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div>
+                      </div>
+                      <span :class="['eqv2-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
+                    </div>
+                  </template>
+
+                  <!-- Short Interest -->
+                  <template v-else-if="card.id === 'short'">
+                    <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
+                    <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
+                    <div v-else class="eqv2-kv-list">
+                      <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
+                    </div>
+                  </template>
+
+                  <!-- Company -->
+                  <template v-else-if="card.id === 'company'">
+                    <EQV2CompanyCard
+                      :loading="companyLoading"
+                      :all-null="allCompanyNull"
+                      :data="companyData"
+                      :expanded="descExpanded"
+                      @expand="descExpanded = true"
+                      @collapse="descExpanded = false"
+                    />
+                  </template>
+
                 </div>
+              </template>
+            </draggable>
+          </div>
 
-                <!-- Short Interest -->
-                <template v-if="card.id === 'short'">
-                  <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
-                  <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
-                  <div v-else class="eqv2-kv-list">
-                    <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
-                    <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
-                    <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
+          <!-- Col 2: second half at wide -->
+          <div v-if="!isNarrow" class="eqv2-col eqv2-col-2">
+            <draggable
+              :model-value="col2Cards"
+              group="eqv2-cards"
+              item-key="id"
+              :disabled="isLocked"
+              handle=".eqv2-drag-handle"
+              @start="isDragging = true"
+              @end="onDragEnd()"
+              @update:model-value="(val) => onColReorder(val, 2)"
+            >
+              <template #item="{ element: card }">
+                <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
+                  <div class="eqv2-card-label">
+                    <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
+                    {{ card.label }}
                   </div>
-                </template>
 
-                <!-- Company -->
-                <template v-else-if="card.id === 'company'">
-                  <EQV2CompanyCard
-                    :loading="companyLoading"
-                    :all-null="allCompanyNull"
-                    :data="companyData"
-                    :expanded="descExpanded"
-                    @expand="descExpanded = true"
-                    @collapse="descExpanded = false"
-                  />
-                </template>
-
-                <!-- Session / Today / Volume (if reordered into col-2) -->
-                <template v-else-if="card.id === 'session'">
-                  <div class="eqv2-session-chips">
-                    <div class="eqv2-session-chip"><span class="eqv2-chip-label">PRE</span>
-                      <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv2-session-chip-vals">
-                        <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span><span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
-                      </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                  <!-- Session H/L -->
+                  <template v-if="card.id === 'session'">
+                    <div class="eqv2-session-chips">
+                      <div class="eqv2-session-chip"><span class="eqv2-chip-label">PRE</span>
+                        <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv2-session-chip-vals">
+                          <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span><span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
+                        </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                      </div>
+                      <div class="eqv2-session-chip"><span class="eqv2-chip-label">REG</span>
+                        <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv2-session-chip-vals">
+                          <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span><span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
+                        </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                      </div>
+                      <div class="eqv2-session-chip"><span class="eqv2-chip-label">AH</span>
+                        <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv2-session-chip-vals">
+                          <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span><span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
+                        </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                      </div>
                     </div>
-                    <div class="eqv2-session-chip"><span class="eqv2-chip-label">REG</span>
-                      <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv2-session-chip-vals">
-                        <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span><span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
-                      </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                  </template>
+                  <template v-else-if="card.id === 'today'">
+                    <div class="eqv2-kv-list">
+                      <div class="eqv2-kv"><span class="eqv2-k">Open</span><span class="eqv2-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">VWAP</span><span class="eqv2-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
                     </div>
-                    <div class="eqv2-session-chip"><span class="eqv2-chip-label">AH</span>
-                      <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv2-session-chip-vals">
-                        <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span><span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
-                      </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                  </template>
+                  <template v-else-if="card.id === 'volume'">
+                    <div class="eqv2-kv-list">
+                      <div class="eqv2-kv"><span class="eqv2-k">Volume</span><span class="eqv2-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Avg Vol</span><span class="eqv2-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Float</span><span class="eqv2-v">{{ fmtVol(floatShares) }}</span></div>
                     </div>
-                  </div>
-                </template>
-                <template v-else-if="card.id === 'today'">
-                  <div class="eqv2-kv-list">
-                    <div class="eqv2-kv"><span class="eqv2-k">Open</span><span class="eqv2-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-                    <div class="eqv2-kv"><span class="eqv2-k">VWAP</span><span class="eqv2-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
-                  </div>
-                </template>
-                <template v-else-if="card.id === 'volume'">
-                  <div class="eqv2-kv-list">
-                    <div class="eqv2-kv"><span class="eqv2-k">Volume</span><span class="eqv2-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
-                    <div class="eqv2-kv"><span class="eqv2-k">Avg Vol</span><span class="eqv2-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
-                    <div class="eqv2-kv"><span class="eqv2-k">Float</span><span class="eqv2-v">{{ fmtVol(floatShares) }}</span></div>
-                  </div>
-                  <div class="eqv2-rv-row">
-                    <span class="eqv2-k">Rel. Vol</span>
-                    <div class="eqv2-rv-bar-wrap"><div class="eqv2-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div></div>
-                    <span :class="['eqv2-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
-                  </div>
-                </template>
+                    <div class="eqv2-rv-row">
+                      <span class="eqv2-k">Rel. Vol</span>
+                      <div class="eqv2-rv-bar-wrap"><div class="eqv2-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div></div>
+                      <span :class="['eqv2-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
+                    </div>
+                  </template>
+                  <template v-else-if="card.id === 'short'">
+                    <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
+                    <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
+                    <div v-else class="eqv2-kv-list">
+                      <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
+                    </div>
+                  </template>
+                  <template v-else-if="card.id === 'company'">
+                    <EQV2CompanyCard
+                      :loading="companyLoading"
+                      :all-null="allCompanyNull"
+                      :data="companyData"
+                      :expanded="descExpanded"
+                      @expand="descExpanded = true"
+                      @collapse="descExpanded = false"
+                    />
+                  </template>
 
-              </div>
-            </template>
-          </draggable>
-        </div>
-
-        <!-- Col 3: company card only at full width (≥960px) -->
-        <div v-if="layoutMode === 'full'" class="eqv2-col eqv2-col-3">
-          <draggable
-            :model-value="col3Cards"
-            group="eqv2-cards"
-            item-key="id"
-            :disabled="isLocked"
-            handle=".eqv2-drag-handle"
-            @start="isDragging = true"
-            @end="onDragEnd()"
-            @update:model-value="(val) => onColReorder(val, 3)"
-          >
-            <template #item="{ element: card }">
-              <div :key="card.id" :class="['eqv2-card', `eqv2-${card.id}-card`]">
-                <div class="eqv2-card-label">
-                  <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
-                  {{ card.label }}
                 </div>
-                <!-- Col-3 only ever contains the company card -->
-                <EQV2CompanyCard
-                  :loading="companyLoading"
-                  :all-null="allCompanyNull"
-                  :data="companyData"
-                  :expanded="descExpanded"
-                  @expand="descExpanded = true"
-                  @collapse="descExpanded = false"
-                />
-              </div>
-            </template>
-          </draggable>
-        </div>
+              </template>
+            </draggable>
+          </div>
 
-        <!-- Previous Day: always full-width at bottom — NOT part of draggable list -->
-        <div class="eqv2-prev-row">
-          <div class="eqv2-card eqv2-prev-card">
-            <div class="eqv2-card-label">Previous Day</div>
-            <div class="eqv2-prev-chips">
-              <div class="eqv2-chip"><span class="eqv2-chip-label">O</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-              <div class="eqv2-chip"><span class="eqv2-chip-label">H</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-              <div class="eqv2-chip"><span class="eqv2-chip-label">L</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-              <div class="eqv2-chip"><span class="eqv2-chip-label">C</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-              <div class="eqv2-chip"><span class="eqv2-chip-label">Vol</span><span class="eqv2-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-              <div class="eqv2-chip"><span class="eqv2-chip-label">VWAP</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+          <!-- Previous Day: pinned full-width at bottom in narrow/wide mode -->
+          <div class="eqv2-prev-row">
+            <div class="eqv2-card eqv2-prev-card">
+              <div class="eqv2-card-label">Previous Day</div>
+              <div class="eqv2-prev-chips">
+                <div class="eqv2-chip"><span class="eqv2-chip-label">O</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
+                <div class="eqv2-chip"><span class="eqv2-chip-label">H</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
+                <div class="eqv2-chip"><span class="eqv2-chip-label">L</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
+                <div class="eqv2-chip"><span class="eqv2-chip-label">C</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
+                <div class="eqv2-chip"><span class="eqv2-chip-label">Vol</span><span class="eqv2-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
+                <div class="eqv2-chip"><span class="eqv2-chip-label">VWAP</span><span class="eqv2-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
+
       </div>
 
       <!-- Splits -->
@@ -328,11 +411,13 @@ import { truncateUrl, truncateDesc, fmtVol } from './eqv2Utils.js'
 const BREAKPOINTS = { WIDE: 480, FULL: 960 }
 
 // Card registry — defines the set of draggable cards and their default order.
-// 'prev' (Previous Day) is always pinned full-width at the bottom — NOT in registry.
+// At full mode (≥960px), 'prev' is a draggable card in the flat row.
+// At narrow/wide, 'prev' is pinned full-width at the bottom (excluded from column lists).
 const CARD_REGISTRY = [
-  { id: 'session', label: 'Session H/L'   },
   { id: 'today',   label: 'Today'          },
+  { id: 'prev',    label: 'Previous Day'   },
   { id: 'volume',  label: 'Volume'         },
+  { id: 'session', label: 'Session H/L'   },
   { id: 'short',   label: 'Short Interest' },
   { id: 'company', label: 'Company'        },
 ]
@@ -369,35 +454,36 @@ const activeCards = computed(() => {
   return [...saved, ...missing]
 })
 
-// Distribute activeCards across columns based on layout mode.
-// Previous Day is excluded — it's always pinned outside the draggable lists.
-// FULL (>=960px): col1=session+volume, col2=today+short, col3=company
-// WIDE (480-679px): col1=first half, col2=second half (including company)
+// Distribute activeCards (excluding 'prev') across columns at narrow/wide mode.
+// At full mode, fullRowCards is used instead — these computeds are not rendered.
+// WIDE (480–959px): col1=first half, col2=second half
 // NARROW (<480px): col1=all cards
 const col1Cards = computed(() => {
-  const cards = activeCards.value
-  if (isNarrow.value) return cards  // all in one column
-  if (layoutMode.value === 'full') return cards.filter(c => c.id !== 'today' && c.id !== 'short' && c.id !== 'company')
+  const cards = activeCards.value.filter(c => c.id !== 'prev')
+  if (isNarrow.value) return cards
   return cards.slice(0, Math.ceil(cards.length / 2))
 })
 
 const col2Cards = computed(() => {
-  if (isNarrow.value) return []  // col-2 hidden in narrow
-  const cards = activeCards.value
-  if (layoutMode.value === 'full') return cards.filter(c => c.id === 'today' || c.id === 'short')
+  if (isNarrow.value) return []
+  const cards = activeCards.value.filter(c => c.id !== 'prev')
   return cards.slice(Math.ceil(cards.length / 2))
 })
 
-const col3Cards = computed(() => {
-  if (layoutMode.value !== 'full') return []  // col-3 only at full width
-  return activeCards.value.filter(c => c.id === 'company')
+const col3Cards = computed(() => [])  // no longer used; kept for API compatibility
+
+// At full mode: single flat horizontal list of all active cards (including prev).
+const fullRowCards = computed(() => {
+  if (layoutMode.value !== 'full') return []
+  return activeCards.value
 })
 
-// Mutable column state — holds reordered cards within a drag session
-// vuedraggable emits @update:model-value with the new order for the affected column
-const _col1 = ref(null)  // overrides col1Cards during/after drag
-const _col2 = ref(null)  // overrides col2Cards during/after drag
-const _col3 = ref(null)  // overrides col3Cards during/after drag
+// Mutable drag state — holds reordered cards within a drag session
+// vuedraggable emits @update:model-value with the new order for the affected list
+const _col1 = ref(null)
+const _col2 = ref(null)
+const _col3 = ref(null)
+const _fullRow = ref(null)
 
 const onColReorder = (newVal, colNum) => {
   if (colNum === 1) _col1.value = newVal
@@ -405,6 +491,9 @@ const onColReorder = (newVal, colNum) => {
   else _col3.value = newVal
 }
 
+// Drag end for narrow/wide column layout.
+// 'prev' is always pinned outside the draggable lists at narrow/wide, so append it
+// at the end of the saved order (its position only matters at full mode).
 const onDragEnd = async () => {
   isDragging.value = false
   // Wait for all @update:model-value events to settle before reading override refs.
@@ -415,15 +504,24 @@ const onDragEnd = async () => {
   await nextTick()
   const c1 = _col1.value ?? col1Cards.value
   const c2 = _col2.value ?? col2Cards.value
-  const c3 = _col3.value ?? col3Cards.value
-  const newOrder = isNarrow.value
+  const orderedNonPrev = isNarrow.value
     ? c1.map(c => c.id)
-    : [...c1, ...c2, ...c3].map(c => c.id)
+    : [...c1, ...c2].map(c => c.id)
   // Clear overrides — activeCards computed will now drive from settings
   _col1.value = null
   _col2.value = null
   _col3.value = null
-  emit('update-settings', { ...props.settings, cardOrder: newOrder })
+  emit('update-settings', { ...props.settings, cardOrder: [...orderedNonPrev, 'prev'] })
+}
+
+// Drag end for the full-mode flat row — saves the complete ordered list including prev.
+const onFullRowDragEnd = async () => {
+  isDragging.value = false
+  await nextTick()
+  await nextTick()
+  const cards = _fullRow.value ?? fullRowCards.value
+  _fullRow.value = null
+  emit('update-settings', { ...props.settings, cardOrder: cards.map(c => c.id) })
 }
 
 let _resizeObserver = null
@@ -665,7 +763,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, isDragging, onColReorder, onDragEnd })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, _fullRow })
 </script>
 
 <style scoped>
@@ -1115,11 +1213,21 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   gap: 8px;
 }
 
-/* Col-2 and col-3 hidden at narrow */
-.eqv2-col-2, .eqv2-col-3 { display: none; }
+/* Col-2 hidden at narrow (col-3 removed) */
+.eqv2-col-2 { display: none; }
 
-/* Previous Day always full width */
+/* Previous Day pinned row: full width at narrow/wide */
 .eqv2-prev-row { width: 100%; }
+
+/* Full-row draggable: horizontal flex, cards stretch to equal height */
+.eqv2-full-row-draggable {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
 
 /* ── WIDE mode (480px+): two flex columns ── */
 /* BREAKPOINTS.WIDE = 480 — must match JS BREAKPOINTS.WIDE */
@@ -1136,15 +1244,52 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv2-col-1 { flex: 1; }
   .eqv2-col-2 { display: flex; flex: 1; }
   .eqv2-prev-row { flex-basis: 100%; }
-
-  /* Col-2 shown via v-if="!isNarrow" — no CSS hide needed */
 }
 
-/* ── FULL mode (960px+): three columns — col1=session+volume, col2=today+short, col3=company ── */
+/* ── FULL mode (960px+): hero left, single horizontal card row right ── */
 /* BREAKPOINTS.FULL = 960 — must match JS BREAKPOINTS.FULL */
 @container (min-width: 960px) {   /* BREAKPOINTS.FULL */
   .eqv2-symbol { font-size: 22px; }
   .eqv2-price  { font-size: 30px; }
-  .eqv2-col-3  { display: flex; flex: 1; }
+
+  /* Body: hero on the left, sections filling remaining width */
+  .eqv2-body {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  /* Hero: fixed-width left column, full height of the row */
+  .eqv2-hero {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    width: 180px;
+    align-self: stretch;
+  }
+  .eqv2-hero-right {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .eqv2-since-open { text-align: left; }
+
+  /* Sections: fills remaining width, allows horizontal scroll if cards overflow */
+  .eqv2-sections {
+    flex: 1;
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  /* Cards in full-row draggable: no shrink, stretch to full row height */
+  .eqv2-full-row-draggable .eqv2-card {
+    flex: 0 0 auto;
+    min-width: 140px;
+    align-self: stretch;
+  }
+  .eqv2-full-row-draggable .eqv2-company-card { min-width: 200px; }
+  .eqv2-full-row-draggable .eqv2-prev-card    { min-width: 200px; }
 }
 </style>
