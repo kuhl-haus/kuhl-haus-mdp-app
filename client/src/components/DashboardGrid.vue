@@ -833,8 +833,8 @@ onBeforeUnmount(() => {
 
 .dashboard-header {
   padding: 2px 4px;
-  background: #1a1a1a;
-  border-bottom: 1px solid #2a2a2a;
+  background: var(--pd-surface-2);
+  border-bottom: 1px solid var(--pd-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -844,7 +844,7 @@ onBeforeUnmount(() => {
 .dashboard-header h1 {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: var(--pd-text);
 }
 
 .layout-controls {
@@ -868,10 +868,10 @@ onBeforeUnmount(() => {
 
 .select-trigger {
   padding: 6px 12px;
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
   border-radius: 4px;
-  color: #fff;
+  color: var(--pd-text);
   font-size: 13px;
   cursor: pointer;
   display: flex;
@@ -882,16 +882,16 @@ onBeforeUnmount(() => {
 }
 
 .select-trigger:hover {
-  background: #3d3d3d;
+  background: var(--pd-surface-2);
 }
 
 .select-trigger.active {
-  border-color: #4ade80;
-  background: #3d3d3d;
+  border-color: var(--pd-accent);
+  background: var(--pd-surface-2);
 }
 
 .select-trigger .placeholder {
-  color: #666;
+  color: var(--pd-text-muted);
 }
 
 .select-trigger .arrow {
@@ -908,21 +908,21 @@ onBeforeUnmount(() => {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
   border-radius: 4px;
   max-height: 300px;
   overflow-y: auto;
   z-index: 100;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 .select-option {
   padding: 8px 12px;
-  color: #fff;
+  color: var(--pd-text);
   font-size: 13px;
   cursor: pointer;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--pd-border);
   transition: background 0.1s;
   display: flex;
   justify-content: space-between;
@@ -940,7 +940,7 @@ onBeforeUnmount(() => {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 3px;
-  color: #94a3b8;
+  color: var(--pd-text-muted);
   cursor: pointer;
   font-size: 14px;
   line-height: 1;
@@ -949,9 +949,9 @@ onBeforeUnmount(() => {
 }
 
 .option-preview-btn:hover {
-  background: #1a1a1a;
-  border-color: #3b82f6;
-  color: #3b82f6;
+  background: var(--pd-bg);
+  border-color: var(--pd-accent);
+  color: var(--pd-accent);
 }
 
 .select-option:last-child {
@@ -959,32 +959,32 @@ onBeforeUnmount(() => {
 }
 
 .select-option:hover:not(.disabled) {
-  background: #3d3d3d;
+  background: var(--pd-surface-2);
 }
 
 .select-option.selected {
-  background: #1e3a2e;
-  color: #4ade80;
+  background: rgba(124, 58, 237, 0.15);
+  color: var(--pd-accent);
 }
 
 .select-option.disabled {
-  color: #666;
+  color: var(--pd-text-muted);
   cursor: default;
 }
 
 .btn-icon {
   padding: 4px 8px;
-  background: #2d2d2d;
-  border: 1px solid #444;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
   border-radius: 4px;
-  color: #fff;
+  color: var(--pd-text);
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: #3d3d3d;
+  background: var(--pd-surface-2);
 }
 
 .btn-icon:disabled {
@@ -999,9 +999,9 @@ onBeforeUnmount(() => {
 
 .auto-save-indicator {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--pd-text-muted);
   padding: 4px 8px;
-  background: rgba(148, 163, 184, 0.1);
+  background: rgba(175, 175, 175, 0.08);
   border-radius: 4px;
 }
 
