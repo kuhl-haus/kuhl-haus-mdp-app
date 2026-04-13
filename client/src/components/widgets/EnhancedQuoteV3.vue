@@ -54,6 +54,7 @@
               ({{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%)
             </span>
           </div>
+          <div class="eqv3-as-of">as of {{ dataAge }}</div>
         </div>
         <!-- Company identity: name + sic — after price in full mode -->
         <div class="eqv3-hero-identity-block">
@@ -379,8 +380,6 @@
         </div>
       </template>
 
-      <!-- Freshness -->
-      <div class="eqv3-freshness">As of {{ dataAge }}</div>
     </div>
   </div>
 </template>
@@ -1142,14 +1141,13 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   cursor: grabbing;
 }
 
-/* ── Freshness ── */
-.eqv3-freshness {
-  margin-top: auto;
-  padding-top: 4px;
-  font-size: 11px;
+/* ── As-of timestamp (inside hero price block) ── */
+.eqv3-as-of {
+  font-size: 10px;
   color: var(--text-muted);
   text-align: right;
   font-family: system-ui, sans-serif;
+  opacity: 0.7;
 }
 
 /* ── Sections: narrow (< 480px) — single flex column ── */
