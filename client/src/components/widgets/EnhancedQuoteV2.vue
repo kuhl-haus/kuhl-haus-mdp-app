@@ -33,7 +33,7 @@
         <div class="eqv2-hero-left">
           <div class="eqv2-hero-identity">
             <img
-              v-if="activeTicker && !logoError"
+              v-if="activeTicker && !companyLoading && !logoError"
               :src="`/api/market_data/logo/${activeTicker}`"
               class="eqv2-hero-logo"
               :alt="companyData.name || activeTicker"
@@ -650,7 +650,7 @@ const truncateUrl = (url) => {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
 }
 
-const truncateDesc = (text, maxLen = 50) => {
+const truncateDesc = (text, maxLen = 250) => {
   if (!text || text.length <= maxLen) return text
   const cut = text.lastIndexOf(' ', maxLen)
   return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
@@ -968,7 +968,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 /* ── Session H/L chips (all widths) ── */
 .eqv2-session-chips {
   display: flex;
-  flex-direction: column;   /* narrow: stack vertically */
+  flex-direction: row;   /* always row — chips side by side at all widths */
   gap: 6px;
 }
 .eqv2-session-chip {
@@ -981,6 +981,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   padding: 4px 8px;
   gap: 2px;
   flex: 1;
+  min-width: 0;
 }
 .eqv2-session-chip-vals {
   display: flex;
@@ -1127,9 +1128,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 @container (min-width: 480px) {   /* BREAKPOINTS.WIDE */
   .eqv2-symbol { font-size: 20px; }
   .eqv2-price  { font-size: 26px; }
-
-  /* Session chips go horizontal */
-  .eqv2-session-chips { flex-direction: row; }
 
   /* Two-column flex layout */
   .eqv2-sections {

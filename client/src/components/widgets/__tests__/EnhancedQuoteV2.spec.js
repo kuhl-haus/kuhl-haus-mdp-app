@@ -478,20 +478,48 @@ describe('EnhancedQuoteV2', () => {
       expect(hero.text()).toContain('Motor Vehicles')
     })
 
-    it('renders logo in hero via proxy src when activeTicker is set', async () => {
-      // Arrange
+    it('renders logo in hero via proxy src when activeTicker is set and company loaded', async () => {
+      // Arrange: company fetch resolves so companyLoading goes false
       mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers' })
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'AAPL'
       await wrapper.vm.$nextTick()
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
-      await new Promise(r => setTimeout(r, 0))
+      await new Promise(r => setTimeout(r, 0))  // let fetchCompany resolve
       await wrapper.vm.$nextTick()
 
-      // Assert: proxy src used (not companyData.logo_url)
+      // Assert: logo renders once companyLoading=false
+      expect(wrapper.vm.companyLoading).toBe(false)
       const logo = wrapper.find('.eqv2-hero-logo')
       expect(logo.exists()).toBe(true)
       expect(logo.attributes('src')).toBe('/api/market_data/logo/AAPL')
+    })
+
+    it('does not render logo while company data is loading', async () => {
+      // Arrange: company fetch in flight (companyLoading=true)
+      let resolveCompany
+      global.fetch = vi.fn().mockImplementation((url) => {
+        if (url.includes('company')) return new Promise(r => { resolveCompany = r })
+        return Promise.resolve({ ok: true, json: async () => ({ data: {} }) })
+      })
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'AAPL'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: logo not rendered while loading
+      expect(wrapper.vm.companyLoading).toBe(true)
+      expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(false)
+
+      // Act: resolve company fetch
+      resolveCompany({ ok: true, json: async () => ({ data: { name: 'Apple Inc.' } }) })
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: logo now renders
+      expect(wrapper.vm.companyLoading).toBe(false)
+      expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(true)
     })
 
     it('hides logo when logoError is true', async () => {
@@ -533,7 +561,8 @@ describe('EnhancedQuoteV2', () => {
 
   describe('Description see-more toggle', () => {
     const SHORT_DESC = 'Short desc.'
-    const LONG_DESC = 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, and wearables.'
+    // LONG_DESC must exceed 250 chars (current truncateDesc maxLen) to trigger truncation
+    const LONG_DESC = 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories, and sells a variety of related services. The Company\'s products include iPhone, Mac, iPad, and accessories. Services include advertising, AppleCare, cloud services, digital content, and payment services. Apple sells and delivers third-party applications and digital content. The Company sells its products and resells third-party products.'
 
     function mountWithDescription(description) {
       global.fetch = vi.fn().mockImplementation((url) => {
