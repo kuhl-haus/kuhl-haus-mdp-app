@@ -75,8 +75,8 @@
             handle=".eqv3-drag-handle"
             class="eqv3-full-row-draggable"
             @start="isDragging = true"
-            @end="onFullRowDragEnd()"
-            @update:model-value="(val) => (_fullRow.value = val)"
+            @end="isDragging = false"
+            @update:model-value="onFullRowReorder"
           >
             <template #item="{ element: card }">
               <div :key="card.id" :class="['eqv3-card', `eqv3-${card.id}-card`]">
@@ -509,15 +509,15 @@ const onDragEnd = async () => {
   emit('update-settings', { ...props.settings, cardOrder: [...orderedNonPrev, 'prev'] })
 }
 
-// Drag end for the full-mode flat row — saves the complete ordered list including prev.
-const onFullRowDragEnd = async () => {
-  isDragging.value = false
-  await nextTick()
-  await nextTick()
-  const cards = _fullRow.value ?? fullRowCards.value
-  _fullRow.value = null
-  emit('update-settings', { ...props.settings, cardOrder: cards.map(c => c.id) })
+// Full-mode flat row reorder — fires from @update:model-value (after vuedraggable updates the list).
+// NOTE: vuedraggable fires @end before @update:model-value, so we cannot read the new order in @end.
+// Drive the emit from @update:model-value directly to guarantee we have the updated list.
+const onFullRowReorder = (newVal) => {
+  emit('update-settings', { ...props.settings, cardOrder: newVal.map(c => c.id) })
 }
+
+// Kept for defineExpose / test compatibility — no longer drives full-row emit.
+const onFullRowDragEnd = () => { isDragging.value = false }
 
 let _resizeObserver = null
 onMounted(() => {
@@ -771,7 +771,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, _fullRow, logoUrl })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl })
 </script>
 
 <style scoped>
