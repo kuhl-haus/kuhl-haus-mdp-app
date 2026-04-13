@@ -32,13 +32,6 @@
       <div class="eqv2-hero">
         <div class="eqv2-hero-left">
           <div class="eqv2-hero-identity">
-            <img
-              v-if="activeTicker && !companyLoading && !logoError"
-              :src="`/api/market_data/logo/${activeTicker}`"
-              class="eqv2-hero-logo"
-              :alt="companyData.name || activeTicker"
-              @error="logoError = true"
-            />
             <div class="eqv2-hero-identity-text">
               <div class="eqv2-hero-symbol-row">
                 <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
@@ -332,7 +325,7 @@ import { truncateUrl, truncateDesc, fmtVol } from './eqv2Utils.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
 // Referenced by ResizeObserver (JS) and CSS comments below.
-const BREAKPOINTS = { WIDE: 480, FULL: 680 }
+const BREAKPOINTS = { WIDE: 480, FULL: 960 }
 
 // Card registry — defines the set of draggable cards and their default order.
 // 'prev' (Previous Day) is always pinned full-width at the bottom — NOT in registry.
@@ -494,7 +487,7 @@ const quoteData = ref(null)
 const lastDataAt = ref(null)
 
 // Logo error state — reset on ticker change
-const logoError = ref(false)
+// logoError removed — logo feature removed
 
 // Company enrichment — fetched via REST on ticker change
 const companyData = ref({})
@@ -572,7 +565,6 @@ watch(activeTicker, (newTicker) => {
   companyData.value = {}
   shortInterestData.value = {}
   descExpanded.value = false
-  logoError.value = false
   if (newTicker) {
     fetchCompany(newTicker)
     fetchShortInterest(newTicker)
@@ -673,7 +665,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError, layoutMode, activeCards, col3Cards, isDragging, onColReorder, onDragEnd })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, col3Cards, isDragging, onColReorder, onDragEnd })
 </script>
 
 <style scoped>
@@ -783,17 +775,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   display: flex;
   align-items: stretch;
   gap: 6px;
-}
-
-.eqv2-hero-logo {
-  height: 100%;
-  width: auto;
-  max-width: 48px;
-  border-radius: 3px;
-  object-fit: contain;
-  flex-shrink: 0;
-  background: rgba(255,255,255,0.05);
-  align-self: stretch;
 }
 
 .eqv2-hero-identity-text {
@@ -1161,7 +1142,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 
 /* ── FULL mode (680px+): three columns — col1=session+volume, col2=today+short, col3=company ── */
 /* BREAKPOINTS.FULL = 680 — must match JS BREAKPOINTS.FULL */
-@container (min-width: 680px) {   /* BREAKPOINTS.FULL */
+@container (min-width: 960px) {   /* BREAKPOINTS.FULL */
   .eqv2-symbol { font-size: 22px; }
   .eqv2-price  { font-size: 30px; }
   .eqv2-col-3  { display: flex; flex: 1; }
