@@ -793,14 +793,56 @@ describe('EnhancedQuoteV2', () => {
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
       await wrapper.vm.$nextTick()
 
-      // Act: simulate ResizeObserver firing at wide width
+      // Act: simulate ResizeObserver firing at wide width (480-679px)
+      // At wide: col1=first half, col2=second half (includes company)
       wrapper.vm.layoutMode = 'wide'
       await wrapper.vm.$nextTick()
 
-      // Assert: col-2 rendered, exactly one company card in DOM
+      // Assert: col-2 rendered, company card in col-2, no col-3
       expect(wrapper.find('.eqv2-col-2').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-col-3').exists()).toBe(false)
       expect(wrapper.findAll('.eqv2-company-card').length).toBe(1)
       expect(wrapper.findAll('.eqv2-short-card').length).toBe(1)
+    })
+
+    it('renders col-3 with company card at full layout mode (>=680px)', async () => {
+      // Arrange
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Act: simulate ResizeObserver firing at full width
+      // At full: col1=session+volume, col2=today+short, col3=company
+      wrapper.vm.layoutMode = 'full'
+      await wrapper.vm.$nextTick()
+
+      // Assert: all three columns rendered
+      expect(wrapper.find('.eqv2-col-2').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-col-3').exists()).toBe(true)
+      // Company card is in col-3 only
+      expect(wrapper.findAll('.eqv2-company-card').length).toBe(1)
+      expect(wrapper.find('.eqv2-col-3').find('.eqv2-company-card').exists()).toBe(true)
+      // col3Cards computed returns only company
+      expect(wrapper.vm.col3Cards.map(c => c.id)).toEqual(['company'])
+    })
+
+    it('col3Cards is empty when layoutMode is not full', async () => {
+      // Arrange / Act
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await wrapper.vm.$nextTick()
+
+      // Assert: narrow
+      expect(wrapper.vm.col3Cards).toEqual([])
+
+      // Act: wide
+      wrapper.vm.layoutMode = 'wide'
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.col3Cards).toEqual([])
     })
 
     it('exactly one company card in DOM at narrow layout mode', async () => {
@@ -813,6 +855,26 @@ describe('EnhancedQuoteV2', () => {
 
       // Assert: only the narrow-mode instance present
       expect(wrapper.findAll('.eqv2-company-card').length).toBe(1)
+    })
+  })
+
+  describe('Hero identity layout', () => {
+    it('symbol and company name render inside eqv2-hero-identity-text', async () => {
+      // Arrange
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { name: 'Apple Inc.', sic_description: 'Electronic Computers' } }) })
+      const wrapper = mountWidget()
+      wrapper.vm.manualTicker = 'AAPL'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      await new Promise(r => setTimeout(r, 0))
+      await wrapper.vm.$nextTick()
+
+      // Assert: identity-text wrapper contains symbol row and company info
+      const identText = wrapper.find('.eqv2-hero-identity-text')
+      expect(identText.exists()).toBe(true)
+      expect(identText.find('.eqv2-symbol').exists()).toBe(true)
+      expect(identText.find('.eqv2-hero-company-name').text()).toBe('Apple Inc.')
+      expect(identText.find('.eqv2-hero-sic').text()).toBe('Electronic Computers')
     })
   })
 

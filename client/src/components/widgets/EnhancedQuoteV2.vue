@@ -39,12 +39,14 @@
               :alt="companyData.name || activeTicker"
               @error="logoError = true"
             />
-            <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
-            <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
-          </div>
-          <div v-if="companyData.name || companyData.sic_description" class="eqv2-hero-company">
-            <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
-            <span v-if="companyData.sic_description" class="eqv2-hero-sic">{{ companyData.sic_description }}</span>
+            <div class="eqv2-hero-identity-text">
+              <div class="eqv2-hero-symbol-row">
+                <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
+                <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
+              </div>
+              <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
+              <span v-if="companyData.sic_description" class="eqv2-hero-sic">{{ companyData.sic_description }}</span>
+            </div>
           </div>
         </div>
         <div class="eqv2-hero-right">
@@ -184,7 +186,7 @@
           </draggable>
         </div>
 
-        <!-- Col 2: second half of cards at wide/full (v-if="!isNarrow") -->
+        <!-- Col 2: second half of cards at wide/full; at full excludes company (v-if="!isNarrow") -->
         <div v-if="!isNarrow" class="eqv2-col eqv2-col-2">
           <draggable
             :model-value="col2Cards"
@@ -196,7 +198,7 @@
             @end="onDragEnd()"
             @update:model-value="(val) => onColReorder(val, 2)"
           >
-            <template #item="{ element: card }">
+            <template #item="{ element: card }" :key="card.id">
               <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
                 <div class="eqv2-card-label">
                   <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
@@ -281,6 +283,55 @@
                   </div>
                 </template>
 
+              </div>
+            </template>
+          </draggable>
+        </div>
+
+        <!-- Col 3: company card only at full width (≥680px) -->
+        <div v-if="layoutMode === 'full'" class="eqv2-col eqv2-col-3">
+          <draggable
+            :model-value="col3Cards"
+            group="eqv2-cards"
+            item-key="id"
+            :disabled="isLocked"
+            handle=".eqv2-drag-handle"
+            @start="isDragging = true"
+            @end="onDragEnd()"
+            @update:model-value="(val) => onColReorder(val, 3)"
+          >
+            <template #item="{ element: card }">
+              <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
+                <div class="eqv2-card-label">
+                  <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
+                  {{ card.label }}
+                </div>
+                <template v-if="card.id === 'company'">
+                  <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
+                  <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
+                  <div v-else>
+                    <div class="eqv2-kv-list">
+                      <div v-if="companyData.homepage_url" class="eqv2-kv">
+                        <span class="eqv2-k">Web</span>
+                        <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+                      </div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+                    </div>
+                    <div v-if="companyData.description" class="eqv2-company-desc-wrap">
+                      <span class="eqv2-company-desc-text">
+                        {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
+                      </span>
+                      <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
+                        <span class="eqv2-company-desc-ellipsis">… </span>
+                        <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
+                      </span>
+                      <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
+                    </div>
+                  </div>
+                </template>
               </div>
             </template>
           </draggable>
@@ -374,26 +425,38 @@ const activeCards = computed(() => {
 
 // Distribute activeCards across columns based on layout mode.
 // Previous Day is excluded — it's always pinned outside the draggable lists.
+// FULL (>=680px): col1=session+volume, col2=today+short, col3=company
+// WIDE (480-679px): col1=first half, col2=second half (including company)
+// NARROW (<480px): col1=all cards
 const col1Cards = computed(() => {
   const cards = activeCards.value
   if (isNarrow.value) return cards  // all in one column
+  if (layoutMode.value === 'full') return cards.filter(c => c.id !== 'today' && c.id !== 'short' && c.id !== 'company')
   return cards.slice(0, Math.ceil(cards.length / 2))
 })
 
 const col2Cards = computed(() => {
   if (isNarrow.value) return []  // col-2 hidden in narrow
   const cards = activeCards.value
+  if (layoutMode.value === 'full') return cards.filter(c => c.id === 'today' || c.id === 'short')
   return cards.slice(Math.ceil(cards.length / 2))
+})
+
+const col3Cards = computed(() => {
+  if (layoutMode.value !== 'full') return []  // col-3 only at full width
+  return activeCards.value.filter(c => c.id === 'company')
 })
 
 // Mutable column state — holds reordered cards within a drag session
 // vuedraggable emits @update:model-value with the new order for the affected column
 const _col1 = ref(null)  // overrides col1Cards during/after drag
 const _col2 = ref(null)  // overrides col2Cards during/after drag
+const _col3 = ref(null)  // overrides col3Cards during/after drag
 
 const onColReorder = (newVal, colNum) => {
   if (colNum === 1) _col1.value = newVal
-  else _col2.value = newVal
+  else if (colNum === 2) _col2.value = newVal
+  else _col3.value = newVal
 }
 
 const onDragEnd = async () => {
@@ -405,12 +468,14 @@ const onDragEnd = async () => {
   await nextTick()
   const c1 = _col1.value ?? col1Cards.value
   const c2 = _col2.value ?? col2Cards.value
+  const c3 = _col3.value ?? col3Cards.value
   const newOrder = isNarrow.value
     ? c1.map(c => c.id)
-    : [...c1, ...c2].map(c => c.id)
+    : [...c1, ...c2, ...c3].map(c => c.id)
   // Clear overrides — activeCards computed will now drive from settings
   _col1.value = null
   _col2.value = null
+  _col3.value = null
   emit('update-settings', { ...props.settings, cardOrder: newOrder })
 }
 
@@ -672,7 +737,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError, layoutMode, activeCards, isDragging, onColReorder, onDragEnd })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError, layoutMode, activeCards, col3Cards, isDragging, onColReorder, onDragEnd })
 </script>
 
 <style scoped>
@@ -795,11 +860,18 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   align-self: stretch;
 }
 
-.eqv2-hero-company {
+.eqv2-hero-identity-text {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
   overflow: hidden;
+}
+
+.eqv2-hero-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .eqv2-hero-company-name {
@@ -1126,8 +1198,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   gap: 8px;
 }
 
-/* Col-2 hidden at narrow; shown at WIDE+ */
-.eqv2-col-2 { display: none; }
+/* Col-2 and col-3 hidden at narrow */
+.eqv2-col-2, .eqv2-col-3 { display: none; }
 
 /* Previous Day always full width */
 .eqv2-prev-row { width: 100%; }
@@ -1151,11 +1223,11 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   /* Col-2 shown via v-if="!isNarrow" — no CSS hide needed */
 }
 
-/* ── FULL mode (680px+): three columns — col-2 splits into today+short / company ── */
-/* Note: with two columns, company is already in col-2. At full width col-2 is wide */
-/* enough that it doesn't need a third column split — keep 2-col but allow more room */
+/* ── FULL mode (680px+): three columns — col1=session+volume, col2=today+short, col3=company ── */
+/* BREAKPOINTS.FULL = 680 — must match JS BREAKPOINTS.FULL */
 @container (min-width: 680px) {   /* BREAKPOINTS.FULL */
   .eqv2-symbol { font-size: 22px; }
   .eqv2-price  { font-size: 30px; }
+  .eqv2-col-3  { display: flex; flex: 1; }
 }
 </style>
