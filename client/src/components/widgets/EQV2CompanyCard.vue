@@ -73,6 +73,8 @@
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
+  white-space: normal;
+  max-width: 80ch;
 }
 .eqv2-company-desc-text {
   font-size: 11px;

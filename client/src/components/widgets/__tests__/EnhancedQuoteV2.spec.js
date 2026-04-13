@@ -726,7 +726,7 @@ describe('EnhancedQuoteV2', () => {
       expect(wrapper.findAll('.eqv2-short-card').length).toBe(1)
     })
 
-    it('renders col-3 with company card at full layout mode (>=960px)', async () => {
+    it('renders full-row horizontal layout at full layout mode (>=960px)', async () => {
       // Arrange
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
@@ -735,18 +735,19 @@ describe('EnhancedQuoteV2', () => {
       await wrapper.vm.$nextTick()
 
       // Act: simulate ResizeObserver firing at full width
-      // At full: col1=session+volume, col2=today+short, col3=company
       wrapper.vm.layoutMode = 'full'
       await wrapper.vm.$nextTick()
 
-      // Assert: all three columns rendered
-      expect(wrapper.find('.eqv2-col-2').exists()).toBe(true)
-      expect(wrapper.find('.eqv2-col-3').exists()).toBe(true)
-      // Company card is in col-3 only
-      expect(wrapper.findAll('.eqv2-company-card').length).toBe(1)
-      expect(wrapper.find('.eqv2-col-3').find('.eqv2-company-card').exists()).toBe(true)
-      // col3Cards computed returns only company
-      expect(wrapper.vm.col3Cards.map(c => c.id)).toEqual(['company'])
+      // Assert: full-row draggable rendered (single horizontal row of all cards)
+      expect(wrapper.find('.eqv2-full-row-draggable').exists()).toBe(true)
+      // col-3 no longer exists at full mode (replaced by flat row)
+      expect(wrapper.find('.eqv2-col-3').exists()).toBe(false)
+      // col3Cards is always empty (kept for API compat)
+      expect(wrapper.vm.col3Cards).toEqual([])
+      // fullRowCards includes all 6 registry cards
+      expect(wrapper.vm.fullRowCards.map(c => c.id)).toContain('company')
+      expect(wrapper.vm.fullRowCards.map(c => c.id)).toContain('prev')
+      expect(wrapper.vm.fullRowCards.length).toBe(6)
     })
 
     it('col3Cards is empty when layoutMode is not full', async () => {
@@ -780,7 +781,7 @@ describe('EnhancedQuoteV2', () => {
   })
 
   describe('Hero identity layout', () => {
-    it('symbol and company name render inside eqv2-hero-identity-text', async () => {
+    it('symbol, price, and company info render in hero blocks', async () => {
       // Arrange
       global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { name: 'Apple Inc.', sic_description: 'Electronic Computers' } }) })
       const wrapper = mountWidget()
@@ -790,12 +791,13 @@ describe('EnhancedQuoteV2', () => {
       await new Promise(r => setTimeout(r, 0))
       await wrapper.vm.$nextTick()
 
-      // Assert: identity-text wrapper contains symbol row and company info
-      const identText = wrapper.find('.eqv2-hero-identity-text')
-      expect(identText.exists()).toBe(true)
-      expect(identText.find('.eqv2-symbol').exists()).toBe(true)
-      expect(identText.find('.eqv2-hero-company-name').text()).toBe('Apple Inc.')
-      expect(identText.find('.eqv2-hero-sic').text()).toBe('Electronic Computers')
+      // Assert: symbol in symbol-block, company info in identity-block
+      expect(wrapper.find('.eqv2-hero-symbol-block').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-symbol-block .eqv2-symbol').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-price-block').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-identity-block').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-identity-block .eqv2-hero-company-name').text()).toBe('Apple Inc.')
+      expect(wrapper.find('.eqv2-hero-identity-block .eqv2-hero-sic').text()).toBe('Electronic Computers')
     })
   })
 
@@ -815,7 +817,8 @@ describe('EnhancedQuoteV2', () => {
   })
 
   describe('Vue Draggable — card order and settings', () => {
-    const REGISTRY_IDS = ['session', 'today', 'volume', 'short', 'company']
+    // CARD_REGISTRY default order: today, prev, volume, session, short, company
+    const REGISTRY_IDS = ['today', 'prev', 'volume', 'session', 'short', 'company']
 
     it('activeCards falls back to CARD_REGISTRY default order when settings.cardOrder is undefined', () => {
       // Arrange / Act
@@ -826,8 +829,8 @@ describe('EnhancedQuoteV2', () => {
     })
 
     it('activeCards respects settings.cardOrder when provided', () => {
-      // Arrange
-      const customOrder = ['volume', 'session', 'company', 'short', 'today']
+      // Arrange: full 6-card custom order
+      const customOrder = ['volume', 'session', 'company', 'short', 'today', 'prev']
       const wrapper = mountWidget({ settings: { cardOrder: customOrder } })
 
       // Assert
@@ -835,14 +838,14 @@ describe('EnhancedQuoteV2', () => {
     })
 
     it('activeCards appends unknown-in-order cards to end', () => {
-      // Arrange: only 3 of 5 in saved order
+      // Arrange: only 2 of 6 in saved order
       const wrapper = mountWidget({ settings: { cardOrder: ['volume', 'today'] } })
 
       // Assert: saved order first, missing cards appended
       const ids = wrapper.vm.activeCards.map(c => c.id)
       expect(ids[0]).toBe('volume')
       expect(ids[1]).toBe('today')
-      expect(ids.length).toBe(5)
+      expect(ids.length).toBe(6)
     })
 
     it('drag handles not visible when isLocked=true', async () => {
@@ -869,20 +872,24 @@ describe('EnhancedQuoteV2', () => {
       expect(wrapper.find('.eqv2-drag-handle').exists()).toBe(true)
     })
 
-    it('Previous Day card is outside draggable — always rendered at bottom', async () => {
-      // Arrange
+    it('Previous Day card is rendered as pinned row at narrow/wide, in draggable row at full', async () => {
+      // Arrange: narrow mode (default)
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
       await wrapper.vm.$nextTick()
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
       await wrapper.vm.$nextTick()
 
-      // Assert: prev card exists and is in prev-row (not inside draggable)
-      const prevRow = wrapper.find('.eqv2-prev-row')
-      expect(prevRow.exists()).toBe(true)
-      expect(prevRow.find('.eqv2-prev-card').exists()).toBe(true)
-      // prev is NOT in activeCards
-      expect(wrapper.vm.activeCards.map(c => c.id)).not.toContain('prev')
+      // Assert at narrow: prev-row exists as pinned element
+      expect(wrapper.find('.eqv2-prev-row').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-prev-card').exists()).toBe(true)
+      // prev IS in activeCards (it drives both the pinned row and the full-mode card)
+      expect(wrapper.vm.activeCards.map(c => c.id)).toContain('prev')
+
+      // At full mode: fullRowCards includes prev (it becomes a draggable card)
+      wrapper.vm.layoutMode = 'full'
+      await wrapper.vm.$nextTick()
+      expect(wrapper.vm.fullRowCards.map(c => c.id)).toContain('prev')
     })
 
     it('onDragEnd emits update-settings payload with correct cardOrder', async () => {
@@ -897,7 +904,8 @@ describe('EnhancedQuoteV2', () => {
       wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
       await wrapper.vm.$nextTick()
 
-      // Act: simulate col1 reorder then drag end (narrow mode — all cards in col1)
+      // Act: simulate col1 reorder then drag end (narrow mode — all cards in col1 except prev)
+      // At narrow, col1Cards excludes 'prev'; onDragEnd appends 'prev' at end
       const reordered = ['today', 'session', 'volume', 'short', 'company']
       wrapper.vm.onColReorder(
         reordered.map(id => ({ id, label: id })),
@@ -906,9 +914,9 @@ describe('EnhancedQuoteV2', () => {
       await wrapper.vm.onDragEnd()  // async — awaits nextTick internally
       await wrapper.vm.$nextTick()
 
-      // Assert
+      // Assert: saved order is reordered cards + 'prev' appended at end
       expect(updateSettingsCalls.length).toBe(1)
-      expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
+      expect(updateSettingsCalls[0].cardOrder).toEqual([...reordered, 'prev'])
     })
 
     it('onDragEnd with cross-column reorder emits all 5 cards in merged order', async () => {
@@ -941,11 +949,35 @@ describe('EnhancedQuoteV2', () => {
       await dragEndPromise
       await wrapper.vm.$nextTick()
 
-      // Assert: all 5 cards present in correct merged order
+      // Assert: 5 non-prev cards in correct merged order, 'prev' appended at end
       expect(updateSettingsCalls.length).toBe(1)
       expect(updateSettingsCalls[0].cardOrder).toEqual(
-        ['session', 'today', 'volume', 'short', 'company']
+        ['session', 'today', 'volume', 'short', 'company', 'prev']
       )
+    })
+
+    it('onFullRowDragEnd emits update-settings with reordered full-row cardOrder including prev', async () => {
+      // Arrange
+      const updateSettingsCalls = []
+      const wrapper = mount(EnhancedQuoteV2, {
+        props: { isLocked: false, settings: {} },
+        attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+      })
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      wrapper.vm.layoutMode = 'full'
+      await wrapper.vm.$nextTick()
+
+      // Act: simulate full-row drag — prev moved to first position
+      const reordered = ['prev', 'today', 'volume', 'session', 'short', 'company']
+      wrapper.vm._fullRow = reordered.map(id => ({ id, label: id }))
+      await wrapper.vm.onFullRowDragEnd()
+      await wrapper.vm.$nextTick()
+
+      // Assert: full reordered list saved including prev in its new position
+      expect(updateSettingsCalls.length).toBe(1)
+      expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
     })
   })
 
