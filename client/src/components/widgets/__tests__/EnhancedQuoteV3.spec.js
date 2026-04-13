@@ -388,6 +388,123 @@ describe('Massive API — company data', () => {
     expect(wrapper.vm.companyData.total_employees).toBe(127855)
     expect(wrapper.vm.companyData.list_date).toBe('2010-06-29')
   })
+
+  test('test_EnhancedQuoteV3_with_default_settings_expect_logo_mode_and_logo_url_shown', async () => {
+    // Arrange: no brandingMode in settings — defaults to logo
+    mockMassiveFetch()
+    const wrapper = mountWidget()
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+
+    // Assert: brandingMode defaults to logo; activeBrandingUrl is logo_url
+    expect(wrapper.vm.brandingMode).toBe('logo')
+    expect(wrapper.vm.activeBrandingUrl).toContain('logo.svg')
+    const img = wrapper.find('.eqv3-logo')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toContain('logo.svg')
+  })
+
+  test('test_EnhancedQuoteV3_with_brandingMode_icon_expect_icon_url_shown', async () => {
+    // Arrange: settings.brandingMode = 'icon'
+    mockMassiveFetch()
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { brandingMode: 'icon' } },
+      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+
+    // Assert: activeBrandingUrl is icon_url
+    expect(wrapper.vm.brandingMode).toBe('icon')
+    expect(wrapper.vm.activeBrandingUrl).toContain('icon.png')
+    const img = wrapper.find('.eqv3-logo')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toContain('icon.png')
+  })
+
+  test('test_EnhancedQuoteV3_toggleBranding_emits_update_settings_with_new_brandingMode', async () => {
+    // Arrange
+    const updateSettingsCalls = []
+    mockMassiveFetch()
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { brandingMode: 'logo' } },
+      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+
+    // Act: toggle from logo → icon
+    wrapper.vm.toggleBranding()
+
+    // Assert: emits with brandingMode: 'icon'
+    expect(updateSettingsCalls.length).toBe(1)
+    expect(updateSettingsCalls[0].brandingMode).toBe('icon')
+
+    // Act: simulate prop update + toggle back icon → logo
+    await wrapper.setProps({ settings: { brandingMode: 'icon' } })
+    wrapper.vm.toggleBranding()
+    expect(updateSettingsCalls[1].brandingMode).toBe('logo')
+  })
+
+  test('test_EnhancedQuoteV3_branding_toggle_button_visible_only_when_unlocked_and_both_urls_present', async () => {
+    // Arrange: unlocked, both urls available
+    mockMassiveFetch()
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: {} },
+      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+
+    // Assert: toggle visible when unlocked + both URLs present
+    expect(wrapper.find('.eqv3-branding-toggle').exists()).toBe(true)
+
+    // Lock the widget — toggle should disappear
+    await wrapper.setProps({ isLocked: true })
+    expect(wrapper.find('.eqv3-branding-toggle').exists()).toBe(false)
+  })
+
+  test('test_EnhancedQuoteV3_branding_toggle_hidden_when_only_one_url_available', async () => {
+    // Arrange: only logo_url, no icon_url
+    const tickerLogoOnly = {
+      results: {
+        name: 'Tesla Inc.',
+        sic_description: 'Motor Vehicles',
+        branding: {
+          logo_url: 'https://api.massive.com/v1/reference/company-branding/tsla/logo.svg',
+          // no icon_url
+        },
+      },
+    }
+    mockMassiveFetch({ ticker: tickerLogoOnly })
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: {} },
+      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await new Promise(r => setTimeout(r, 0))
+    await wrapper.vm.$nextTick()
+
+    // Assert: toggle hidden (only one url available)
+    expect(wrapper.find('.eqv3-branding-toggle').exists()).toBe(false)
+    // But logo still renders
+    expect(wrapper.find('.eqv3-logo').exists()).toBe(true)
+  })
 })
 
 describe('Massive API — short interest and volume', () => {
