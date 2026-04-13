@@ -674,7 +674,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   --surface: #141420;
   --border: #1e1e2e;
   --text-primary: #e2e2f0;
-  --text-muted: #5a5a7a;
+  --text-muted: #afafaf;
   --accent: #7c3aed;
   --positive: #22c55e;
   --negative: #ef4444;
