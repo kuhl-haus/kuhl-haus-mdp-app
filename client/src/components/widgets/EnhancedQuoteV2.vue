@@ -30,19 +30,15 @@
     <div v-else class="eqv2-body">
       <!-- Price Hero -->
       <div class="eqv2-hero">
-        <div class="eqv2-hero-left">
-          <div class="eqv2-hero-identity">
-            <div class="eqv2-hero-identity-text">
-              <div class="eqv2-hero-symbol-row">
-                <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
-                <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
-              </div>
-              <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
-              <span v-if="companyData.sic_description" class="eqv2-hero-sic">{{ companyData.sic_description }}</span>
-            </div>
+        <!-- Symbol row: always first -->
+        <div class="eqv2-hero-symbol-block">
+          <div class="eqv2-hero-symbol-row">
+            <span class="eqv2-symbol">{{ quoteData.symbol }}</span>
+            <img v-if="quoteFlame" :src="quoteFlame.src" :title="quoteFlame.tooltip" class="eqv2-flame-icon" />
           </div>
         </div>
-        <div class="eqv2-hero-right">
+        <!-- Price block: price + change + since-open -->
+        <div class="eqv2-hero-price-block">
           <span class="eqv2-price">${{ fmt(quoteData.close, 2) }}</span>
           <span :class="['eqv2-change-badge', changeClass]">
             {{ quoteData.change >= 0 ? '+' : '' }}{{ fmt(quoteData.change, 2) }}
@@ -57,6 +53,11 @@
               ({{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%)
             </span>
           </div>
+        </div>
+        <!-- Company identity: name + sic — after price in full mode -->
+        <div class="eqv2-hero-identity-block">
+          <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
+          <span v-if="companyData.sic_description" class="eqv2-hero-sic">{{ companyData.sic_description }}</span>
         </div>
       </div>
 
@@ -861,26 +862,27 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   gap: 4px 12px;
 }
 
-.eqv2-hero-left {
+/* Hero blocks — narrow/wide: symbol-block left, price-block right, identity hidden or below */
+.eqv2-hero-symbol-block {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.eqv2-hero-price-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  min-width: 0;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
-.eqv2-hero-identity {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-}
-
-.eqv2-hero-identity-text {
+.eqv2-hero-identity-block {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
-  overflow: hidden;
+  width: 100%;
 }
 
 .eqv2-hero-symbol-row {
@@ -904,14 +906,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.eqv2-hero-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  flex-shrink: 0;
 }
 
 .eqv2-symbol {
@@ -1265,13 +1259,19 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     align-items: flex-start;
     justify-content: flex-start;
     flex-shrink: 0;
-    width: 180px;
+    width: 360px;   /* wide enough for company name + sic */
     align-self: stretch;
   }
-  .eqv2-hero-right {
-    align-items: flex-start;
-    width: 100%;
+  /* Full-mode column order: symbol (1), price (2), since-open inside price, identity (3) */
+  .eqv2-hero-symbol-block  { order: 1; }
+  .eqv2-hero-price-block   { order: 2; align-items: flex-start; width: 100%; }
+  .eqv2-hero-identity-block {
+    order: 3;
+    margin-top: 8px;   /* visual gap between price section and company name */
   }
+  /* Company name + sic allowed to wrap at full mode (enough width) */
+  .eqv2-hero-company-name  { white-space: normal; }
+  .eqv2-hero-sic           { white-space: normal; }
   .eqv2-since-open { text-align: left; }
 
   /* Sections: fills remaining width, allows horizontal scroll if cards overflow */

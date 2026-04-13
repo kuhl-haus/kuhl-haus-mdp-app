@@ -781,7 +781,7 @@ describe('EnhancedQuoteV2', () => {
   })
 
   describe('Hero identity layout', () => {
-    it('symbol and company name render inside eqv2-hero-identity-text', async () => {
+    it('symbol, price, and company info render in hero blocks', async () => {
       // Arrange
       global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { name: 'Apple Inc.', sic_description: 'Electronic Computers' } }) })
       const wrapper = mountWidget()
@@ -791,12 +791,13 @@ describe('EnhancedQuoteV2', () => {
       await new Promise(r => setTimeout(r, 0))
       await wrapper.vm.$nextTick()
 
-      // Assert: identity-text wrapper contains symbol row and company info
-      const identText = wrapper.find('.eqv2-hero-identity-text')
-      expect(identText.exists()).toBe(true)
-      expect(identText.find('.eqv2-symbol').exists()).toBe(true)
-      expect(identText.find('.eqv2-hero-company-name').text()).toBe('Apple Inc.')
-      expect(identText.find('.eqv2-hero-sic').text()).toBe('Electronic Computers')
+      // Assert: symbol in symbol-block, company info in identity-block
+      expect(wrapper.find('.eqv2-hero-symbol-block').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-symbol-block .eqv2-symbol').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-price-block').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-identity-block').exists()).toBe(true)
+      expect(wrapper.find('.eqv2-hero-identity-block .eqv2-hero-company-name').text()).toBe('Apple Inc.')
+      expect(wrapper.find('.eqv2-hero-identity-block .eqv2-hero-sic').text()).toBe('Electronic Computers')
     })
   })
 
