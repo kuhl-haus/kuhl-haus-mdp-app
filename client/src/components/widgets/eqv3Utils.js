@@ -1,5 +1,5 @@
 /**
- * Shared formatting utilities for EnhancedQuoteV2 and its child components.
+ * Shared formatting utilities for EnhancedQuoteV3 and its child components.
  * Single source of truth — import from here, never copy-paste.
  */
 
@@ -11,7 +11,7 @@ export const truncateUrl = (url) => {
 
 /**
  * Truncate description text at the last word boundary before maxLen.
- * Default maxLen matches the EQV2 design spec (175 chars).
+ * Default maxLen matches the EQV3 design spec (175 chars).
  */
 export const truncateDesc = (text, maxLen = 175) => {
   if (!text || text.length <= maxLen) return text

@@ -152,7 +152,7 @@
 
                 <!-- Company -->
                 <template v-else-if="card.id === 'company'">
-                  <EQV2CompanyCard
+                  <EQV3CompanyCard
                     :loading="companyLoading"
                     :all-null="allCompanyNull"
                     :data="companyData"
@@ -267,7 +267,7 @@
 
                   <!-- Company -->
                   <template v-else-if="card.id === 'company'">
-                    <EQV2CompanyCard
+                    <EQV3CompanyCard
                       :loading="companyLoading"
                       :all-null="allCompanyNull"
                       :data="companyData"
@@ -314,7 +314,7 @@
 
                   <!-- Company -->
                   <template v-else-if="card.id === 'company'">
-                    <EQV2CompanyCard
+                    <EQV3CompanyCard
                       :loading="companyLoading"
                       :all-null="allCompanyNull"
                       :data="companyData"
@@ -409,8 +409,8 @@ import draggable from 'vuedraggable'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig } from '@/composables/useConfig.js'
-import EQV2CompanyCard from './EQV2CompanyCard.vue'
-import { fmtVol } from './eqv2Utils.js'
+import EQV3CompanyCard from './EQV3CompanyCard.vue'
+import { fmtVol } from './eqv3Utils.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
 const BREAKPOINTS = { WIDE: 480, FULL: 960 }

@@ -70,8 +70,6 @@ import TopGainers from './widgets/TopGainers.vue'
 import CompanyNews from './widgets/CompanyNews.vue'
 import NewsFeed from './widgets/NewsFeed.vue'
 import Quote from './widgets/Quote.vue'
-import EnhancedQuote from './widgets/EnhancedQuote.vue'
-import EnhancedQuoteV2 from './widgets/EnhancedQuoteV2.vue'
 import EnhancedQuoteV3 from './widgets/EnhancedQuoteV3.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
@@ -93,8 +91,6 @@ const widgetComponents = {
   'company-news': CompanyNews,
   'news-feed':   NewsFeed,
   'quote':           Quote,
-  'enhanced-quote':    EnhancedQuote,
-  'enhanced-quote-v2': EnhancedQuoteV2,
   'enhanced-quote-v3': EnhancedQuoteV3,
 }
 
