@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import EQV2CompanyCard from '../EQV2CompanyCard.vue'
+import EQV3CompanyCard from '../EQV3CompanyCard.vue'
 
 // Sample company data for tests
 const SAMPLE_DATA = {
@@ -15,33 +15,33 @@ const SAMPLE_DATA = {
 // Description that exceeds the 175-char truncation limit
 const LONG_DESC = 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories. The Company sells a variety of related services. Products include iPhone, Mac, iPad, and accessories.'
 
-describe('EQV2CompanyCard', () => {
+describe('EQV3CompanyCard', () => {
   describe('Loading state', () => {
     it('renders loading message when loading=true', () => {
       // Arrange / Act
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: true, allNull: false, data: {}, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: true, allNull: false, data: {}, expanded: false } })
 
       // Assert
-      expect(wrapper.find('.eqv2-muted-msg').text()).toContain('loading')
-      expect(wrapper.find('.eqv2-kv-list').exists()).toBe(false)
+      expect(wrapper.find('.eqv3-muted-msg').text()).toContain('loading')
+      expect(wrapper.find('.eqv3-kv-list').exists()).toBe(false)
     })
   })
 
   describe('Unavailable state', () => {
     it('renders unavailable message when allNull=true and loading=false', () => {
       // Arrange / Act
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: true, data: {}, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: true, data: {}, expanded: false } })
 
       // Assert
-      expect(wrapper.find('.eqv2-muted-msg').text()).toContain('unavailable')
-      expect(wrapper.find('.eqv2-kv-list').exists()).toBe(false)
+      expect(wrapper.find('.eqv3-muted-msg').text()).toContain('unavailable')
+      expect(wrapper.find('.eqv3-kv-list').exists()).toBe(false)
     })
   })
 
   describe('Data rendering', () => {
     it('renders exchange, mkt cap, employees, listed kv rows', () => {
       // Arrange / Act
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
 
       // Assert
       const text = wrapper.text()
@@ -55,10 +55,10 @@ describe('EQV2CompanyCard', () => {
 
     it('renders homepage_url as a web link when present', () => {
       // Arrange / Act
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
 
       // Assert
-      const link = wrapper.find('.eqv2-link')
+      const link = wrapper.find('.eqv3-link')
       expect(link.exists()).toBe(true)
       expect(link.attributes('href')).toBe('https://www.apple.com/')
     })
@@ -66,16 +66,16 @@ describe('EQV2CompanyCard', () => {
     it('does not render web row when homepage_url is absent', () => {
       // Arrange
       const dataNoUrl = { ...SAMPLE_DATA, homepage_url: null }
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: dataNoUrl, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: dataNoUrl, expanded: false } })
 
       // Assert
-      expect(wrapper.find('.eqv2-link').exists()).toBe(false)
+      expect(wrapper.find('.eqv3-link').exists()).toBe(false)
       expect(wrapper.text()).not.toContain('Web')
     })
 
     it('formats market cap with fmtVol (3.2T input → 3200.0B)', () => {
       // Arrange / Act
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: SAMPLE_DATA, expanded: false } })
 
       // Assert: fmtVol has no T suffix — 3.2T (3_200_000_000_000) → 3200.0B
       expect(wrapper.text()).toContain('3200.0B')
@@ -86,46 +86,46 @@ describe('EQV2CompanyCard', () => {
     it('renders full short description without see-more button', () => {
       // Arrange
       const shortData = { ...SAMPLE_DATA, description: 'Short description.' }
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: shortData, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: shortData, expanded: false } })
 
       // Assert
-      expect(wrapper.find('.eqv2-company-desc-text').text()).toContain('Short description.')
-      expect(wrapper.find('.eqv2-see-more').exists()).toBe(false)
+      expect(wrapper.find('.eqv3-company-desc-text').text()).toContain('Short description.')
+      expect(wrapper.find('.eqv3-see-more').exists()).toBe(false)
     })
 
     it('truncates long description and shows see-more button when expanded=false', () => {
       // Arrange / Act
       const longData = { ...SAMPLE_DATA, description: LONG_DESC }
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: longData, expanded: false } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: longData, expanded: false } })
 
       // Assert: description truncated, see-more present
-      const descText = wrapper.find('.eqv2-company-desc-text').text()
+      const descText = wrapper.find('.eqv3-company-desc-text').text()
       expect(descText.length).toBeLessThan(LONG_DESC.length)
-      expect(wrapper.find('.eqv2-see-more').exists()).toBe(true)
-      expect(wrapper.find('.eqv2-see-more').text()).toContain('see more')
+      expect(wrapper.find('.eqv3-see-more').exists()).toBe(true)
+      expect(wrapper.find('.eqv3-see-more').text()).toContain('see more')
     })
 
     it('renders full long description when expanded=true', () => {
       // Arrange / Act
       const longData = { ...SAMPLE_DATA, description: LONG_DESC }
-      const wrapper = mount(EQV2CompanyCard, { props: { loading: false, allNull: false, data: longData, expanded: true } })
+      const wrapper = mount(EQV3CompanyCard, { props: { loading: false, allNull: false, data: longData, expanded: true } })
 
       // Assert: full text, less button present instead of see-more
-      expect(wrapper.find('.eqv2-company-desc-text').text()).toContain(LONG_DESC)
-      expect(wrapper.find('.eqv2-see-more').text()).toContain('less')
+      expect(wrapper.find('.eqv3-company-desc-text').text()).toContain(LONG_DESC)
+      expect(wrapper.find('.eqv3-see-more').text()).toContain('less')
     })
   })
 
   describe('Expand/collapse events', () => {
     // Note: wrapper.emitted() does not capture Vue emissions from <script setup>
     // components in VTU 2.4.x / jsdom. The attrs listener pattern is intentional —
-    // same approach used in EnhancedQuoteV2.spec.js for update-settings.
+    // same approach used in EnhancedQuoteV3.spec.js for update-settings.
     it('emits expand when see-more button is clicked', async () => {
       // Arrange
       const expandCalls = []
       const collapseCalls = []
       const longData = { ...SAMPLE_DATA, description: LONG_DESC }
-      const wrapper = mount(EQV2CompanyCard, {
+      const wrapper = mount(EQV3CompanyCard, {
         props: { loading: false, allNull: false, data: longData, expanded: false },
         attrs: {
           onExpand: () => expandCalls.push(true),
@@ -134,7 +134,7 @@ describe('EQV2CompanyCard', () => {
       })
 
       // Act
-      await wrapper.find('.eqv2-see-more').trigger('click')
+      await wrapper.find('.eqv3-see-more').trigger('click')
 
       // Assert
       expect(expandCalls.length).toBe(1)
@@ -146,7 +146,7 @@ describe('EQV2CompanyCard', () => {
       const expandCalls = []
       const collapseCalls = []
       const longData = { ...SAMPLE_DATA, description: LONG_DESC }
-      const wrapper = mount(EQV2CompanyCard, {
+      const wrapper = mount(EQV3CompanyCard, {
         props: { loading: false, allNull: false, data: longData, expanded: true },
         attrs: {
           onExpand: () => expandCalls.push(true),
@@ -155,7 +155,7 @@ describe('EQV2CompanyCard', () => {
       })
 
       // Act
-      await wrapper.find('.eqv2-see-more').trigger('click')
+      await wrapper.find('.eqv3-see-more').trigger('click')
 
       // Assert
       expect(collapseCalls.length).toBe(1)
