@@ -51,10 +51,10 @@
           <div class="eqv2-since-open">
             since open
             <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv2-pos' : 'eqv2-neg'">
-              {{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%
               <span v-if="quoteData.change_since_open != null">
-                ({{ quoteData.change_since_open >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData.change_since_open), 2) }})
+                {{ quoteData.change_since_open >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData.change_since_open), 2) }}
               </span>
+              ({{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%)
             </span>
           </div>
         </div>
@@ -831,7 +831,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 .eqv2-change-badge {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   font-family: 'Roboto Mono', monospace;
   padding: 2px 8px;
@@ -850,7 +850,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 .eqv2-since-open {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted);
   text-align: right;
 }
