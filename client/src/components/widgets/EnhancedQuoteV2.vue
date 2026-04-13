@@ -321,7 +321,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
@@ -396,9 +396,13 @@ const onColReorder = (newVal, colNum) => {
   else _col2.value = newVal
 }
 
-const onDragEnd = () => {
+const onDragEnd = async () => {
   isDragging.value = false
-  // Reconstruct full flat order from current column state
+  // Wait for both @update:model-value events to settle before reading override refs.
+  // SortableJS fires @end before @update:model-value is guaranteed to have run on
+  // both source and destination columns in a cross-column drag. Without nextTick,
+  // one column override may still be null, causing a stale cardOrder to be emitted.
+  await nextTick()
   const c1 = _col1.value ?? col1Cards.value
   const c2 = _col2.value ?? col2Cards.value
   const newOrder = isNarrow.value

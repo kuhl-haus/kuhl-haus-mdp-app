@@ -878,7 +878,6 @@ describe('EnhancedQuoteV2', () => {
       const updateSettingsCalls = []
       const wrapper = mount(EnhancedQuoteV2, {
         props: { isLocked: false, settings: {} },
-        // Capture emitted events via onUpdate-settings listener
         attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
       })
       wrapper.vm.manualTicker = 'TSLA'
@@ -892,12 +891,41 @@ describe('EnhancedQuoteV2', () => {
         reordered.map(id => ({ id, label: id })),
         1
       )
-      wrapper.vm.onDragEnd()
+      await wrapper.vm.onDragEnd()  // async — awaits nextTick internally
       await wrapper.vm.$nextTick()
 
-      // Assert: update-settings handler received correct payload
+      // Assert
       expect(updateSettingsCalls.length).toBe(1)
       expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
+    })
+
+    it('onDragEnd with cross-column reorder emits all 5 cards in merged order', async () => {
+      // Arrange: wide mode so col1 and col2 both exist
+      const updateSettingsCalls = []
+      const wrapper = mount(EnhancedQuoteV2, {
+        props: { isLocked: false, settings: {} },
+        attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+      })
+      wrapper.vm.manualTicker = 'TSLA'
+      await wrapper.vm.$nextTick()
+      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+      wrapper.vm.layoutMode = 'wide'  // col1: [session,today,volume], col2: [short,company]
+      await wrapper.vm.$nextTick()
+
+      // Act: simulate cross-column drag — card moved from col2 to col1
+      // Both @update:model-value handlers fire before @end
+      const newCol1 = ['session', 'today', 'volume', 'short'].map(id => ({ id, label: id }))
+      const newCol2 = ['company'].map(id => ({ id, label: id }))
+      wrapper.vm.onColReorder(newCol1, 1)
+      wrapper.vm.onColReorder(newCol2, 2)
+      await wrapper.vm.onDragEnd()
+      await wrapper.vm.$nextTick()
+
+      // Assert: all 5 cards present, col1 then col2 order
+      expect(updateSettingsCalls.length).toBe(1)
+      expect(updateSettingsCalls[0].cardOrder).toEqual(
+        ['session', 'today', 'volume', 'short', 'company']
+      )
     })
   })
 
