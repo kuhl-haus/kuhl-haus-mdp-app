@@ -1,5 +1,5 @@
 <template>
-  <div class="eqv2-widget" ref="widgetEl">
+  <div :class="['eqv2-widget', { 'eqv2-dragging-active': isDragging }]" ref="widgetEl">
     <!-- Ticker input bar — always visible -->
     <div class="eqv2-controls">
       <input
@@ -66,155 +66,227 @@
       </div>
 
       <!-- Adaptive sections: flex columns at wide/full, single col at narrow -->
-      <div class="eqv2-sections">
-        <!-- Col 1: Session H/L, Today, Volume (narrow: all cards stack here) -->
+      <div :class="['eqv2-sections', { 'eqv2-dragging': isDragging }]">
+        <!-- Col 1: draggable card list (all cards at narrow; first half at wide/full) -->
         <div class="eqv2-col eqv2-col-1">
-          <!-- Session H/L card — chip style at all widths -->
-          <div class="eqv2-card eqv2-session-card">
-            <div class="eqv2-card-label">Session H/L</div>
-            <div class="eqv2-session-chips">
-              <div class="eqv2-session-chip">
-                <span class="eqv2-chip-label">PRE</span>
-                <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv2-session-chip-vals">
-                  <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span>
-                  <span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
+          <draggable
+            :model-value="col1Cards"
+            group="eqv2-cards"
+            item-key="id"
+            :disabled="isLocked"
+            handle=".eqv2-drag-handle"
+            @start="isDragging = true"
+            @end="onDragEnd()"
+            @update:model-value="(val) => onColReorder(val, 1)"
+          >
+            <template #item="{ element: card }">
+              <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
+                <div class="eqv2-card-label">
+                  <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
+                  {{ card.label }}
                 </div>
-                <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
-              </div>
-              <div class="eqv2-session-chip">
-                <span class="eqv2-chip-label">REG</span>
-                <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv2-session-chip-vals">
-                  <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span>
-                  <span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
-                </div>
-                <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
-              </div>
-              <div class="eqv2-session-chip">
-                <span class="eqv2-chip-label">AH</span>
-                <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv2-session-chip-vals">
-                  <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span>
-                  <span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
-                </div>
-                <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Today card -->
-          <div class="eqv2-card eqv2-today-card">
-            <div class="eqv2-card-label">Today</div>
-            <div class="eqv2-kv-list">
-              <div class="eqv2-kv"><span class="eqv2-k">Open</span><span class="eqv2-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">VWAP</span><span class="eqv2-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
-            </div>
-          </div>
+                <!-- Session H/L -->
+                <template v-if="card.id === 'session'">
+                  <div class="eqv2-session-chips">
+                    <div class="eqv2-session-chip">
+                      <span class="eqv2-chip-label">PRE</span>
+                      <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv2-session-chip-vals">
+                        <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span>
+                        <span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
+                      </div>
+                      <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                    </div>
+                    <div class="eqv2-session-chip">
+                      <span class="eqv2-chip-label">REG</span>
+                      <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv2-session-chip-vals">
+                        <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span>
+                        <span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
+                      </div>
+                      <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                    </div>
+                    <div class="eqv2-session-chip">
+                      <span class="eqv2-chip-label">AH</span>
+                      <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv2-session-chip-vals">
+                        <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span>
+                        <span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
+                      </div>
+                      <div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                    </div>
+                  </div>
+                </template>
 
-          <!-- Volume card -->
-          <div class="eqv2-card eqv2-volume-card">
-            <div class="eqv2-card-label">Volume</div>
-            <div class="eqv2-kv-list">
-              <div class="eqv2-kv"><span class="eqv2-k">Volume</span><span class="eqv2-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Avg Vol</span><span class="eqv2-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Float</span><span class="eqv2-v">{{ fmtVol(floatShares) }}</span></div>
-            </div>
-            <!-- Relative Volume bar -->
-            <div class="eqv2-rv-row">
-              <span class="eqv2-k">Rel. Vol</span>
-              <div class="eqv2-rv-bar-wrap">
-                <div class="eqv2-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div>
-              </div>
-              <span :class="['eqv2-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
-            </div>
-          </div>
+                <!-- Today -->
+                <template v-else-if="card.id === 'today'">
+                  <div class="eqv2-kv-list">
+                    <div class="eqv2-kv"><span class="eqv2-k">Open</span><span class="eqv2-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">VWAP</span><span class="eqv2-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
+                  </div>
+                </template>
 
-          <!-- Short Interest + Company: only rendered here in narrow mode (isNarrow=true).
-               At wide/full, col-2 renders them. One instance at a time — no DOM duplication. -->
-          <div v-if="isNarrow" class="eqv2-card eqv2-short-card">
-            <div class="eqv2-card-label">Short Interest</div>
-            <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
-            <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
-            <div v-else class="eqv2-kv-list">
-              <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
-            </div>
-          </div>
+                <!-- Volume -->
+                <template v-else-if="card.id === 'volume'">
+                  <div class="eqv2-kv-list">
+                    <div class="eqv2-kv"><span class="eqv2-k">Volume</span><span class="eqv2-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Avg Vol</span><span class="eqv2-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Float</span><span class="eqv2-v">{{ fmtVol(floatShares) }}</span></div>
+                  </div>
+                  <div class="eqv2-rv-row">
+                    <span class="eqv2-k">Rel. Vol</span>
+                    <div class="eqv2-rv-bar-wrap">
+                      <div class="eqv2-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div>
+                    </div>
+                    <span :class="['eqv2-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
+                  </div>
+                </template>
 
-          <div v-if="isNarrow" class="eqv2-card eqv2-company-card">
-            <div class="eqv2-card-label">Company</div>
-            <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
-            <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-            <div v-else>
-              <div class="eqv2-kv-list">
-                <div v-if="companyData.homepage_url" class="eqv2-kv">
-                  <span class="eqv2-k">Web</span>
-                  <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
-                </div>
-                <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-                <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-                <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-                <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+                <!-- Short Interest -->
+                <template v-else-if="card.id === 'short'">
+                  <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
+                  <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
+                  <div v-else class="eqv2-kv-list">
+                    <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
+                  </div>
+                </template>
+
+                <!-- Company -->
+                <template v-else-if="card.id === 'company'">
+                  <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
+                  <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
+                  <div v-else>
+                    <div class="eqv2-kv-list">
+                      <div v-if="companyData.homepage_url" class="eqv2-kv">
+                        <span class="eqv2-k">Web</span>
+                        <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+                      </div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+                    </div>
+                    <div v-if="companyData.description" class="eqv2-company-desc-wrap">
+                      <span class="eqv2-company-desc-text">
+                        {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
+                      </span>
+                      <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
+                        <span class="eqv2-company-desc-ellipsis">… </span>
+                        <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
+                      </span>
+                      <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
+                    </div>
+                  </div>
+                </template>
+
               </div>
-              <div v-if="companyData.description" class="eqv2-company-desc-wrap">
-                <span class="eqv2-company-desc-text">
-                  {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
-                </span>
-                <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
-                  <span class="eqv2-company-desc-ellipsis">… </span>
-                  <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
-                </span>
-                <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
-              </div>
-            </div>
-          </div>
+            </template>
+          </draggable>
         </div>
 
-        <!-- Col 2: Short Interest + Company — only rendered at wide/full (v-if="!isNarrow").
-             Paired with isNarrow v-if above to ensure exactly one instance in DOM. -->
+        <!-- Col 2: second half of cards at wide/full (v-if="!isNarrow") -->
         <div v-if="!isNarrow" class="eqv2-col eqv2-col-2">
-          <!-- Short Interest -->
-          <div class="eqv2-card eqv2-short-card">
-            <div class="eqv2-card-label">Short Interest</div>
-            <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
-            <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
-            <div v-else class="eqv2-kv-list">
-              <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
-              <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
-            </div>
-          </div>
-
-          <!-- Company card -->
-          <div class="eqv2-card eqv2-company-card">
-            <div class="eqv2-card-label">Company</div>
-            <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
-            <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
-            <div v-else>
-              <div class="eqv2-kv-list">
-                <div v-if="companyData.homepage_url" class="eqv2-kv">
-                  <span class="eqv2-k">Web</span>
-                  <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+          <draggable
+            :model-value="col2Cards"
+            group="eqv2-cards"
+            item-key="id"
+            :disabled="isLocked"
+            handle=".eqv2-drag-handle"
+            @start="isDragging = true"
+            @end="onDragEnd()"
+            @update:model-value="(val) => onColReorder(val, 2)"
+          >
+            <template #item="{ element: card }">
+              <div :class="['eqv2-card', `eqv2-${card.id}-card`]">
+                <div class="eqv2-card-label">
+                  <span v-if="!isLocked" class="eqv2-drag-handle" title="Drag to reorder">⠿</span>
+                  {{ card.label }}
                 </div>
-                <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
-                <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
-                <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
-                <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+
+                <!-- Short Interest -->
+                <template v-if="card.id === 'short'">
+                  <div v-if="shortInterestLoading" class="eqv2-muted-msg">Short interest data loading...</div>
+                  <div v-else-if="allShortNull" class="eqv2-muted-msg">Short interest data unavailable</div>
+                  <div v-else class="eqv2-kv-list">
+                    <div class="eqv2-kv"><span class="eqv2-k">Short Int.</span><span class="eqv2-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Days to Cover</span><span class="eqv2-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Short Vol Ratio</span><span class="eqv2-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
+                  </div>
+                </template>
+
+                <!-- Company -->
+                <template v-else-if="card.id === 'company'">
+                  <div v-if="companyLoading" class="eqv2-muted-msg">Company data loading...</div>
+                  <div v-else-if="allCompanyNull" class="eqv2-muted-msg">Company data unavailable</div>
+                  <div v-else>
+                    <div class="eqv2-kv-list">
+                      <div v-if="companyData.homepage_url" class="eqv2-kv">
+                        <span class="eqv2-k">Web</span>
+                        <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv2-link">{{ truncateUrl(companyData.homepage_url) }}</a>
+                      </div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Exchange</span><span class="eqv2-v">{{ companyData.primary_exchange || '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Mkt Cap</span><span class="eqv2-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Employees</span><span class="eqv2-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+                      <div class="eqv2-kv"><span class="eqv2-k">Listed</span><span class="eqv2-v">{{ companyData.list_date || '—' }}</span></div>
+                    </div>
+                    <div v-if="companyData.description" class="eqv2-company-desc-wrap">
+                      <span class="eqv2-company-desc-text">
+                        {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
+                      </span>
+                      <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
+                        <span class="eqv2-company-desc-ellipsis">… </span>
+                        <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
+                      </span>
+                      <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Session / Today / Volume (if reordered into col-2) -->
+                <template v-else-if="card.id === 'session'">
+                  <div class="eqv2-session-chips">
+                    <div class="eqv2-session-chip"><span class="eqv2-chip-label">PRE</span>
+                      <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv2-session-chip-vals">
+                        <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span><span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
+                      </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                    </div>
+                    <div class="eqv2-session-chip"><span class="eqv2-chip-label">REG</span>
+                      <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv2-session-chip-vals">
+                        <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span><span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
+                      </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                    </div>
+                    <div class="eqv2-session-chip"><span class="eqv2-chip-label">AH</span>
+                      <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv2-session-chip-vals">
+                        <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span><span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
+                      </div><div v-else class="eqv2-session-chip-vals eqv2-muted-val">—</div>
+                    </div>
+                  </div>
+                </template>
+                <template v-else-if="card.id === 'today'">
+                  <div class="eqv2-kv-list">
+                    <div class="eqv2-kv"><span class="eqv2-k">Open</span><span class="eqv2-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">VWAP</span><span class="eqv2-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
+                  </div>
+                </template>
+                <template v-else-if="card.id === 'volume'">
+                  <div class="eqv2-kv-list">
+                    <div class="eqv2-kv"><span class="eqv2-k">Volume</span><span class="eqv2-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Avg Vol</span><span class="eqv2-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
+                    <div class="eqv2-kv"><span class="eqv2-k">Float</span><span class="eqv2-v">{{ fmtVol(floatShares) }}</span></div>
+                  </div>
+                  <div class="eqv2-rv-row">
+                    <span class="eqv2-k">Rel. Vol</span>
+                    <div class="eqv2-rv-bar-wrap"><div class="eqv2-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div></div>
+                    <span :class="['eqv2-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
+                  </div>
+                </template>
+
               </div>
-              <div v-if="companyData.description" class="eqv2-company-desc-wrap">
-                <span class="eqv2-company-desc-text">
-                  {{ descExpanded ? companyData.description : truncateDesc(companyData.description) }}
-                </span>
-                <span v-if="!descExpanded && truncateDesc(companyData.description) !== companyData.description">
-                  <span class="eqv2-company-desc-ellipsis">… </span>
-                  <button class="eqv2-see-more" @click="descExpanded = true">see more</button>
-                </span>
-                <button v-if="descExpanded" class="eqv2-see-more" @click="descExpanded = false"> less</button>
-              </div>
-            </div>
-          </div>
+            </template>
+          </draggable>
         </div>
 
-        <!-- Previous Day: always full-width at bottom -->
+        <!-- Previous Day: always full-width at bottom — NOT part of draggable list -->
         <div class="eqv2-prev-row">
           <div class="eqv2-card eqv2-prev-card">
             <div class="eqv2-card-label">Previous Day</div>
@@ -249,13 +321,24 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import draggable from 'vuedraggable'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
 // Referenced by ResizeObserver (JS) and CSS comments below.
 const BREAKPOINTS = { WIDE: 480, FULL: 680 }
+
+// Card registry — defines the set of draggable cards and their default order.
+// 'prev' (Previous Day) is always pinned full-width at the bottom — NOT in registry.
+const CARD_REGISTRY = [
+  { id: 'session', label: 'Session H/L'   },
+  { id: 'today',   label: 'Today'          },
+  { id: 'volume',  label: 'Volume'         },
+  { id: 'short',   label: 'Short Interest' },
+  { id: 'company', label: 'Company'        },
+]
 
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
@@ -264,7 +347,7 @@ const props = defineProps({
   settings:  { type: Object,  default: () => ({}) },
 })
 
-defineEmits(['update-settings'])
+const emit = defineEmits(['update-settings'])
 
 const appConfig = window.__APP_CONFIG__ || {}
 const { activeTickers, setActiveTicker } = useWidgetBus()
@@ -273,6 +356,63 @@ const { activeTickers, setActiveTicker } = useWidgetBus()
 const widgetEl = ref(null)   // template ref on .eqv2-widget root
 const layoutMode = ref('narrow')  // 'narrow' | 'wide' | 'full'
 const isNarrow = computed(() => layoutMode.value === 'narrow')
+
+// ── Draggable card order ──
+const isDragging = ref(false)
+
+// activeCards: ordered list of cards from settings, falling back to CARD_REGISTRY defaults.
+const activeCards = computed(() => {
+  const order = props.settings?.cardOrder
+  if (!Array.isArray(order) || order.length === 0) return [...CARD_REGISTRY]
+  // Merge: cards in saved order first, then any missing registry cards appended
+  const saved = order
+    .map(id => CARD_REGISTRY.find(c => c.id === id))
+    .filter(Boolean)
+  const missing = CARD_REGISTRY.filter(c => !order.includes(c.id))
+  return [...saved, ...missing]
+})
+
+// Distribute activeCards across columns based on layout mode.
+// Previous Day is excluded — it's always pinned outside the draggable lists.
+const col1Cards = computed(() => {
+  const cards = activeCards.value
+  if (isNarrow.value) return cards  // all in one column
+  return cards.slice(0, Math.ceil(cards.length / 2))
+})
+
+const col2Cards = computed(() => {
+  if (isNarrow.value) return []  // col-2 hidden in narrow
+  const cards = activeCards.value
+  return cards.slice(Math.ceil(cards.length / 2))
+})
+
+// Mutable column state — holds reordered cards within a drag session
+// vuedraggable emits @update:model-value with the new order for the affected column
+const _col1 = ref(null)  // overrides col1Cards during/after drag
+const _col2 = ref(null)  // overrides col2Cards during/after drag
+
+const onColReorder = (newVal, colNum) => {
+  if (colNum === 1) _col1.value = newVal
+  else _col2.value = newVal
+}
+
+const onDragEnd = async () => {
+  isDragging.value = false
+  // Wait for both @update:model-value events to settle before reading override refs.
+  // SortableJS fires @end before @update:model-value is guaranteed to have run on
+  // both source and destination columns in a cross-column drag. Without nextTick,
+  // one column override may still be null, causing a stale cardOrder to be emitted.
+  await nextTick()
+  const c1 = _col1.value ?? col1Cards.value
+  const c2 = _col2.value ?? col2Cards.value
+  const newOrder = isNarrow.value
+    ? c1.map(c => c.id)
+    : [...c1, ...c2].map(c => c.id)
+  // Clear overrides — activeCards computed will now drive from settings
+  _col1.value = null
+  _col2.value = null
+  emit('update-settings', { ...props.settings, cardOrder: newOrder })
+}
 
 let _resizeObserver = null
 onMounted(() => {
@@ -532,7 +672,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError, layoutMode })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, logoError, layoutMode, activeCards, isDragging, onColReorder, onDragEnd })
 </script>
 
 <style scoped>
@@ -927,6 +1067,29 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   color: var(--text-primary);
   padding: 2px 0;
   border-bottom: 1px solid var(--border);
+}
+
+/* ── Drag handle ── */
+.eqv2-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-right: 5px;
+  opacity: 0.6;
+  user-select: none;
+  vertical-align: middle;
+}
+.eqv2-drag-handle:hover { opacity: 1; }
+
+/* ── Dragging state ── */
+.eqv2-dragging .eqv2-card {
+  transition: box-shadow 0.15s ease;
+}
+.eqv2-dragging .eqv2-card:hover {
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.eqv2-widget.eqv2-dragging-active {
+  cursor: grabbing;
 }
 
 /* ── Freshness ── */
