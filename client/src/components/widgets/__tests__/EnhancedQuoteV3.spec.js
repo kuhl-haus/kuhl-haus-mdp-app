@@ -412,7 +412,6 @@ describe('Massive API — company data', () => {
     mockMassiveFetch()
     const wrapper = mount(EnhancedQuoteV3, {
       props: { isLocked: false, settings: { brandingMode: 'icon' } },
-      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
     })
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
@@ -435,7 +434,6 @@ describe('Massive API — company data', () => {
     const wrapper = mount(EnhancedQuoteV3, {
       props: { isLocked: false, settings: { brandingMode: 'logo' } },
       attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
-      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
     })
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
@@ -461,7 +459,6 @@ describe('Massive API — company data', () => {
     mockMassiveFetch()
     const wrapper = mount(EnhancedQuoteV3, {
       props: { isLocked: false, settings: {} },
-      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
     })
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
@@ -492,7 +489,6 @@ describe('Massive API — company data', () => {
     mockMassiveFetch({ ticker: tickerLogoOnly })
     const wrapper = mount(EnhancedQuoteV3, {
       props: { isLocked: false, settings: {} },
-      global: { stubs: { draggable: { template: '<div><slot name="item" v-for="e in list" :element="e" /></div>', props: ['modelValue', 'list'] } } },
     })
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
@@ -955,6 +951,10 @@ describe('Exposed interface', () => {
     expect(wrapper.vm.activeCards).toBeDefined()
     expect(wrapper.vm.isDragging).toBeDefined()
     expect(wrapper.vm.logoUrl).toBeDefined()
+    expect(wrapper.vm.iconUrl).toBeDefined()
+    expect(wrapper.vm.brandingMode).toBeDefined()
+    expect(wrapper.vm.activeBrandingUrl).toBeDefined()
+    expect(wrapper.vm.toggleBranding).toBeDefined()
     expect(wrapper.vm.fullRowCards).toBeDefined()
     expect(wrapper.vm.onFullRowDragEnd).toBeDefined()
     expect(wrapper.vm.onFullRowReorder).toBeDefined()
