@@ -584,6 +584,10 @@ const fetchCompany = async (symbol) => {
         sic_description: results.sic_description ?? null,
         description: results.description ?? null,
         homepage_url: results.homepage_url ?? null,
+        primary_exchange: results.primary_exchange ?? null,
+        market_cap: results.market_cap ?? null,
+        total_employees: results.total_employees ?? null,
+        list_date: results.list_date ?? null,
       }
       logoUrl.value = results.branding?.logo_url ?? null
     }
