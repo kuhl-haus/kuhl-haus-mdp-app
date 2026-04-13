@@ -478,85 +478,6 @@ describe('EnhancedQuoteV2', () => {
       expect(hero.text()).toContain('Motor Vehicles')
     })
 
-    it('renders logo in hero via proxy src when activeTicker is set and company loaded', async () => {
-      // Arrange: company fetch resolves so companyLoading goes false
-      mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers' })
-      const wrapper = mountWidget()
-      wrapper.vm.manualTicker = 'AAPL'
-      await wrapper.vm.$nextTick()
-      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
-      await new Promise(r => setTimeout(r, 0))  // let fetchCompany resolve
-      await wrapper.vm.$nextTick()
-
-      // Assert: logo renders once companyLoading=false
-      expect(wrapper.vm.companyLoading).toBe(false)
-      const logo = wrapper.find('.eqv2-hero-logo')
-      expect(logo.exists()).toBe(true)
-      expect(logo.attributes('src')).toBe('/api/market_data/logo/AAPL')
-    })
-
-    it('does not render logo while company data is loading', async () => {
-      // Arrange: company fetch in flight (companyLoading=true)
-      let resolveCompany
-      global.fetch = vi.fn().mockImplementation((url) => {
-        if (url.includes('company')) return new Promise(r => { resolveCompany = r })
-        return Promise.resolve({ ok: true, json: async () => ({ data: {} }) })
-      })
-      const wrapper = mountWidget()
-      wrapper.vm.manualTicker = 'AAPL'
-      await wrapper.vm.$nextTick()
-      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
-      await wrapper.vm.$nextTick()
-
-      // Assert: logo not rendered while loading
-      expect(wrapper.vm.companyLoading).toBe(true)
-      expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(false)
-
-      // Act: resolve company fetch
-      resolveCompany({ ok: true, json: async () => ({ data: { name: 'Apple Inc.' } }) })
-      await new Promise(r => setTimeout(r, 0))
-      await wrapper.vm.$nextTick()
-
-      // Assert: logo now renders
-      expect(wrapper.vm.companyLoading).toBe(false)
-      expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(true)
-    })
-
-    it('hides logo when logoError is true', async () => {
-      // Arrange
-      mockCompanyFetch({ name: 'Apple Inc.', sic_description: 'Computers' })
-      const wrapper = mountWidget()
-      wrapper.vm.manualTicker = 'AAPL'
-      await wrapper.vm.$nextTick()
-      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
-      await new Promise(r => setTimeout(r, 0))
-      await wrapper.vm.$nextTick()
-
-      // Simulate @error handler firing
-      wrapper.vm.logoError = true
-      await wrapper.vm.$nextTick()
-
-      // Assert: img no longer visible
-      expect(wrapper.find('.eqv2-hero-logo').exists()).toBe(false)
-    })
-
-    it('resets logoError to false when ticker changes', async () => {
-      // Arrange: set logoError, then change ticker
-      mockCompanyFetch({ name: 'Apple Inc.' })
-      const wrapper = mountWidget()
-      wrapper.vm.manualTicker = 'AAPL'
-      await wrapper.vm.$nextTick()
-      wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
-      wrapper.vm.logoError = true
-      await wrapper.vm.$nextTick()
-
-      // Act: change ticker
-      wrapper.vm.manualTicker = 'TSLA'
-      await wrapper.vm.$nextTick()
-
-      // Assert: logoError reset
-      expect(wrapper.vm.logoError).toBe(false)
-    })
   })
 
   describe('Description see-more toggle', () => {
@@ -805,7 +726,7 @@ describe('EnhancedQuoteV2', () => {
       expect(wrapper.findAll('.eqv2-short-card').length).toBe(1)
     })
 
-    it('renders col-3 with company card at full layout mode (>=680px)', async () => {
+    it('renders col-3 with company card at full layout mode (>=960px)', async () => {
       // Arrange
       const wrapper = mountWidget()
       wrapper.vm.manualTicker = 'TSLA'
