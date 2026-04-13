@@ -44,7 +44,7 @@
           </div>
           <div v-if="companyData.name || companyData.sic_description" class="eqv2-hero-company">
             <span v-if="companyData.name" class="eqv2-hero-company-name">{{ companyData.name }}</span>
-            <span v-if="companyData.sic_description" class="eqv2-hero-sic"> · {{ companyData.sic_description }}</span>
+            <span v-if="companyData.sic_description" class="eqv2-hero-sic">{{ companyData.sic_description }}</span>
           </div>
         </div>
         <div class="eqv2-hero-right">
@@ -650,7 +650,7 @@ const truncateUrl = (url) => {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 30)
 }
 
-const truncateDesc = (text, maxLen = 250) => {
+const truncateDesc = (text, maxLen = 175) => {
   if (!text || text.length <= maxLen) return text
   const cut = text.lastIndexOf(' ', maxLen)
   return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
@@ -780,34 +780,43 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 
 .eqv2-hero-identity {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
 }
 
 .eqv2-hero-logo {
-  width: 22px;
-  height: 22px;
+  height: 100%;
+  width: auto;
+  max-width: 48px;
   border-radius: 3px;
   object-fit: contain;
   flex-shrink: 0;
   background: rgba(255,255,255,0.05);
+  align-self: stretch;
 }
 
 .eqv2-hero-company {
-  font-size: 11px;
-  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.eqv2-hero-company-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.eqv2-hero-company-name {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
 .eqv2-hero-sic {
+  font-size: 10px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .eqv2-hero-right {
@@ -904,19 +913,19 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 .eqv2-k {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-family: system-ui, sans-serif;
   flex-shrink: 0;
 }
 .eqv2-v {
   font-family: 'Roboto Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-primary);
   text-align: right;
 }
 .eqv2-link {
   font-family: 'Roboto Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--accent);
   text-decoration: none;
   overflow: hidden;

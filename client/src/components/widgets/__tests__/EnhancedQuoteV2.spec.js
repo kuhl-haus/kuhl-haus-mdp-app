@@ -561,7 +561,7 @@ describe('EnhancedQuoteV2', () => {
 
   describe('Description see-more toggle', () => {
     const SHORT_DESC = 'Short desc.'
-    // LONG_DESC must exceed 250 chars (current truncateDesc maxLen) to trigger truncation
+    // LONG_DESC must exceed 175 chars (current truncateDesc maxLen) to trigger truncation
     const LONG_DESC = 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories, and sells a variety of related services. The Company\'s products include iPhone, Mac, iPad, and accessories. Services include advertising, AppleCare, cloud services, digital content, and payment services. Apple sells and delivers third-party applications and digital content. The Company sells its products and resells third-party products.'
 
     function mountWithDescription(description) {
