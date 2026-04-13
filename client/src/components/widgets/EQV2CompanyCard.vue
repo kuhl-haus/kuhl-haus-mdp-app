@@ -27,6 +27,79 @@
   </div>
 </template>
 
+<style scoped>
+.eqv2-company-card-body {
+  display: contents; /* transparent wrapper — does not affect layout */
+}
+.eqv2-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.eqv2-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.eqv2-k {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: system-ui, sans-serif;
+  flex-shrink: 0;
+}
+.eqv2-v {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: right;
+}
+.eqv2-link {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+  text-align: right;
+}
+.eqv2-link:hover { text-decoration: underline; }
+.eqv2-company-desc-wrap {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.eqv2-company-desc-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.eqv2-company-desc-ellipsis {
+  color: var(--text-muted);
+}
+.eqv2-see-more {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  font-family: system-ui, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.eqv2-see-more:hover { opacity: 0.8; }
+.eqv2-muted-msg {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+</style>
+
 <script setup>
 import { truncateUrl, truncateDesc, fmtVol } from './eqv2Utils.js'
 
