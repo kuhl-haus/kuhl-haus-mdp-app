@@ -21,33 +21,30 @@
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
 }
 
-/* semantic color variables for this project */
+/* ── Phantom Dark theme tokens ── */
 :root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
+  --pd-bg:           #0d0d12;
+  --pd-surface:      #141420;
+  --pd-surface-2:    #1a1a2e;
+  --pd-border:       #1e1e2e;
+  --pd-border-hover: #2e2e4e;
+  --pd-text:         #e2e2f0;
+  --pd-text-muted:   #afafaf;
+  --pd-accent:       #7c3aed;
+  --pd-accent-hover: #6d28d9;
+  --pd-positive:     #22c55e;
+  --pd-negative:     #ef4444;
 
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
+  /* map Vue scaffold semantic vars to Phantom Dark */
+  --color-background:      var(--pd-bg);
+  --color-background-soft: var(--pd-surface);
+  --color-background-mute: var(--pd-surface-2);
+  --color-border:          var(--pd-border);
+  --color-border-hover:    var(--pd-border-hover);
+  --color-heading:         var(--pd-text);
+  --color-text:            var(--pd-text);
 
   --section-gap: 160px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
-
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
-
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
-  }
 }
 
 *,

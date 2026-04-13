@@ -52,9 +52,9 @@ const selectWidget = (widgetType) => {
 }
 
 .menu-toggle {
-  background: #2d2d2d;
-  color: #fff;
-  border: 1px solid #444;
+  background: var(--pd-surface);
+  color: var(--pd-text);
+  border: 1px solid var(--pd-border);
   padding: 2px 6px;
   border-radius: 6px;
   cursor: pointer;
@@ -63,13 +63,14 @@ const selectWidget = (widgetType) => {
 }
 
 .menu-toggle:hover {
-  background: #3d3d3d;
+  background: var(--pd-surface-2);
+  border-color: var(--pd-accent);
 }
 
 .menu-panel {
   margin-top: 8px;
-  background: #1e1e1e;
-  border: 1px solid #333;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
   border-radius: 2px;
   padding: 2px;
   display: flex;
@@ -79,9 +80,9 @@ const selectWidget = (widgetType) => {
 }
 
 .widget-button {
-  background: #2d2d2d;
-  border: 1px solid #333;
-  color: #fff;
+  background: var(--pd-surface-2);
+  border: 1px solid var(--pd-border);
+  color: var(--pd-text);
   padding: 2px;
   border-radius: 4px;
   cursor: pointer;
@@ -93,6 +94,7 @@ const selectWidget = (widgetType) => {
 }
 
 .widget-button:hover {
-  background: #3d3d3d;
+  background: var(--pd-bg);
+  border-color: var(--pd-accent);
 }
 </style>

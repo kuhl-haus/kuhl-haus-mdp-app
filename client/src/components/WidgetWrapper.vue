@@ -169,8 +169,8 @@ const freshnessIcon = computed(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  border: 1px solid #333;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
   border-radius: 4px;
   overflow: hidden;
   touch-action: none;
@@ -181,8 +181,8 @@ const freshnessIcon = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 2px 4px;
-  background: #2d2d2d;
-  border-bottom: 1px solid #333;
+  background: var(--pd-surface-2);
+  border-bottom: 1px solid var(--pd-border);
   cursor: move;
   gap: 6px;
   /* Smooth transition when link color applied */
@@ -192,17 +192,17 @@ const freshnessIcon = computed(() => {
 .widget-title {
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--pd-text);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .widget-title--input {
-  background: #2a2a2a;
-  border: 1px solid #555;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border-hover);
   border-radius: 3px;
-  color: #fff;
+  color: var(--pd-text);
   padding: 1px 4px;
   outline: none;
   min-width: 0;
@@ -235,8 +235,8 @@ const freshnessIcon = computed(() => {
 .color-swatch--active { border: 2px solid #fff; transform: scale(1.2); }
 
 .color-swatch--none {
-  background: #333;
-  color: #666;
+  background: var(--pd-surface-2);
+  color: var(--pd-text-muted);
   font-size: 10px;
 }
 .color-swatch--none.color-swatch--active { color: #aaa; }
@@ -252,7 +252,7 @@ const freshnessIcon = computed(() => {
 .close-btn {
   background: none;
   border: none;
-  color: #999;
+  color: var(--pd-text-muted);
   cursor: pointer;
   font-size: 16px;
   padding: 0;
@@ -264,7 +264,7 @@ const freshnessIcon = computed(() => {
   border-radius: 3px;
   flex-shrink: 0;
 }
-.close-btn:hover { background: #3d3d3d; color: #fff; }
+.close-btn:hover { background: var(--pd-surface-2); color: var(--pd-text); }
 
 .widget-content {
   flex: 1;

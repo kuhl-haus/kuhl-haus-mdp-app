@@ -23,8 +23,8 @@ onMounted(() => {
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background: #0a0a0a;
-  color: #e0e0e0;
+  background: var(--pd-bg);
+  color: var(--pd-text);
 }
 
 #app {
