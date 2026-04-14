@@ -235,4 +235,48 @@ describe('useWebSocketClient', () => {
     const messages = parseSent(mockWs)
     expect(messages).toContainEqual({ action: 'auth', api_key: 'test-key' })
   })
+
+  // ------------------------------------------------------------------
+  // auto-reconnect
+  // ------------------------------------------------------------------
+
+  it('test_connect_arms_autoReconnect_so_onclose_schedules_reconnect', async () => {
+    // Arrange — autoConnect: false simulates EQv3's deferred-connect pattern.
+    // connect() must arm auto-reconnect so a subsequent onclose triggers scheduleReconnect.
+    vi.useFakeTimers()
+    const client = makeClient({ autoConnect: false, reconnectBaseMs: 100, reconnectMaxMs: 1000 })
+    const firstWs = await connectAndOpen(client)
+
+    // Act — server closes the connection
+    firstWs.close(1006)
+    await nextTick()
+
+    // Assert — a reconnect timer was scheduled (a new WebSocket is created after delay)
+    expect(client.reconnecting.value).toBe(true)
+    vi.advanceTimersByTime(200)
+    await nextTick()
+    expect(MockWebSocket.instances).toHaveLength(2)
+
+    vi.useRealTimers()
+  })
+
+  it('test_disconnect_suppresses_reconnect_on_intentional_close', async () => {
+    // Arrange — explicit disconnect() must prevent reconnect attempts.
+    vi.useFakeTimers()
+    const client = makeClient({ autoConnect: false, reconnectBaseMs: 100 })
+    const mockWs = await connectAndOpen(client)
+
+    // Act — intentional disconnect
+    client.disconnect()
+    await nextTick()
+
+    vi.advanceTimersByTime(500)
+    await nextTick()
+
+    // Assert — no second WebSocket created; reconnecting stays false
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(client.reconnecting.value).toBe(false)
+
+    vi.useRealTimers()
+  })
 })

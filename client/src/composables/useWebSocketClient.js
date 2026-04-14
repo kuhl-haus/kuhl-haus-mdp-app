@@ -108,6 +108,13 @@ export function useWebSocketClient(config = {}) {
       return
     }
 
+    // Arm auto-reconnect whenever connect() is called explicitly.
+    // disconnect() sets this back to false to suppress reconnects on
+    // intentional closes. Widgets that pass autoConnect: false and call
+    // connect() manually (e.g. EQv3) are armed on first call just like
+    // widgets that pass autoConnect: true.
+    autoConnect = true
+
     logMessage(`Connecting to ${url}...`, 'info')
 
     try {
