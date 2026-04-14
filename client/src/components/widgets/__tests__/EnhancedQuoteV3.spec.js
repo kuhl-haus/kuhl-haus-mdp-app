@@ -870,22 +870,40 @@ describe('Full mode — chips-to-kv-list rendering', () => {
     expect(closeRow.find('.eqv3-v').text()).toBe('$245.00')
   })
 
-  test('test_EnhancedQuoteV3_with_narrow_layoutMode_session_and_prev_still_render_chips', async () => {
-    // Arrange — narrow keeps chips (regression guard)
+  test('test_EnhancedQuoteV3_with_narrow_layoutMode_default_expect_kv_list_not_chips', async () => {
+    // Arrange — narrow, no chipCards in settings (default)
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
-    // layoutMode defaults to narrow
     await wrapper.vm.$nextTick()
 
-    // Assert: session chips still present in col-1 at narrow
-    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
-    // prev card rendered as kv-list (no chips) inside the column draggable
+    // Assert: kv-list rendered by default (chips mode is opt-in via toggle)
+    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(false)
+    expect(wrapper.find('.eqv3-kv-list').exists()).toBe(true)
+    // No pinned prev-row; prev-card in column
     expect(wrapper.find('.eqv3-prev-row').exists()).toBe(false)
     expect(wrapper.find('.eqv3-prev-card').exists()).toBe(true)
-    // And full-row draggable does not exist at narrow
+    // Full-row draggable not present at narrow
     expect(wrapper.find('.eqv3-full-row-draggable').exists()).toBe(false)
+  })
+
+  test('test_EnhancedQuoteV3_with_chipCards_setting_expect_chips_rendered', async () => {
+    // Arrange — session and prev in chipCards
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { chipCards: ['session', 'prev'] } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await wrapper.vm.$nextTick()
+
+    // Assert: chips rendered for session and prev
+    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    expect(prevCard.find('.eqv3-chip-row').exists()).toBe(true)
+    // kv-list NOT rendered for those cards
+    expect(wrapper.find('.eqv3-session-chip').exists()).toBe(true)
   })
 })
 
@@ -935,6 +953,154 @@ describe('Splits', () => {
   })
 })
 
+describe('Card visibility and chips toggles', () => {
+  test('test_EnhancedQuoteV3_hiddenCardIds_with_no_setting_expect_empty_set', () => {
+    // Arrange
+    const wrapper = mountWidget()
+    // Assert: no settings -> hiddenCardIds is empty set
+    expect(wrapper.vm.hiddenCardIds.size).toBe(0)
+  })
+
+  test('test_EnhancedQuoteV3_hiddenCardIds_with_hiddenCards_setting_expect_correct_set', () => {
+    // Arrange
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { hiddenCards: ['short', 'volume'] } },
+    })
+    // Assert
+    expect(wrapper.vm.hiddenCardIds.has('short')).toBe(true)
+    expect(wrapper.vm.hiddenCardIds.has('volume')).toBe(true)
+    expect(wrapper.vm.hiddenCardIds.has('today')).toBe(false)
+  })
+
+  test('test_EnhancedQuoteV3_chipCardIds_with_chipCards_setting_expect_correct_set', () => {
+    // Arrange
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { chipCards: ['prev', 'session'] } },
+    })
+    // Assert
+    expect(wrapper.vm.chipCardIds.has('prev')).toBe(true)
+    expect(wrapper.vm.chipCardIds.has('session')).toBe(true)
+    expect(wrapper.vm.chipCardIds.has('today')).toBe(false)
+  })
+
+  test('test_EnhancedQuoteV3_visibleCards_excludes_hidden_cards', () => {
+    // Arrange: hide 'short'
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { hiddenCards: ['short'] } },
+    })
+    // Assert: visibleCards does not contain 'short'; activeCards still does
+    expect(wrapper.vm.visibleCards.map(c => c.id)).not.toContain('short')
+    expect(wrapper.vm.activeCards.map(c => c.id)).toContain('short')
+  })
+
+  test('test_EnhancedQuoteV3_hiddenCards_computed_returns_only_hidden', () => {
+    // Arrange: hide 'volume' and 'prev'
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { hiddenCards: ['volume', 'prev'] } },
+    })
+    const ids = wrapper.vm.hiddenCards.map(c => c.id)
+    expect(ids).toContain('volume')
+    expect(ids).toContain('prev')
+    expect(ids).not.toContain('today')
+  })
+
+  test('test_EnhancedQuoteV3_toggleCardVisibility_with_visible_card_expect_added_to_hiddenCards', async () => {
+    // Arrange
+    const updateSettingsCalls = []
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: {} },
+      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+    })
+    // Act
+    wrapper.vm.toggleCardVisibility('short')
+    // Assert
+    expect(updateSettingsCalls.length).toBe(1)
+    expect(updateSettingsCalls[0].hiddenCards).toContain('short')
+  })
+
+  test('test_EnhancedQuoteV3_toggleCardVisibility_with_hidden_card_expect_removed_from_hiddenCards', async () => {
+    // Arrange: 'short' already hidden
+    const updateSettingsCalls = []
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { hiddenCards: ['short'] } },
+      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+    })
+    // Act: toggle again to re-show
+    wrapper.vm.toggleCardVisibility('short')
+    // Assert: 'short' removed from hiddenCards
+    expect(updateSettingsCalls[0].hiddenCards).not.toContain('short')
+  })
+
+  test('test_EnhancedQuoteV3_toggleCardChips_with_normal_card_expect_added_to_chipCards', () => {
+    // Arrange
+    const updateSettingsCalls = []
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: {} },
+      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+    })
+    // Act
+    wrapper.vm.toggleCardChips('prev')
+    // Assert
+    expect(updateSettingsCalls[0].chipCards).toContain('prev')
+  })
+
+  test('test_EnhancedQuoteV3_toggleCardChips_with_chip_card_expect_removed_from_chipCards', () => {
+    // Arrange: 'prev' already in chips mode
+    const updateSettingsCalls = []
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { chipCards: ['prev'] } },
+      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
+    })
+    // Act: toggle off
+    wrapper.vm.toggleCardChips('prev')
+    // Assert
+    expect(updateSettingsCalls[0].chipCards).not.toContain('prev')
+  })
+
+  test('test_EnhancedQuoteV3_hidden_tray_visible_when_cards_hidden_in_edit_mode', async () => {
+    // Arrange: 'short' hidden, edit mode
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { hiddenCards: ['short'] } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await wrapper.vm.$nextTick()
+    // Assert: tray visible with the hidden card's label
+    const tray = wrapper.find('.eqv3-hidden-tray')
+    expect(tray.exists()).toBe(true)
+    expect(tray.text()).toContain('Short Interest')
+  })
+
+  test('test_EnhancedQuoteV3_hidden_tray_not_visible_when_locked', async () => {
+    // Arrange: 'short' hidden but widget is locked
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: true, settings: { hiddenCards: ['short'] } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await wrapper.vm.$nextTick()
+    // Assert: tray not visible when locked
+    expect(wrapper.find('.eqv3-hidden-tray').exists()).toBe(false)
+  })
+
+  test('test_EnhancedQuoteV3_hidden_card_absent_from_visible_layout', async () => {
+    // Arrange: hide 'volume'
+    const wrapper = mount(EnhancedQuoteV3, {
+      props: { isLocked: false, settings: { hiddenCards: ['volume'] } },
+    })
+    wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.vm.$nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await wrapper.vm.$nextTick()
+    // Assert: volume card not rendered in the column
+    expect(wrapper.find('.eqv3-volume-card').exists()).toBe(false)
+    // But it appears in the tray
+    expect(wrapper.find('.eqv3-hidden-tray').text()).toContain('Volume')
+  })
+})
+
 describe('Exposed interface', () => {
   test('test_EnhancedQuoteV3_exposes_required_properties', () => {
     // Arrange / Act
@@ -951,6 +1117,12 @@ describe('Exposed interface', () => {
     expect(wrapper.vm.shortInterestData).toBeDefined()
     expect(wrapper.vm.shortInterestLoading).toBeDefined()
     expect(wrapper.vm.activeCards).toBeDefined()
+    expect(wrapper.vm.visibleCards).toBeDefined()
+    expect(wrapper.vm.hiddenCards).toBeDefined()
+    expect(wrapper.vm.hiddenCardIds).toBeDefined()
+    expect(wrapper.vm.chipCardIds).toBeDefined()
+    expect(typeof wrapper.vm.toggleCardVisibility).toBe('function')
+    expect(typeof wrapper.vm.toggleCardChips).toBe('function')
     expect(wrapper.vm.isDragging).toBeDefined()
     expect(wrapper.vm.logoUrl).toBeDefined()
     expect(wrapper.vm.iconUrl).toBeDefined()
