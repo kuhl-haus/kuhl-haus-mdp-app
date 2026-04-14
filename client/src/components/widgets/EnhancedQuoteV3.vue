@@ -92,8 +92,8 @@
                   <span v-if="!isLocked" class="eqv3-drag-handle" title="Drag to reorder">⠿</span>
                   {{ card.label }}
                   <span v-if="!isLocked" class="eqv3-card-controls">
-                    <button class="eqv3-card-toggle" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? '👁‍🗨' : '👁' }}</button>
-                    <button v-if="card.chipsCapable" class="eqv3-card-toggle" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? '◧' : '▦' }}</button>
+                    <button :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': hiddenCardIds.has(card.id) }]" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? 'show' : 'hide' }}</button>
+                    <button v-if="card.chipsCapable" :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': chipCardIds.has(card.id) }]" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? 'chips' : 'list' }}</button>
                   </span>
                 </div>
 
@@ -250,8 +250,8 @@
                     <span v-if="!isLocked" class="eqv3-drag-handle" title="Drag to reorder">⠿</span>
                     {{ card.label }}
                     <span v-if="!isLocked" class="eqv3-card-controls">
-                      <button class="eqv3-card-toggle" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? '👁‍🗨' : '👁' }}</button>
-                      <button v-if="card.chipsCapable" class="eqv3-card-toggle" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? '◧' : '▦' }}</button>
+                      <button :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': hiddenCardIds.has(card.id) }]" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? 'show' : 'hide' }}</button>
+                      <button v-if="card.chipsCapable" :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': chipCardIds.has(card.id) }]" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? 'chips' : 'list' }}</button>
                     </span>
                   </div>
 
@@ -406,8 +406,8 @@
                     <span v-if="!isLocked" class="eqv3-drag-handle" title="Drag to reorder">⠿</span>
                     {{ card.label }}
                     <span v-if="!isLocked" class="eqv3-card-controls">
-                      <button class="eqv3-card-toggle" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? '👁‍🗨' : '👁' }}</button>
-                      <button v-if="card.chipsCapable" class="eqv3-card-toggle" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? '◧' : '▦' }}</button>
+                      <button :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': hiddenCardIds.has(card.id) }]" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? 'show' : 'hide' }}</button>
+                      <button v-if="card.chipsCapable" :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': chipCardIds.has(card.id) }]" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? 'chips' : 'list' }}</button>
                     </span>
                   </div>
 
@@ -552,7 +552,7 @@
           <div class="eqv3-hidden-tray-items">
             <div v-for="card in hiddenCards" :key="card.id" class="eqv3-hidden-tray-item">
               <span class="eqv3-hidden-tray-name">{{ card.label }}</span>
-              <button class="eqv3-card-toggle" title="Show card" @click="toggleCardVisibility(card.id)">👁</button>
+              <button class="eqv3-card-toggle eqv3-card-toggle--active" title="Show card" @click="toggleCardVisibility(card.id)">show</button>
             </div>
           </div>
         </div>
@@ -1235,16 +1235,20 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   margin-left: auto;
 }
 .eqv3-card-toggle {
-  background: none;
-  border: none;
-  padding: 0 2px;
-  cursor: pointer;
+  padding: 2px 7px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #888;
   font-size: 11px;
-  line-height: 1;
-  opacity: 0.6;
-  transition: opacity 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  line-height: 1.4;
 }
-.eqv3-card-toggle:hover { opacity: 1; }
+.eqv3-card-toggle:hover { background: #1a1a1a; color: #aaa; }
+.eqv3-card-toggle--active { border-color: var(--pd-accent, #60a5fa); color: var(--pd-accent, #60a5fa); }
+.eqv3-card-toggle--active:hover { background: rgba(96,165,250,0.08); }
 
 /* ── Generic chip row (today, volume, short, prev chips mode) ── */
 .eqv3-chip-row {
@@ -1414,6 +1418,9 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   color: var(--text-primary);
   white-space: nowrap;
 }
+.eqv3-chip-val.extreme { color: #dc2626; font-weight: 700; }
+.eqv3-chip-val.high    { color: #f97316; font-weight: 600; }
+.eqv3-chip-val.medium  { color: #eab308; }
 
 /* ── Splits ── */
 .eqv3-splits {
