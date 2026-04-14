@@ -1507,7 +1507,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   }
   .eqv3-col-1 { flex: 1; }
   .eqv3-col-2 { display: flex; flex: 1; }
-  .eqv3-company-card { max-width: 50%; }
 }
 
 /* ── FULL mode (960px+): hero left, single horizontal card row right ── */
@@ -1558,7 +1557,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     min-width: 140px;
     align-self: stretch;
   }
-  .eqv3-full-row-draggable .eqv3-company-card { min-width: 200px; }
+  .eqv3-full-row-draggable .eqv3-company-card { min-width: 200px; max-width: 50%; }
   .eqv3-full-row-draggable .eqv3-prev-card    { min-width: 200px; }
 }
 </style>
