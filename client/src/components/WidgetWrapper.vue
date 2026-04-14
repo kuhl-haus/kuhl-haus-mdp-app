@@ -91,7 +91,8 @@ const widgetComponents = {
   'company-news': CompanyNews,
   'news-feed':   NewsFeed,
   'quote':           Quote,
-  'enhanced-quote-v3': EnhancedQuoteV3,
+  'enhanced-quote':    EnhancedQuoteV3,
+  'enhanced-quote-v3': EnhancedQuoteV3,  // backward-compat alias
 }
 
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
