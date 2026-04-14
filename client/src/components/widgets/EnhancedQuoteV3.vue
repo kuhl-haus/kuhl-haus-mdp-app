@@ -12,9 +12,9 @@
         @keyup.escape="inputTicker = ''"
       />
       <button class="eqv3-go-btn" @click="applyInput" @touchend.prevent="applyInput" title="Load quote">Go</button>
-      <!-- Branding toggle — only in edit mode when both URLs are available -->
+      <!-- Branding toggle — only in edit mode -->
       <button
-        v-if="!isLocked && logoUrl && iconUrl"
+        v-if="!isLocked"
         class="eqv3-branding-toggle"
         :title="brandingMode === 'logo' ? 'Switch to icon' : 'Switch to logo'"
         @click="toggleBranding"

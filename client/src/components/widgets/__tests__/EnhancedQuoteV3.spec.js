@@ -454,7 +454,7 @@ describe('Massive API — company data', () => {
     expect(updateSettingsCalls[1].brandingMode).toBe('logo')
   })
 
-  test('test_EnhancedQuoteV3_branding_toggle_button_visible_only_when_unlocked_and_both_urls_present', async () => {
+  test('test_EnhancedQuoteV3_branding_toggle_button_visible_only_when_unlocked', async () => {
     // Arrange: unlocked, both urls available
     mockMassiveFetch()
     const wrapper = mount(EnhancedQuoteV3, {
@@ -474,7 +474,7 @@ describe('Massive API — company data', () => {
     expect(wrapper.find('.eqv3-branding-toggle').exists()).toBe(false)
   })
 
-  test('test_EnhancedQuoteV3_branding_toggle_hidden_when_only_one_url_available', async () => {
+  test('test_EnhancedQuoteV3_branding_toggle_visible_when_only_one_url_available', async () => {
     // Arrange: only logo_url, no icon_url
     const tickerLogoOnly = {
       results: {
@@ -491,13 +491,14 @@ describe('Massive API — company data', () => {
       props: { isLocked: false, settings: {} },
     })
     wrapper.vm.manualTicker = 'TSLA'
+    await wrapper.setProps({ settings: { brandingMode: 'icon' } })
     await wrapper.vm.$nextTick()
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await new Promise(r => setTimeout(r, 0))
     await wrapper.vm.$nextTick()
 
-    // Assert: toggle hidden (only one url available)
-    expect(wrapper.find('.eqv3-branding-toggle').exists()).toBe(false)
+    // Assert: toggle shown (only one url available)
+    expect(wrapper.find('.eqv3-branding-toggle').exists()).toBe(true)
     // But logo still renders
     expect(wrapper.find('.eqv3-logo').exists()).toBe(true)
   })
