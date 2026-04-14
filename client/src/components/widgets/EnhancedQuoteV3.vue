@@ -1507,7 +1507,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   }
   .eqv3-col-1 { flex: 1; }
   .eqv3-col-2 { display: flex; flex: 1; }
-  .eqv3-company-card { max-width: 50%; }
 }
 
 /* ── FULL mode (960px+): hero left, single horizontal card row right ── */
