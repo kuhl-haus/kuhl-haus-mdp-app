@@ -1557,7 +1557,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     min-width: 140px;
     align-self: stretch;
   }
-  .eqv3-full-row-draggable .eqv3-company-card { min-width: 200px; max-width: 50%; }
+  .eqv3-full-row-draggable .eqv3-company-card { min-width: 200px; max-width: 250px; }
   .eqv3-full-row-draggable .eqv3-prev-card    { min-width: 200px; }
 }
 </style>
