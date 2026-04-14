@@ -73,7 +73,7 @@
       <!-- Adaptive sections -->
       <div :class="['eqv3-sections', { 'eqv3-dragging': isDragging }]">
 
-        <!-- FULL mode (≥960px): single horizontal draggable row — hero left, all cards right -->
+        <!-- FULL mode (≥1024px): single horizontal draggable row — hero left, all cards right -->
         <template v-if="layoutMode === 'full'">
           <draggable
             :model-value="fullRowCards"
@@ -584,7 +584,7 @@ import EQV3CompanyCard from './EQV3CompanyCard.vue'
 import { fmtVol } from './eqv3Utils.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
-const BREAKPOINTS = { WIDE: 480, FULL: 960 }
+const BREAKPOINTS = { WIDE: 360, FULL: 1024 }
 
 // Card registry — defines the set of draggable cards and their default order.
 // chipsCapable: whether the card supports a chip render mode (company excluded).
@@ -1468,8 +1468,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   opacity: 0.7;
 }
 
-/* ── Sections: narrow (< 480px) — single flex column ── */
-/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=480, FULL=960 */
+/* ── Sections: narrow (< 360px) — single flex column ── */
+/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=360, FULL=1024 */
 .eqv3-sections {
   display: flex;
   flex-direction: column;
@@ -1495,8 +1495,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   min-width: 0;
 }
 
-/* ── WIDE mode (480px+): two flex columns ── */
-@container (min-width: 480px) {
+/* ── WIDE mode (360px+): two flex columns ── */
+@container (min-width: 360px) {
   .eqv3-symbol { font-size: 20px; }
   .eqv3-price  { font-size: 26px; }
 
@@ -1509,8 +1509,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv3-col-2 { display: flex; flex: 1; }
 }
 
-/* ── FULL mode (960px+): hero left, single horizontal card row right ── */
-@container (min-width: 960px) {
+/* ── FULL mode (1024px+): hero left, single horizontal card row right ── */
+@container (min-width: 1024px) {
   .eqv3-symbol { font-size: 22px; }
   .eqv3-price  { font-size: 30px; }
 
@@ -1527,7 +1527,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     align-items: flex-start;
     justify-content: flex-start;
     flex-shrink: 0;
-    width: 360px;
+    width: 200px;
     align-self: stretch;
   }
   /* Full-mode column order: symbol (1), price (2), identity (3) */
