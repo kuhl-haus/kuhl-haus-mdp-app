@@ -240,8 +240,8 @@ describe('Price hero', () => {
     expect(badge.text()).toContain('-3.50')
   })
 
-  test('test_EnhancedQuoteV3_with_quote_data_expect_previous_day_chips_rendered', async () => {
-    // Arrange
+  test('test_EnhancedQuoteV3_with_quote_data_expect_previous_day_kv_list_rendered_in_col', async () => {
+    // Arrange: narrow mode (default) — prev card is now a regular draggable card in col1
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
     await wrapper.vm.$nextTick()
@@ -250,16 +250,17 @@ describe('Price hero', () => {
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
 
-    // Assert: pinned prev-row at narrow has 6 chips
-    const chips = wrapper.findAll('.eqv3-chip')
-    expect(chips.length).toBe(6)
-    const labels = chips.map(c => c.find('.eqv3-chip-label').text())
-    expect(labels).toContain('O')
-    expect(labels).toContain('H')
-    expect(labels).toContain('L')
-    expect(labels).toContain('C')
-    expect(labels).toContain('Vol')
-    expect(labels).toContain('VWAP')
+    // Assert: prev card rendered as kv-list inside the column draggable (no pinned row)
+    expect(wrapper.find('.eqv3-prev-row').exists()).toBe(false)
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    expect(prevCard.exists()).toBe(true)
+    const kvLabels = prevCard.findAll('.eqv3-k').map(el => el.text())
+    expect(kvLabels).toContain('Open')
+    expect(kvLabels).toContain('High')
+    expect(kvLabels).toContain('Low')
+    expect(kvLabels).toContain('Close')
+    expect(kvLabels).toContain('Volume')
+    expect(kvLabels).toContain('VWAP')
   })
 })
 
@@ -683,9 +684,8 @@ describe('Card layout and settings', () => {
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
 
-    // Act: simulate col1 reorder then drag end (narrow mode — all non-prev cards in col1)
-    // At narrow, col1Cards excludes 'prev'; onDragEnd appends 'prev' at end
-    const reordered = ['today', 'session', 'volume', 'short', 'company']
+    // Act: simulate col1 reorder then drag end (narrow mode — all cards in col1 including prev)
+    const reordered = ['today', 'session', 'prev', 'volume', 'short', 'company']
     wrapper.vm.onColReorder(
       reordered.map(id => ({ id, label: id })),
       1
@@ -693,9 +693,9 @@ describe('Card layout and settings', () => {
     await wrapper.vm.onDragEnd()
     await wrapper.vm.$nextTick()
 
-    // Assert: saved order is reordered cards + 'prev' appended at end
+    // Assert: saved order reflects the reordered list directly (no special-casing for prev)
     expect(updateSettingsCalls.length).toBe(1)
-    expect(updateSettingsCalls[0].cardOrder).toEqual([...reordered, 'prev'])
+    expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
   })
 
   test('test_EnhancedQuoteV3_with_narrow_layout_default_expect_col2_not_rendered', async () => {
@@ -759,7 +759,7 @@ describe('Card layout and settings', () => {
     expect(wrapper.vm.col3Cards).toEqual([])
   })
 
-  test('test_EnhancedQuoteV3_prev_is_in_activeCards_and_pinned_at_narrow_in_draggable_at_full', async () => {
+  test('test_EnhancedQuoteV3_prev_is_draggable_in_all_layouts', async () => {
     // Arrange: narrow mode (default)
     const wrapper = mountWidget()
     wrapper.vm.manualTicker = 'TSLA'
@@ -767,13 +767,12 @@ describe('Card layout and settings', () => {
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
 
-    // Assert at narrow: prev-row exists as pinned element
-    expect(wrapper.find('.eqv3-prev-row').exists()).toBe(true)
-    expect(wrapper.find('.eqv3-prev-card').exists()).toBe(true)
-    // prev IS in activeCards (it drives both the pinned row and the full-mode card)
+    // Assert at narrow: prev is in activeCards and rendered as a regular card, no pinned row
+    expect(wrapper.find('.eqv3-prev-row').exists()).toBe(false)
     expect(wrapper.vm.activeCards.map(c => c.id)).toContain('prev')
+    expect(wrapper.find('.eqv3-prev-card').exists()).toBe(true)
 
-    // At full mode: fullRowCards includes prev (it becomes a draggable card)
+    // At full mode: prev is also in fullRowCards
     wrapper.vm.layoutMode = 'full'
     await wrapper.vm.$nextTick()
     expect(wrapper.vm.fullRowCards.map(c => c.id)).toContain('prev')
@@ -880,9 +879,11 @@ describe('Full mode — chips-to-kv-list rendering', () => {
     // layoutMode defaults to narrow
     await wrapper.vm.$nextTick()
 
-    // Assert: chips still present in col-1 at narrow
+    // Assert: session chips still present in col-1 at narrow
     expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
-    expect(wrapper.find('.eqv3-prev-row .eqv3-prev-chips').exists()).toBe(true)
+    // prev card rendered as kv-list (no chips) inside the column draggable
+    expect(wrapper.find('.eqv3-prev-row').exists()).toBe(false)
+    expect(wrapper.find('.eqv3-prev-card').exists()).toBe(true)
     // And full-row draggable does not exist at narrow
     expect(wrapper.find('.eqv3-full-row-draggable').exists()).toBe(false)
   })
