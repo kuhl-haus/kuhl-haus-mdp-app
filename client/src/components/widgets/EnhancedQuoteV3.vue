@@ -1527,7 +1527,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
     align-items: flex-start;
     justify-content: flex-start;
     flex-shrink: 0;
-    width: 360px;
+    width: 200px;
     align-self: stretch;
   }
   /* Full-mode column order: symbol (1), price (2), identity (3) */
