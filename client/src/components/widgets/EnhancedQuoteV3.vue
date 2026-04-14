@@ -1247,8 +1247,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   line-height: 1.4;
 }
 .eqv3-card-toggle:hover { background: #1a1a1a; color: #aaa; }
-.eqv3-card-toggle--active { border-color: var(--pd-accent, #60a5fa); color: var(--pd-accent, #60a5fa); }
-.eqv3-card-toggle--active:hover { background: rgba(96,165,250,0.08); }
+.eqv3-card-toggle--active { border-color: var(--pd-accent, #7c3aed); color: var(--pd-accent, #7c3aed); }
+.eqv3-card-toggle--active:hover { background: rgba(124,58,237,0.08); }
 
 /* ── Generic chip row (today, volume, short, prev chips mode) ── */
 .eqv3-chip-row {
