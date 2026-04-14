@@ -152,7 +152,7 @@
                   />
                 </template>
 
-                <!-- Previous Day — kv-list at full mode, chips at narrow/wide -->
+                <!-- Previous Day — kv-list in all layouts -->
                 <template v-else-if="card.id === 'prev'">
                   <div class="eqv3-kv-list">
                     <div class="eqv3-kv"><span class="eqv3-k">Open</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
@@ -169,7 +169,7 @@
           </draggable>
         </template>
 
-        <!-- NARROW / WIDE mode: two columns + pinned Previous Day row -->
+        <!-- NARROW / WIDE mode: two columns -->
         <template v-else>
           <!-- Col 1: all cards at narrow; first half at wide -->
           <div class="eqv3-col eqv3-col-1">
@@ -255,6 +255,18 @@
                     </div>
                   </template>
 
+                  <!-- Previous Day -->
+                  <template v-else-if="card.id === 'prev'">
+                    <div class="eqv3-kv-list">
+                      <div class="eqv3-kv"><span class="eqv3-k">Open</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">High</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">Low</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">Close</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">Volume</span><span class="eqv3-v">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">VWAP</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+                    </div>
+                  </template>
+
                   <!-- Company -->
                   <template v-else-if="card.id === 'company'">
                     <EQV3CompanyCard
@@ -314,6 +326,18 @@
                     />
                   </template>
 
+                  <!-- Previous Day (if reordered into col-2) -->
+                  <template v-else-if="card.id === 'prev'">
+                    <div class="eqv3-kv-list">
+                      <div class="eqv3-kv"><span class="eqv3-k">Open</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">High</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">Low</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">Close</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">Volume</span><span class="eqv3-v">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
+                      <div class="eqv3-kv"><span class="eqv3-k">VWAP</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+                    </div>
+                  </template>
+
                   <!-- Session / Today / Volume (if reordered into col-2) -->
                   <template v-else-if="card.id === 'session'">
                     <div class="eqv3-session-chips">
@@ -358,20 +382,6 @@
             </draggable>
           </div>
 
-          <!-- Previous Day: always full-width at bottom — NOT part of draggable list -->
-          <div class="eqv3-prev-row">
-            <div class="eqv3-card eqv3-prev-card">
-              <div class="eqv3-card-label">Previous Day</div>
-              <div class="eqv3-prev-chips">
-                <div class="eqv3-chip"><span class="eqv3-chip-label">O</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-                <div class="eqv3-chip"><span class="eqv3-chip-label">H</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-                <div class="eqv3-chip"><span class="eqv3-chip-label">L</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-                <div class="eqv3-chip"><span class="eqv3-chip-label">C</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-                <div class="eqv3-chip"><span class="eqv3-chip-label">Vol</span><span class="eqv3-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-                <div class="eqv3-chip"><span class="eqv3-chip-label">VWAP</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
-              </div>
-            </div>
-          </div>
         </template>
       </div>
 
@@ -404,8 +414,7 @@ import { fmtVol } from './eqv3Utils.js'
 const BREAKPOINTS = { WIDE: 480, FULL: 960 }
 
 // Card registry — defines the set of draggable cards and their default order.
-// At full mode (≥960px), 'prev' is a draggable card in the flat row.
-// At narrow/wide, 'prev' is pinned full-width at the bottom (excluded from column lists).
+// 'prev' is a regular draggable card in all layouts.
 const CARD_REGISTRY = [
   { id: 'today',   label: 'Today'          },
   { id: 'prev',    label: 'Previous Day'   },
@@ -445,18 +454,16 @@ const activeCards = computed(() => {
   return [...saved, ...missing]
 })
 
-// Distribute activeCards (excluding 'prev') across columns at narrow/wide mode.
+// Distribute activeCards across columns at narrow/wide mode.
 // At full mode, fullRowCards is used instead — these computeds are not rendered.
 const col1Cards = computed(() => {
-  const cards = activeCards.value.filter(c => c.id !== 'prev')
-  if (isNarrow.value) return cards
-  return cards.slice(0, Math.ceil(cards.length / 2))
+  if (isNarrow.value) return activeCards.value
+  return activeCards.value.slice(0, Math.ceil(activeCards.value.length / 2))
 })
 
 const col2Cards = computed(() => {
   if (isNarrow.value) return []
-  const cards = activeCards.value.filter(c => c.id !== 'prev')
-  return cards.slice(Math.ceil(cards.length / 2))
+  return activeCards.value.slice(Math.ceil(activeCards.value.length / 2))
 })
 
 const col3Cards = computed(() => [])  // no longer used; kept for API compatibility
@@ -480,21 +487,19 @@ const onColReorder = (newVal, colNum) => {
 }
 
 // Drag end for narrow/wide column layout.
-// 'prev' is always pinned outside the draggable lists at narrow/wide, so append it
-// at the end of the saved order (its position only matters at full mode).
 const onDragEnd = async () => {
   isDragging.value = false
   await nextTick()
   await nextTick()
   const c1 = _col1.value ?? col1Cards.value
   const c2 = _col2.value ?? col2Cards.value
-  const orderedNonPrev = isNarrow.value
+  const ordered = isNarrow.value
     ? c1.map(c => c.id)
     : [...c1, ...c2].map(c => c.id)
   _col1.value = null
   _col2.value = null
   _col3.value = null
-  emit('update-settings', { ...props.settings, cardOrder: [...orderedNonPrev, 'prev'] })
+  emit('update-settings', { ...props.settings, cardOrder: ordered })
 }
 
 // Full-mode flat row reorder — fires from @update:model-value (after vuedraggable updates the list).
@@ -1110,12 +1115,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 .eqv3-rv-val.high    { color: #f97316; font-weight: 600; }
 .eqv3-rv-val.medium  { color: #eab308; }
 
-/* ── Previous Day chips ── */
-.eqv3-prev-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+
 .eqv3-chip {
   display: flex;
   flex-direction: column;
@@ -1205,9 +1205,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 /* Col-2 hidden at narrow */
 .eqv3-col-2 { display: none; }
 
-/* Previous Day pinned row: full width at narrow/wide */
-.eqv3-prev-row { width: 100%; }
-
 /* Full-row draggable: horizontal flex, cards stretch to equal height */
 .eqv3-full-row-draggable {
   display: flex;
@@ -1230,7 +1227,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   }
   .eqv3-col-1 { flex: 1; }
   .eqv3-col-2 { display: flex; flex: 1; }
-  .eqv3-prev-row { flex-basis: 100%; }
 }
 
 /* ── FULL mode (960px+): hero left, single horizontal card row right ── */
@@ -1283,6 +1279,5 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   }
   .eqv3-full-row-draggable .eqv3-company-card { min-width: 200px; }
   .eqv3-full-row-draggable .eqv3-prev-card    { min-width: 200px; }
-  .eqv3-prev-row { display: none; }
 }
 </style>
