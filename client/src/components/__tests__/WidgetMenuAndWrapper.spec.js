@@ -13,9 +13,6 @@ describe('WidgetMenu', () => {
     await wrapper.find('.menu-toggle').trigger('click')
 
     // Assert
-    const buttons = wrapper.findAll('.widget-button')
-    const types = buttons.map(b => b.attributes('data-type') ?? b.text())
-    // Find the EQv4 entry by checking emitted value or button text
     expect(wrapper.text()).toContain('Enhanced Quote V4')
   })
 
