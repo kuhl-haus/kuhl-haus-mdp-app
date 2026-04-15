@@ -4,25 +4,25 @@
       <div class="eqv4-session-chips">
         <div class="eqv4-session-chip">
           <span class="eqv4-chip-label">PRE</span>
-          <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv4-session-chip-vals">
-            <span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span>
-            <span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span>
+          <div v-if="quoteData?.pre_market_high != null || quoteData?.pre_market_low != null" class="eqv4-session-chip-vals">
+            <span>H: ${{ fmt(quoteData?.pre_market_high, 2) }}</span>
+            <span>L: ${{ fmt(quoteData?.pre_market_low, 2) }}</span>
           </div>
           <div v-else class="eqv4-session-chip-vals eqv4-muted-val">—</div>
         </div>
         <div class="eqv4-session-chip">
           <span class="eqv4-chip-label">REG</span>
-          <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv4-session-chip-vals">
-            <span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span>
-            <span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span>
+          <div v-if="quoteData?.regular_session_high != null || quoteData?.regular_session_low != null" class="eqv4-session-chip-vals">
+            <span>H: ${{ fmt(quoteData?.regular_session_high, 2) }}</span>
+            <span>L: ${{ fmt(quoteData?.regular_session_low, 2) }}</span>
           </div>
           <div v-else class="eqv4-session-chip-vals eqv4-muted-val">—</div>
         </div>
         <div class="eqv4-session-chip">
           <span class="eqv4-chip-label">AH</span>
-          <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv4-session-chip-vals">
-            <span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span>
-            <span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span>
+          <div v-if="quoteData?.after_hours_high != null || quoteData?.after_hours_low != null" class="eqv4-session-chip-vals">
+            <span>H: ${{ fmt(quoteData?.after_hours_high, 2) }}</span>
+            <span>L: ${{ fmt(quoteData?.after_hours_low, 2) }}</span>
           </div>
           <div v-else class="eqv4-session-chip-vals eqv4-muted-val">—</div>
         </div>
@@ -30,12 +30,12 @@
     </template>
     <template v-else>
       <div class="eqv4-kv-list">
-        <div class="eqv4-kv"><span class="eqv4-k">Pre High</span><span class="eqv4-v">{{ quoteData.pre_market_high != null ? '$' + fmt(quoteData.pre_market_high, 2) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Pre Low</span><span class="eqv4-v">{{ quoteData.pre_market_low != null ? '$' + fmt(quoteData.pre_market_low, 2) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Reg High</span><span class="eqv4-v">{{ quoteData.regular_session_high != null ? '$' + fmt(quoteData.regular_session_high, 2) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Reg Low</span><span class="eqv4-v">{{ quoteData.regular_session_low != null ? '$' + fmt(quoteData.regular_session_low, 2) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">AH High</span><span class="eqv4-v">{{ quoteData.after_hours_high != null ? '$' + fmt(quoteData.after_hours_high, 2) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">AH Low</span><span class="eqv4-v">{{ quoteData.after_hours_low != null ? '$' + fmt(quoteData.after_hours_low, 2) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Pre High</span><span class="eqv4-v">{{ quoteData?.pre_market_high != null ? '$' + fmt(quoteData?.pre_market_high, 2) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Pre Low</span><span class="eqv4-v">{{ quoteData?.pre_market_low != null ? '$' + fmt(quoteData?.pre_market_low, 2) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Reg High</span><span class="eqv4-v">{{ quoteData?.regular_session_high != null ? '$' + fmt(quoteData?.regular_session_high, 2) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Reg Low</span><span class="eqv4-v">{{ quoteData?.regular_session_low != null ? '$' + fmt(quoteData?.regular_session_low, 2) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">AH High</span><span class="eqv4-v">{{ quoteData?.after_hours_high != null ? '$' + fmt(quoteData?.after_hours_high, 2) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">AH Low</span><span class="eqv4-v">{{ quoteData?.after_hours_low != null ? '$' + fmt(quoteData?.after_hours_low, 2) : '—' }}</span></div>
       </div>
     </template>
   </div>
@@ -45,7 +45,7 @@
 import { fmt } from './eqv3Utils.js'
 
 defineProps({
-  quoteData:  { type: Object,  required: true },
+  quoteData:  { type: Object,  default: null },
   isLocked:   { type: Boolean, default: true },
   chipsMode:  { type: Boolean, default: false },
 })

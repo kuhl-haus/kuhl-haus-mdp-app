@@ -2,22 +2,22 @@
   <div class="eqv4-card-body">
     <template v-if="chipsMode">
       <div class="eqv4-chip-row">
-        <div class="eqv4-chip"><span class="eqv4-chip-label">Vol</span><span class="eqv4-chip-val">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">Avg</span><span class="eqv4-chip-val">{{ fmtVol(quoteData.avg_volume) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">Vol</span><span class="eqv4-chip-val">{{ fmtVol(quoteData?.accumulated_volume) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">Avg</span><span class="eqv4-chip-val">{{ fmtVol(quoteData?.avg_volume) }}</span></div>
         <div class="eqv4-chip"><span class="eqv4-chip-label">Float</span><span class="eqv4-chip-val">{{ fmtVol(floatShares) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">RVol</span><span :class="['eqv4-chip-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">RVol</span><span :class="['eqv4-chip-val', relVolClass]">{{ fmt(quoteData?.relative_volume, 2) }}x</span></div>
       </div>
     </template>
     <template v-else>
       <div class="eqv4-kv-list">
-        <div class="eqv4-kv"><span class="eqv4-k">Volume</span><span class="eqv4-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Avg Vol</span><span class="eqv4-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Volume</span><span class="eqv4-v">{{ fmtVol(quoteData?.accumulated_volume) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Avg Vol</span><span class="eqv4-v">{{ fmtVol(quoteData?.avg_volume) }}</span></div>
         <div class="eqv4-kv"><span class="eqv4-k">Float</span><span class="eqv4-v">{{ fmtVol(floatShares) }}</span></div>
       </div>
       <div class="eqv4-rv-row">
         <span class="eqv4-k">Rel. Vol</span>
         <div class="eqv4-rv-bar-wrap"><div class="eqv4-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div></div>
-        <span :class="['eqv4-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
+        <span :class="['eqv4-rv-val', relVolClass]">{{ fmt(quoteData?.relative_volume, 2) }}x</span>
       </div>
     </template>
   </div>
@@ -28,7 +28,7 @@ import { computed } from 'vue'
 import { fmt, fmtVol } from './eqv3Utils.js'
 
 const props = defineProps({
-  quoteData:  { type: Object,  required: true },
+  quoteData:  { type: Object,  default: null },
   isLocked:   { type: Boolean, default: true },
   chipsMode:  { type: Boolean, default: false },
 })

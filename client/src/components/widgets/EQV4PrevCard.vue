@@ -2,22 +2,22 @@
   <div class="eqv4-card-body">
     <template v-if="chipsMode">
       <div class="eqv4-chip-row">
-        <div class="eqv4-chip"><span class="eqv4-chip-label">O</span><span class="eqv4-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">H</span><span class="eqv4-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">L</span><span class="eqv4-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">C</span><span class="eqv4-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">Vol</span><span class="eqv4-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">VWAP</span><span class="eqv4-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">O</span><span class="eqv4-chip-val">${{ fmt(quoteData?.prev_day_open, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">H</span><span class="eqv4-chip-val">${{ fmt(quoteData?.prev_day_high, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">L</span><span class="eqv4-chip-val">${{ fmt(quoteData?.prev_day_low, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">C</span><span class="eqv4-chip-val">${{ fmt(quoteData?.prev_day_close, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">Vol</span><span class="eqv4-chip-val">{{ fmtVol(quoteData?.prev_day_volume) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">VWAP</span><span class="eqv4-chip-val">${{ fmt(quoteData?.prev_day_vwap, 2) }}</span></div>
       </div>
     </template>
     <template v-else>
       <div class="eqv4-kv-list">
-        <div class="eqv4-kv"><span class="eqv4-k">Open</span><span class="eqv4-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">High</span><span class="eqv4-v">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Low</span><span class="eqv4-v">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Close</span><span class="eqv4-v">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Volume</span><span class="eqv4-v">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">VWAP</span><span class="eqv4-v">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Open</span><span class="eqv4-v">${{ fmt(quoteData?.prev_day_open, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">High</span><span class="eqv4-v">${{ fmt(quoteData?.prev_day_high, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Low</span><span class="eqv4-v">${{ fmt(quoteData?.prev_day_low, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Close</span><span class="eqv4-v">${{ fmt(quoteData?.prev_day_close, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Volume</span><span class="eqv4-v">{{ fmtVol(quoteData?.prev_day_volume) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">VWAP</span><span class="eqv4-v">${{ fmt(quoteData?.prev_day_vwap, 2) }}</span></div>
       </div>
     </template>
   </div>
@@ -27,7 +27,7 @@
 import { fmt, fmtVol } from './eqv3Utils.js'
 
 defineProps({
-  quoteData:  { type: Object,  required: true },
+  quoteData:  { type: Object,  default: null },
   isLocked:   { type: Boolean, default: true },
   chipsMode:  { type: Boolean, default: false },
 })

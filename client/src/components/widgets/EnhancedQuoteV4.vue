@@ -14,23 +14,18 @@
       <button class="eqv4-go-btn" @click="applyInput" @touchend.prevent="applyInput" title="Load quote">Go</button>
     </div>
 
-    <!-- No ticker yet -->
-    <div v-if="!activeTicker" class="eqv4-empty">
+    <!-- Status overlay — shown over the grid when no ticker or no data yet -->
+    <div v-if="!activeTicker" class="eqv4-overlay">
       <span class="eqv4-empty-icon">⚡</span>
       <span class="eqv4-empty-text">Enter a ticker above, or link to a scanner and click a row</span>
     </div>
-
-    <!-- Ticker set, waiting for data -->
-    <div v-else-if="!quoteData" class="eqv4-empty">
+    <div v-else-if="!quoteData" class="eqv4-overlay">
       <span class="eqv4-empty-icon">⏳</span>
       <span class="eqv4-empty-text">Waiting for data for <strong>{{ activeTicker }}</strong>...</span>
     </div>
 
-    <!-- Quote data available -->
-    <div v-else class="eqv4-body">
-
-      <!-- Edit bar — always visible when unlocked, regardless of data state -->
-
+    <!-- Grid — always rendered so layout is visible and configurable immediately -->
+    <div class="eqv4-body">
       <GridLayout
         v-model:layout="internalLayout"
         :col-num="gridCols"
@@ -48,15 +43,31 @@
           :x="item.x" :y="item.y" :w="item.w" :h="item.h" :i="item.i"
           class="eqv4-grid-item"
         >
-          <!-- Card header: label + X button in edit mode -->
+          <!-- Card header: label + edit-mode controls -->
           <div class="eqv4-card-header">
             <span class="eqv4-card-label">{{ cardLabel(item.i) }}</span>
-            <button
-              v-if="!isLocked"
-              class="eqv4-card-remove"
-              title="Remove card"
-              @click="removeCard(item.i)"
-            >✕</button>
+            <span v-if="!isLocked" class="eqv4-card-controls">
+              <!-- Hero layout toggle -->
+              <button
+                v-if="item.i === 'hero'"
+                class="eqv4-card-toggle"
+                :title="heroMode === 'wide' ? 'Switch to narrow layout' : 'Switch to wide layout'"
+                @click="toggleHeroMode"
+              >{{ heroMode === 'wide' ? 'wide' : 'narrow' }}</button>
+              <!-- Chips toggle for chipsCapable cards -->
+              <button
+                v-if="isChipsCapable(item.i)"
+                :class="['eqv4-card-toggle', { 'eqv4-card-toggle--active': chipCardIds.has(item.i) }]"
+                :title="chipCardIds.has(item.i) ? 'Switch to list mode' : 'Switch to chips mode'"
+                @click="toggleCardChips(item.i)"
+              >{{ chipCardIds.has(item.i) ? 'chips' : 'list' }}</button>
+              <!-- Remove button -->
+              <button
+                class="eqv4-card-remove"
+                title="Remove card"
+                @click="removeCard(item.i)"
+              >✕</button>
+            </span>
           </div>
 
           <!-- Card body: dynamic component by card id -->
@@ -68,6 +79,7 @@
             :loading="item.i === 'short' ? shortInterestLoading : (item.i === 'company' ? companyLoading : false)"
             :is-locked="isLocked"
             :chips-mode="chipCardIds.has(item.i)"
+            :hero-mode="heroMode"
             :branding-mode="brandingMode"
             :active-branding-url="activeBrandingUrl"
             :flame-icon="flameIcon"
@@ -76,7 +88,6 @@
           />
         </GridItem>
       </GridLayout>
-
     </div>
 
     <!-- Edit bar — visible whenever unlocked, outside the data guard -->
@@ -171,6 +182,23 @@ const gridCols = computed(() => props.settings?.gridCols ?? 6)
 const gridRowHeight = computed(() => props.settings?.gridRowHeight ?? 40)
 const chipCardIds = computed(() => new Set(props.settings?.chipCards ?? []))
 const brandingMode = computed(() => props.settings?.brandingMode ?? 'logo')
+const heroMode = computed(() => props.settings?.heroMode ?? 'wide')
+
+// Cards that support chip render mode (company card does not)
+const CHIPS_CAPABLE = new Set(['today', 'prev', 'volume', 'session', 'short'])
+const isChipsCapable = (id) => CHIPS_CAPABLE.has(id)
+
+const toggleCardChips = (cardId) => {
+  const chips = new Set(props.settings?.chipCards ?? [])
+  if (chips.has(cardId)) chips.delete(cardId)
+  else chips.add(cardId)
+  emit('update-settings', { ...props.settings, chipCards: [...chips] })
+}
+
+const toggleHeroMode = () => {
+  const next = heroMode.value === 'wide' ? 'narrow' : 'wide'
+  emit('update-settings', { ...props.settings, heroMode: next })
+}
 
 const settingsCards = computed(() => {
   const c = props.settings?.cards
@@ -503,8 +531,11 @@ defineExpose({
   gridCols,
   gridRowHeight,
   chipCardIds,
+  heroMode,
   addCard,
   removeCard,
+  toggleCardChips,
+  toggleHeroMode,
   activeCardIds,
 })
 </script>
@@ -555,17 +586,21 @@ defineExpose({
   padding: 4px 10px;
   cursor: pointer;
 }
-.eqv4-empty {
+.eqv4-overlay {
+  position: absolute;
+  inset: 40px 0 0 0; /* below controls bar */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  flex: 1;
   color: var(--text-muted);
   font-size: 13px;
   padding: 24px;
   text-align: center;
+  background: rgba(13, 13, 18, 0.85);
+  z-index: 10;
+  pointer-events: none;
 }
 .eqv4-empty-icon { font-size: 28px; }
 .eqv4-body {
@@ -573,6 +608,7 @@ defineExpose({
   overflow: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 .eqv4-grid-item {
   background: var(--surface);
@@ -595,6 +631,32 @@ defineExpose({
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+.eqv4-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.eqv4-card-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 1px 5px;
+  cursor: pointer;
+  font-family: system-ui, sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+.eqv4-card-toggle:hover {
+  border-color: var(--pd-accent);
+  color: var(--pd-accent);
+}
+.eqv4-card-toggle--active {
+  border-color: var(--pd-accent);
+  color: var(--pd-accent);
 }
 .eqv4-card-remove {
   background: none;
