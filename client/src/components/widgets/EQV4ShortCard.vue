@@ -47,7 +47,7 @@ const allNull = computed(() => {
 .eqv4-v { font-family: 'Roboto Mono', monospace; font-size: 13px; color: var(--text-primary, #e2e8f0); text-align: right; }
 .eqv4-chip-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .eqv4-chip { display: flex; flex-direction: column; align-items: center; background: var(--surface, #141420); border: 1px solid var(--border, #2d2d3d); border-radius: 4px; padding: 3px 6px; min-width: 44px; }
-.eqv4-chip-label { font-size: 9px; color: var(--text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.05em; }
-.eqv4-chip-val { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--text-primary, #e2e8f0); }
+.eqv4-chip-label { font-size: 11px; color: var(--text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.05em; }
+.eqv4-chip-val { font-family: 'Roboto Mono', monospace; font-size: 14px; color: var(--text-primary, #e2e8f0); }
 .eqv4-muted-msg { font-size: 11px; color: var(--text-muted, #64748b); font-style: italic; }
 </style>
