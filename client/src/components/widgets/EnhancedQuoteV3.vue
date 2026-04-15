@@ -388,7 +388,7 @@
                           </draggable>
           </div>
 
-          <!-- Col 2: visible at wide and medium -->
+          <!-- Col 2: second half at wide -->
           <div v-if="!isNarrow" class="eqv3-col eqv3-col-2">
             <draggable
               :model-value="col2Cards"
@@ -544,166 +544,6 @@
                           </draggable>
           </div>
 
-          <!-- Col 3: visible at medium only -->
-          <div v-if="layoutMode === 'medium'" class="eqv3-col eqv3-col-3">
-            <draggable
-              :model-value="col3Cards"
-              group="eqv3-cards"
-              item-key="id"
-              :disabled="isLocked"
-              handle=".eqv3-drag-handle"
-              @start="isDragging = true"
-              @end="onDragEnd()"
-              @update:model-value="(val) => onColReorder(val, 3)"
-            >
-              <template #item="{ element: card }">
-                <div :key="card.id" :class="['eqv3-card', `eqv3-${card.id}-card`]">
-                  <div class="eqv3-card-label">
-                    <span v-if="!isLocked" class="eqv3-drag-handle" title="Drag to reorder">⠿</span>
-                    {{ card.label }}
-                    <span v-if="!isLocked" class="eqv3-card-controls">
-                      <button :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': hiddenCardIds.has(card.id) }]" :title="hiddenCardIds.has(card.id) ? 'Show card' : 'Hide card'" @click.stop="toggleCardVisibility(card.id)">{{ hiddenCardIds.has(card.id) ? 'show' : 'hide' }}</button>
-                      <button v-if="card.chipsCapable" :class="['eqv3-card-toggle', { 'eqv3-card-toggle--active': chipCardIds.has(card.id) }]" :title="chipCardIds.has(card.id) ? 'Normal mode' : 'Chips mode'" @click.stop="toggleCardChips(card.id)">{{ chipCardIds.has(card.id) ? 'chips' : 'list' }}</button>
-                    </span>
-                  </div>
-
-                  <!-- Session H/L -->
-                  <template v-if="card.id === 'session'">
-                    <template v-if="chipCardIds.has('session')">
-                      <div class="eqv3-session-chips">
-                        <div class="eqv3-session-chip"><span class="eqv3-chip-label">PRE</span>
-                          <div v-if="quoteData.pre_market_high != null || quoteData.pre_market_low != null" class="eqv3-session-chip-vals"><span>H: ${{ fmt(quoteData.pre_market_high, 2) }}</span><span>L: ${{ fmt(quoteData.pre_market_low, 2) }}</span></div>
-                          <div v-else class="eqv3-session-chip-vals eqv3-muted-val">—</div>
-                        </div>
-                        <div class="eqv3-session-chip"><span class="eqv3-chip-label">REG</span>
-                          <div v-if="quoteData.regular_session_high != null || quoteData.regular_session_low != null" class="eqv3-session-chip-vals"><span>H: ${{ fmt(quoteData.regular_session_high, 2) }}</span><span>L: ${{ fmt(quoteData.regular_session_low, 2) }}</span></div>
-                          <div v-else class="eqv3-session-chip-vals eqv3-muted-val">—</div>
-                        </div>
-                        <div class="eqv3-session-chip"><span class="eqv3-chip-label">AH</span>
-                          <div v-if="quoteData.after_hours_high != null || quoteData.after_hours_low != null" class="eqv3-session-chip-vals"><span>H: ${{ fmt(quoteData.after_hours_high, 2) }}</span><span>L: ${{ fmt(quoteData.after_hours_low, 2) }}</span></div>
-                          <div v-else class="eqv3-session-chip-vals eqv3-muted-val">—</div>
-                        </div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="eqv3-kv-list">
-                        <div class="eqv3-kv"><span class="eqv3-k">Pre High</span><span class="eqv3-v">{{ quoteData.pre_market_high != null ? '$' + fmt(quoteData.pre_market_high, 2) : '—' }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Pre Low</span><span class="eqv3-v">{{ quoteData.pre_market_low != null ? '$' + fmt(quoteData.pre_market_low, 2) : '—' }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Reg High</span><span class="eqv3-v">{{ quoteData.regular_session_high != null ? '$' + fmt(quoteData.regular_session_high, 2) : '—' }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Reg Low</span><span class="eqv3-v">{{ quoteData.regular_session_low != null ? '$' + fmt(quoteData.regular_session_low, 2) : '—' }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">AH High</span><span class="eqv3-v">{{ quoteData.after_hours_high != null ? '$' + fmt(quoteData.after_hours_high, 2) : '—' }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">AH Low</span><span class="eqv3-v">{{ quoteData.after_hours_low != null ? '$' + fmt(quoteData.after_hours_low, 2) : '—' }}</span></div>
-                      </div>
-                    </template>
-                  </template>
-
-                  <!-- Today -->
-                  <template v-else-if="card.id === 'today'">
-                    <template v-if="chipCardIds.has('today')">
-                      <div class="eqv3-chip-row">
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">O</span><span class="eqv3-chip-val">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">VWAP</span><span class="eqv3-chip-val">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="eqv3-kv-list">
-                        <div class="eqv3-kv"><span class="eqv3-k">Open</span><span class="eqv3-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">VWAP</span><span class="eqv3-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
-                      </div>
-                    </template>
-                  </template>
-
-                  <!-- Volume -->
-                  <template v-else-if="card.id === 'volume'">
-                    <template v-if="chipCardIds.has('volume')">
-                      <div class="eqv3-chip-row">
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">Vol</span><span class="eqv3-chip-val">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">Avg</span><span class="eqv3-chip-val">{{ fmtVol(quoteData.avg_volume) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">Float</span><span class="eqv3-chip-val">{{ fmtVol(floatShares) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">RVol</span><span :class="['eqv3-chip-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span></div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="eqv3-kv-list">
-                        <div class="eqv3-kv"><span class="eqv3-k">Volume</span><span class="eqv3-v">{{ fmtVol(quoteData.accumulated_volume) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Avg Vol</span><span class="eqv3-v">{{ fmtVol(quoteData.avg_volume) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Float</span><span class="eqv3-v">{{ fmtVol(floatShares) }}</span></div>
-                      </div>
-                      <div class="eqv3-rv-row">
-                        <span class="eqv3-k">Rel. Vol</span>
-                        <div class="eqv3-rv-bar-wrap"><div class="eqv3-rv-bar" :style="{ width: rvBarWidth, background: rvBarColor }"></div></div>
-                        <span :class="['eqv3-rv-val', relVolClass]">{{ fmt(quoteData.relative_volume, 2) }}x</span>
-                      </div>
-                    </template>
-                  </template>
-
-                  <!-- Short Interest -->
-                  <template v-else-if="card.id === 'short'">
-                    <template v-if="chipCardIds.has('short')">
-                      <div v-if="shortInterestLoading" class="eqv3-muted-msg">Short interest data loading...</div>
-                      <div v-else-if="allShortNull" class="eqv3-muted-msg">Short interest data unavailable</div>
-                      <div v-else class="eqv3-chip-row">
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">SI</span><span class="eqv3-chip-val">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">DTC</span><span class="eqv3-chip-val">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">SVR</span><span class="eqv3-chip-val">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div v-if="shortInterestLoading" class="eqv3-muted-msg">Short interest data loading...</div>
-                      <div v-else-if="allShortNull" class="eqv3-muted-msg">Short interest data unavailable</div>
-                      <div v-else class="eqv3-kv-list">
-                        <div class="eqv3-kv"><span class="eqv3-k">Short Int.</span><span class="eqv3-v">{{ fmtVol(shortInterestData.short_interest) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Days to Cover</span><span class="eqv3-v">{{ fmt(shortInterestData.days_to_cover, 1) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Short Vol Ratio</span><span class="eqv3-v">{{ fmt(shortInterestData.short_volume_ratio, 1) }}%</span></div>
-                      </div>
-                    </template>
-                  </template>
-
-                  <!-- Company -->
-                  <template v-else-if="card.id === 'company'">
-                    <EQV3CompanyCard
-                      :loading="companyLoading"
-                      :all-null="allCompanyNull"
-                      :data="companyData"
-                      :expanded="descExpanded"
-                      @expand="descExpanded = true"
-                      @collapse="descExpanded = false"
-                    />
-                  </template>
-
-                  <!-- Previous Day -->
-                  <template v-else-if="card.id === 'prev'">
-                    <template v-if="chipCardIds.has('prev')">
-                      <div class="eqv3-chip-row">
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">O</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">H</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">L</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">C</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">Vol</span><span class="eqv3-chip-val">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-                        <div class="eqv3-chip"><span class="eqv3-chip-label">VWAP</span><span class="eqv3-chip-val">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="eqv3-kv-list">
-                        <div class="eqv3-kv"><span class="eqv3-k">Open</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_open, 2) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">High</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_high, 2) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Low</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_low, 2) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Close</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_close, 2) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">Volume</span><span class="eqv3-v">{{ fmtVol(quoteData.prev_day_volume) }}</span></div>
-                        <div class="eqv3-kv"><span class="eqv3-k">VWAP</span><span class="eqv3-v">${{ fmt(quoteData.prev_day_vwap, 2) }}</span></div>
-                      </div>
-                    </template>
-                  </template>
-
-                </div>
-              </template>
-                          </draggable>
-          </div>
-
-        </template>
-
-        <!-- Hidden cards tray
-
         </template>
 
         <!-- Hidden cards tray — edit mode only; shows cards the user has hidden so they can re-show them -->
@@ -744,7 +584,7 @@ import EQV3CompanyCard from './EQV3CompanyCard.vue'
 import { fmtVol } from './eqv3Utils.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
-const BREAKPOINTS = { WIDE: 360, MEDIUM: 720, FULL: 1024 }
+const BREAKPOINTS = { WIDE: 360, FULL: 1024 }
 
 // Card registry — defines the set of draggable cards and their default order.
 // chipsCapable: whether the card supports a chip render mode (company excluded).
@@ -777,32 +617,14 @@ const isNarrow = computed(() => layoutMode.value === 'narrow')
 // ── Draggable card order ──
 const isDragging = ref(false)
 
-// ── Settings migration shim ──
-// Converts legacy flat `cardOrder` to nested `columns` shape on first load.
-// Fires immediately (watch immediate:true) and is idempotent (guard on columns present).
-watch(() => props.settings, (settings) => {
-  if (!settings) return
-  if (Array.isArray(settings.columns)) return  // already migrated
-  if (!Array.isArray(settings.cardOrder) || settings.cardOrder.length === 0) return
-  const ids = settings.cardOrder
-  const mid = Math.ceil(ids.length / 2)
-  const migrated = { ...settings, columns: [ids.slice(0, mid), ids.slice(mid), []] }
-  delete migrated.cardOrder
-  emit('update-settings', migrated)
-}, { immediate: true })
-
 const activeCards = computed(() => {
-  // Derive flat ordered list from columns (new shape) or CARD_REGISTRY default.
-  const cols = props.settings?.columns
-  if (Array.isArray(cols)) {
-    const allIds = cols.flat()
-    if (allIds.length > 0) {
-      const saved = allIds.map(id => CARD_REGISTRY.find(c => c.id === id)).filter(Boolean)
-      const missing = CARD_REGISTRY.filter(c => !allIds.includes(c.id))
-      return [...saved, ...missing]
-    }
-  }
-  return [...CARD_REGISTRY]
+  const order = props.settings?.cardOrder
+  if (!Array.isArray(order) || order.length === 0) return [...CARD_REGISTRY]
+  const saved = order
+    .map(id => CARD_REGISTRY.find(c => c.id === id))
+    .filter(Boolean)
+  const missing = CARD_REGISTRY.filter(c => !order.includes(c.id))
+  return [...saved, ...missing]
 })
 
 // ── Card visibility and render-mode toggles ──
@@ -838,42 +660,19 @@ const toggleCardChips = (cardId) => {
   emit('update-settings', { ...props.settings, chipCards: [...chips] })
 }
 
-// colCards(n): returns visible cards assigned to column n (0-indexed).
-// Reads from settings.columns[n]; unknown IDs and hidden cards are excluded.
-// Unassigned registry cards (not in any column) silently append to col0 (col1).
-const _colCards = (colIndex) => computed(() => {
-  const cols = props.settings?.columns
-  if (!Array.isArray(cols)) return colIndex === 0 ? visibleCards.value : []
-  const col = cols[colIndex] ?? []
-  const ids = new Set(col)
-  const result = col
-    .map(id => CARD_REGISTRY.find(c => c.id === id))
-    .filter(c => c && !hiddenCardIds.value.has(c.id))
-  // Unassigned cards fall into col0 only
-  if (colIndex === 0) {
-    const allAssigned = new Set(cols.flat())
-    const unassigned = CARD_REGISTRY.filter(c => !allAssigned.has(c.id) && !hiddenCardIds.value.has(c.id))
-    return [...result, ...unassigned]
-  }
-  return result
-})
-
-// col1Cards: at narrow, flattens all columns so no cards disappear.
+// Distribute visibleCards across columns at narrow/wide mode.
+// At full mode, fullRowCards is used instead — these computeds are not rendered.
 const col1Cards = computed(() => {
-  if (isNarrow.value) {
-    const cols = props.settings?.columns
-    if (!Array.isArray(cols)) return visibleCards.value
-    const allIds = cols.flat()
-    const seen = new Set()
-    return allIds
-      .map(id => CARD_REGISTRY.find(c => c.id === id))
-      .filter(c => c && !hiddenCardIds.value.has(c.id) && !seen.has(c.id) && seen.add(c.id))
-  }
-  return _colCards(0).value
+  if (isNarrow.value) return visibleCards.value
+  return visibleCards.value.slice(0, Math.ceil(visibleCards.value.length / 2))
 })
 
-const col2Cards = computed(() => isNarrow.value ? [] : _colCards(1).value)
-const col3Cards = computed(() => layoutMode.value === 'medium' ? _colCards(2).value : [])
+const col2Cards = computed(() => {
+  if (isNarrow.value) return []
+  return visibleCards.value.slice(Math.ceil(visibleCards.value.length / 2))
+})
+
+const col3Cards = computed(() => [])  // no longer used; kept for API compatibility
 
 // At full mode: single flat horizontal list of visible cards.
 const fullRowCards = computed(() => {
@@ -887,45 +686,33 @@ const _col2 = ref(null)
 const _col3 = ref(null)
 const _fullRow = ref(null)
 
-// onColReorder is called by @update:model-value, which fires AFTER @end per vuedraggable's
-// event order. For cross-column drags it fires once per affected column. We accumulate
-// the new column state here and schedule a single coalesced emit via nextTick.
-let _emitScheduled = false
-const onColReorder = async (newVal, colNum) => {
+const onColReorder = (newVal, colNum) => {
   if (colNum === 1) _col1.value = newVal
   else if (colNum === 2) _col2.value = newVal
   else _col3.value = newVal
+}
 
-  if (_emitScheduled) return
-  _emitScheduled = true
-  await nextTick()  // yield — lets any second @update:model-value (cross-col) run first
-  _emitScheduled = false
-
-  const c1 = (_col1.value ?? col1Cards.value).map(c => c.id)
-  const c2 = (_col2.value ?? col2Cards.value).map(c => c.id)
-  const c3 = (_col3.value ?? col3Cards.value).map(c => c.id)
+// Drag end for narrow/wide column layout.
+const onDragEnd = async () => {
+  isDragging.value = false
+  await nextTick()
+  await nextTick()
+  const c1 = _col1.value ?? col1Cards.value
+  const c2 = _col2.value ?? col2Cards.value
+  const ordered = isNarrow.value
+    ? c1.map(c => c.id)
+    : [...c1, ...c2].map(c => c.id)
   _col1.value = null
   _col2.value = null
   _col3.value = null
-  const columns = isNarrow.value
-    ? [c1, [], []]
-    : layoutMode.value === 'medium'
-      ? [c1, c2, c3]
-      : [c1, c2, []]
-  emit('update-settings', { ...props.settings, columns })
+  emit('update-settings', { ...props.settings, cardOrder: ordered })
 }
-
-// onDragEnd: only updates isDragging. Emit is driven by onColReorder (@update:model-value)
-// which fires after @end — same pattern as onFullRowReorder in full mode.
-const onDragEnd = () => { isDragging.value = false }
 
 // Full-mode flat row reorder — fires from @update:model-value (after vuedraggable updates the list).
 // NOTE: vuedraggable fires @end before @update:model-value, so we cannot read the new order in @end.
 // Drive the emit from @update:model-value directly to guarantee we have the updated list.
-// Full-mode reorder collapses all cards into col1 (destructive but intentional —
-// user controls auto-save; see design doc decision #3).
 const onFullRowReorder = (newVal) => {
-  emit('update-settings', { ...props.settings, columns: [newVal.map(c => c.id), [], []] })
+  emit('update-settings', { ...props.settings, cardOrder: newVal.map(c => c.id) })
 }
 
 // Kept for defineExpose / test compatibility — no longer drives full-row emit.
@@ -937,7 +724,6 @@ onMounted(() => {
   _resizeObserver = new ResizeObserver((entries) => {
     const width = entries[0]?.contentRect.width ?? 0
     if (width >= BREAKPOINTS.FULL) layoutMode.value = 'full'
-    else if (width >= BREAKPOINTS.MEDIUM) layoutMode.value = 'medium'
     else if (width >= BREAKPOINTS.WIDE) layoutMode.value = 'wide'
     else layoutMode.value = 'narrow'
   })
@@ -1203,7 +989,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, visibleCards, hiddenCards, hiddenCardIds, chipCardIds, col1Cards, col2Cards, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl, iconUrl, brandingMode, activeBrandingUrl, toggleBranding, toggleCardVisibility, toggleCardChips })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, visibleCards, hiddenCards, hiddenCardIds, chipCardIds, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl, iconUrl, brandingMode, activeBrandingUrl, toggleBranding, toggleCardVisibility, toggleCardChips })
 </script>
 
 <style scoped>
@@ -1683,7 +1469,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 /* ── Sections: narrow (< 360px) — single flex column ── */
-/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=360, MEDIUM=720, FULL=1024 */
+/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=360, FULL=1024 */
 .eqv3-sections {
   display: flex;
   flex-direction: column;
@@ -1694,12 +1480,10 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 48px;  /* ensures empty columns have a drop target for vuedraggable */
 }
 
 /* Col-2 hidden at narrow */
 .eqv3-col-2 { display: none; }
-.eqv3-col-3 { display: none; }
 
 /* Full-row draggable: horizontal flex, cards stretch to equal height */
 .eqv3-full-row-draggable {
@@ -1723,11 +1507,6 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   }
   .eqv3-col-1 { flex: 1; }
   .eqv3-col-2 { display: flex; flex: 1; }
-}
-
-/* ── MEDIUM mode (720px+): three flex columns, hero on top ── */
-@container (min-width: 720px) {
-  .eqv3-col-3 { display: flex; flex: 1; }
 }
 
 /* ── FULL mode (1024px+): hero left, single horizontal card row right ── */

@@ -661,19 +661,18 @@ describe('Card layout and settings', () => {
     expect(wrapper.vm.activeCards.length).toBe(6)
   })
 
-  test('test_EnhancedQuoteV3_with_custom_columns_expect_activeCards_respects_order', () => {
-    // Arrange: custom column assignment; flat order is col0 + col1 + col2
-    const columns = [['volume', 'session'], ['company', 'short'], ['today', 'prev']]
-    const expectedOrder = ['volume', 'session', 'company', 'short', 'today', 'prev']
+  test('test_EnhancedQuoteV3_with_custom_cardOrder_expect_activeCards_respects_order', () => {
+    // Arrange: full 6-card custom order including prev
+    const customOrder = ['volume', 'session', 'company', 'short', 'today', 'prev']
 
     // Act
-    const wrapper = mountWidget({ settings: { columns } })
+    const wrapper = mountWidget({ settings: { cardOrder: customOrder } })
 
     // Assert
-    expect(wrapper.vm.activeCards.map(c => c.id)).toEqual(expectedOrder)
+    expect(wrapper.vm.activeCards.map(c => c.id)).toEqual(customOrder)
   })
 
-  test('test_EnhancedQuoteV3_with_onDragEnd_expect_update_settings_emitted_with_columns', async () => {
+  test('test_EnhancedQuoteV3_with_onDragEnd_expect_update_settings_emitted_with_cardOrder', async () => {
     // Arrange
     const updateSettingsCalls = []
     const wrapper = mount(EnhancedQuoteV3, {
@@ -685,7 +684,7 @@ describe('Card layout and settings', () => {
     wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
     await wrapper.vm.$nextTick()
 
-    // Act: simulate col1 reorder then drag end (narrow mode — all cards in col1)
+    // Act: simulate col1 reorder then drag end (narrow mode — all cards in col1 including prev)
     const reordered = ['today', 'session', 'prev', 'volume', 'short', 'company']
     wrapper.vm.onColReorder(
       reordered.map(id => ({ id, label: id })),
@@ -694,13 +693,9 @@ describe('Card layout and settings', () => {
     await wrapper.vm.onDragEnd()
     await wrapper.vm.$nextTick()
 
-    // Assert: narrow mode emits columns: [reordered, [], []]
-    // (The first emit may be from the migration shim; find the onDragEnd emit)
-    const dragEmit = updateSettingsCalls.find(c => Array.isArray(c.columns))
-    expect(dragEmit).toBeDefined()
-    expect(dragEmit.columns[0]).toEqual(reordered)
-    expect(dragEmit.columns[1]).toEqual([])
-    expect(dragEmit.columns[2]).toEqual([])
+    // Assert: saved order reflects the reordered list directly (no special-casing for prev)
+    expect(updateSettingsCalls.length).toBe(1)
+    expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
   })
 
   test('test_EnhancedQuoteV3_with_narrow_layout_default_expect_col2_not_rendered', async () => {
@@ -783,10 +778,11 @@ describe('Card layout and settings', () => {
     expect(wrapper.vm.fullRowCards.map(c => c.id)).toContain('prev')
   })
 
-  test('test_EnhancedQuoteV3_onFullRowReorder_emits_update_settings_with_columns_collapsed_to_col1', async () => {
+  test('test_EnhancedQuoteV3_onFullRowReorder_emits_update_settings_with_reordered_cardOrder', async () => {
     // Arrange
-    // Full-mode reorder collapses all cards into col1 (intentional — see design doc decision #3).
-    // vuedraggable fires @update:model-value (onFullRowReorder) AFTER @end.
+    // vuedraggable fires @update:model-value (onFullRowReorder) AFTER @end,
+    // so the emit is driven directly from the updated list rather than reading
+    // a stale _fullRow ref set in @end.
     const updateSettingsCalls = []
     const wrapper = mount(EnhancedQuoteV3, {
       props: { isLocked: false, settings: {} },
@@ -802,12 +798,9 @@ describe('Card layout and settings', () => {
     const reordered = ['prev', 'today', 'volume', 'session', 'short', 'company']
     wrapper.vm.onFullRowReorder(reordered.map(id => ({ id, label: id })))
 
-    // Assert: emits columns: [reordered, [], []] — all cards in col1, col2/col3 empty
-    const emitted = updateSettingsCalls.find(c => Array.isArray(c.columns))
-    expect(emitted).toBeDefined()
-    expect(emitted.columns[0]).toEqual(reordered)
-    expect(emitted.columns[1]).toEqual([])
-    expect(emitted.columns[2]).toEqual([])
+    // Assert: full reordered list saved including prev in its new position
+    expect(updateSettingsCalls.length).toBe(1)
+    expect(updateSettingsCalls[0].cardOrder).toEqual(reordered)
   })
 })
 
@@ -1140,141 +1133,5 @@ describe('Exposed interface', () => {
     expect(wrapper.vm.onFullRowDragEnd).toBeDefined()
     expect(wrapper.vm.onFullRowReorder).toBeDefined()
     expect(wrapper.vm._fullRow).toBeDefined()
-    expect(wrapper.vm.col1Cards).toBeDefined()
-    expect(wrapper.vm.col2Cards).toBeDefined()
-    expect(wrapper.vm.col3Cards).toBeDefined()
-  })
-})
-
-describe('Three-column layout and settings migration', () => {
-  test('test_EnhancedQuoteV3_migration_shim_with_flat_cardOrder_expect_columns_emitted', async () => {
-    // Arrange: old flat cardOrder shape
-    const updateSettingsCalls = []
-    const cardOrder = ['today', 'prev', 'volume', 'session', 'short', 'company']
-
-    // Act: mount with legacy settings — watch(immediate) fires migration shim
-    mount(EnhancedQuoteV3, {
-      props: { isLocked: true, settings: { cardOrder } },
-      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
-    })
-    await nextTick()
-
-    // Assert: shim emits columns shape with cardOrder removed
-    expect(updateSettingsCalls.length).toBeGreaterThanOrEqual(1)
-    const migrated = updateSettingsCalls[0]
-    expect(Array.isArray(migrated.columns)).toBe(true)
-    expect(migrated.columns[0]).toEqual(['today', 'prev', 'volume'])
-    expect(migrated.columns[1]).toEqual(['session', 'short', 'company'])
-    expect(migrated.columns[2]).toEqual([])
-    expect(migrated.cardOrder).toBeUndefined()
-  })
-
-  test('test_EnhancedQuoteV3_migration_shim_with_columns_present_expect_no_emit', async () => {
-    // Arrange: already-migrated settings
-    const updateSettingsCalls = []
-    const columns = [['today', 'prev'], ['volume', 'session'], ['short', 'company']]
-
-    // Act
-    mount(EnhancedQuoteV3, {
-      props: { isLocked: true, settings: { columns } },
-      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
-    })
-    await nextTick()
-
-    // Assert: no migration emit (shim is idempotent)
-    expect(updateSettingsCalls.length).toBe(0)
-  })
-
-  test('test_EnhancedQuoteV3_col3Cards_with_medium_layoutMode_expect_col3_contents', async () => {
-    // Arrange: columns assigned, layoutMode forced to medium
-    const columns = [['today', 'prev'], ['volume', 'session'], ['short', 'company']]
-    const wrapper = mountWidget({ settings: { columns } })
-
-    // Act
-    wrapper.vm.layoutMode = 'medium'
-    await nextTick()
-
-    // Assert: col3Cards reflects columns[2]
-    expect(wrapper.vm.col3Cards.map(c => c.id)).toEqual(['short', 'company'])
-  })
-
-  test('test_EnhancedQuoteV3_col3Cards_with_non_medium_layoutMode_expect_empty', async () => {
-    // Arrange
-    const columns = [['today', 'prev'], ['volume', 'session'], ['short', 'company']]
-    const wrapper = mountWidget({ settings: { columns } })
-
-    // Act: wide mode
-    wrapper.vm.layoutMode = 'wide'
-    await nextTick()
-
-    // Assert: col3Cards is empty outside medium mode
-    expect(wrapper.vm.col3Cards).toEqual([])
-  })
-
-  test('test_EnhancedQuoteV3_col1Cards_with_narrow_layoutMode_expect_all_columns_flattened', async () => {
-    // Arrange: cards spread across three columns
-    const columns = [['today'], ['volume'], ['short']]
-    const wrapper = mountWidget({ settings: { columns } })
-
-    // Act: narrow is the default layoutMode
-    await nextTick()
-
-    // Assert: col1Cards flattens all columns so no cards disappear at narrow width
-    const ids = wrapper.vm.col1Cards.map(c => c.id)
-    expect(ids).toContain('today')
-    expect(ids).toContain('volume')
-    expect(ids).toContain('short')
-  })
-
-  test('test_EnhancedQuoteV3_onDragEnd_with_medium_mode_col1_to_col3_expect_col2_unchanged', async () => {
-    // Arrange: cross-column drag from col1 to col3 — col2 must be preserved (Bishop #1)
-    const updateSettingsCalls = []
-    const columns = [['today', 'prev'], ['volume', 'session'], ['short', 'company']]
-    const wrapper = mount(EnhancedQuoteV3, {
-      props: { isLocked: false, settings: { columns } },
-      attrs: { 'onUpdate-settings': (payload) => updateSettingsCalls.push(payload) },
-    })
-    wrapper.vm.layoutMode = 'medium'
-    await nextTick()
-
-    // Act: drag 'today' from col1 to col3; col2 (_col2) is never updated (null → falls back to col2Cards)
-    wrapper.vm.onColReorder([{ id: 'prev', label: 'Previous Day' }], 1)  // col1 lost 'today'
-    wrapper.vm.onColReorder([{ id: 'short', label: 'Short Interest' }, { id: 'company', label: 'Company' }, { id: 'today', label: 'Today' }], 3)  // col3 gained 'today'
-    // _col2 is NOT updated — simulates col2 being untouched in a cross-col drag
-    await wrapper.vm.onDragEnd()
-    await nextTick()
-
-    // Assert: col2 contents (from col2Cards fallback) are unchanged in emitted columns[1]
-    const emitted = updateSettingsCalls.find(c => Array.isArray(c.columns))
-    expect(emitted).toBeDefined()
-    expect(emitted.columns[1]).toEqual(['volume', 'session'])  // col2 preserved
-    expect(emitted.columns[0]).toEqual(['prev'])
-    expect(emitted.columns[2]).toEqual(['short', 'company', 'today'])
-  })
-
-  test('test_EnhancedQuoteV3_col3_hidden_card_with_narrow_fallback_expect_absent', async () => {
-    // Arrange: 'short' assigned to col3 AND hidden — Bishop #5
-    const columns = [['today', 'prev'], ['volume', 'session'], ['short', 'company']]
-    const wrapper = mountWidget({ settings: { columns, hiddenCards: ['short'] } })
-
-    // Act: narrow mode — col1Cards flattens all columns
-    await nextTick()
-
-    // Assert: 'short' is absent from narrow flatten because it is hidden
-    const ids = wrapper.vm.col1Cards.map(c => c.id)
-    expect(ids).not.toContain('short')
-    expect(ids).toContain('company')  // other col3 card is present
-  })
-
-  test('test_EnhancedQuoteV3_unassigned_card_with_columns_shape_expect_appended_to_col1', async () => {
-    // Arrange: columns present but 'short' is not assigned to any column
-    const columns = [['today', 'prev'], ['volume', 'session'], ['company']]
-    const wrapper = mountWidget({ settings: { columns } })
-    wrapper.vm.layoutMode = 'wide'
-    await nextTick()
-
-    // Assert: unassigned 'short' appears in col1Cards
-    const ids = wrapper.vm.col1Cards.map(c => c.id)
-    expect(ids).toContain('short')
   })
 })
