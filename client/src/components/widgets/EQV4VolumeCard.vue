@@ -25,18 +25,13 @@
 
 <script setup>
 import { computed } from 'vue'
-import { fmtVol } from './eqv3Utils.js'
+import { fmt, fmtVol } from './eqv3Utils.js'
 
 const props = defineProps({
   quoteData:  { type: Object,  required: true },
   isLocked:   { type: Boolean, default: true },
   chipsMode:  { type: Boolean, default: false },
 })
-
-const fmt = (val, decimals = 2) => {
-  const n = parseFloat(val)
-  return isFinite(n) ? n.toFixed(decimals) : '—'
-}
 
 const floatShares = computed(() =>
   props.quoteData?.free_float ?? props.quoteData?.share_class_shares_outstanding ?? null

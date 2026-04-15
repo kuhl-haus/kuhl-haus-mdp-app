@@ -23,7 +23,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { fmtVol } from './eqv3Utils.js'
+import { fmt, fmtVol } from './eqv3Utils.js'
 
 const props = defineProps({
   shortInterestData: { type: Object,  default: () => ({}) },
@@ -31,11 +31,6 @@ const props = defineProps({
   isLocked:          { type: Boolean, default: true },
   chipsMode:         { type: Boolean, default: false },
 })
-
-const fmt = (val, decimals = 2) => {
-  const n = parseFloat(val)
-  return isFinite(n) ? n.toFixed(decimals) : '—'
-}
 
 const allNull = computed(() => {
   const d = props.shortInterestData

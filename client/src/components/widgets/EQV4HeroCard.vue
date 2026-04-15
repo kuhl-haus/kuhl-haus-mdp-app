@@ -9,7 +9,7 @@
         :alt="brandingMode === 'icon' ? 'Company icon' : 'Company logo'"
       />
       <div class="eqv4-hero-symbol-row">
-        <span class="eqv4-symbol">{{ quoteData.symbol }}</span>
+        <span class="eqv4-symbol">{{ quoteData?.symbol }}</span>
         <img v-if="flameIcon" :src="flameIcon.src" :title="flameIcon.tooltip" class="eqv4-flame-icon" />
       </div>
       <!-- Branding toggle — edit mode only -->
@@ -23,18 +23,18 @@
 
     <!-- Price block -->
     <div class="eqv4-hero-price-block">
-      <span class="eqv4-price">${{ fmt(quoteData.close, 2) }}</span>
+      <span class="eqv4-price">${{ fmt(quoteData?.close, 2) }}</span>
       <span :class="['eqv4-change-badge', changeClass]">
-        {{ quoteData.change >= 0 ? '+' : '' }}{{ fmt(quoteData.change, 2) }}
-        ({{ quoteData.pct_change >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change, 2) }}%)
+        {{ (quoteData?.change ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.change, 2) }}
+        ({{ (quoteData?.pct_change ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.pct_change, 2) }}%)
       </span>
       <div class="eqv4-since-open">
         since open
-        <span :class="quoteData.pct_change_since_open >= 0 ? 'eqv4-pos' : 'eqv4-neg'">
-          <span v-if="quoteData.change_since_open != null">
-            {{ quoteData.change_since_open >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData.change_since_open), 2) }}
+        <span :class="(quoteData?.pct_change_since_open ?? 0) >= 0 ? 'eqv4-pos' : 'eqv4-neg'">
+          <span v-if="quoteData?.change_since_open != null">
+            {{ (quoteData?.change_since_open ?? 0) >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData?.change_since_open ?? 0), 2) }}
           </span>
-          ({{ quoteData.pct_change_since_open >= 0 ? '+' : '' }}{{ fmt(quoteData.pct_change_since_open, 2) }}%)
+          ({{ (quoteData?.pct_change_since_open ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.pct_change_since_open, 2) }}%)
         </span>
       </div>
       <div class="eqv4-as-of">as of {{ dataAge }}</div>
@@ -50,6 +50,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { fmt } from './eqv3Utils.js'
 
 const props = defineProps({
   quoteData:      { type: Object,  required: true },
@@ -62,15 +63,9 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle-branding'])
 
-const fmt = (val, decimals = 2) => {
-  const n = parseFloat(val)
-  return isFinite(n) ? n.toFixed(decimals) : '—'
-}
-
-const changeClass = computed(() => {
-  if (!props.quoteData) return ''
-  return props.quoteData.pct_change >= 0 ? 'positive' : 'negative'
-})
+const changeClass = computed(() =>
+  (props.quoteData?.pct_change ?? 0) >= 0 ? 'positive' : 'negative'
+)
 
 const dataAge = computed(() => {
   const ts = props.quoteData?.end_timestamp

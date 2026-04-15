@@ -42,16 +42,13 @@
 </template>
 
 <script setup>
+import { fmt } from './eqv3Utils.js'
+
 defineProps({
   quoteData:  { type: Object,  required: true },
   isLocked:   { type: Boolean, default: true },
   chipsMode:  { type: Boolean, default: false },
 })
-
-const fmt = (val, decimals = 2) => {
-  const n = parseFloat(val)
-  return isFinite(n) ? n.toFixed(decimals) : '—'
-}
 </script>
 
 <style scoped>

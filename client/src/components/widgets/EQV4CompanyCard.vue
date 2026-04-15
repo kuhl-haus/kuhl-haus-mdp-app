@@ -4,20 +4,20 @@
     <div v-else-if="allNull" class="eqv4-muted-msg">Company data unavailable</div>
     <div v-else>
       <div class="eqv4-kv-list">
-        <div v-if="data.homepage_url" class="eqv4-kv">
+        <div v-if="companyData.homepage_url" class="eqv4-kv">
           <span class="eqv4-k">Web</span>
-          <a :href="data.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv4-link">{{ truncateUrl(data.homepage_url) }}</a>
+          <a :href="companyData.homepage_url" target="_blank" rel="noopener noreferrer" class="eqv4-link">{{ truncateUrl(companyData.homepage_url) }}</a>
         </div>
-        <div class="eqv4-kv"><span class="eqv4-k">Exchange</span><span class="eqv4-v">{{ data.primary_exchange || '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Mkt Cap</span><span class="eqv4-v">{{ data.market_cap != null ? '$' + fmtVol(data.market_cap) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Employees</span><span class="eqv4-v">{{ data.total_employees != null ? fmtVol(data.total_employees) : '—' }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">Listed</span><span class="eqv4-v">{{ data.list_date || '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Exchange</span><span class="eqv4-v">{{ companyData.primary_exchange || '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Mkt Cap</span><span class="eqv4-v">{{ companyData.market_cap != null ? '$' + fmtVol(companyData.market_cap) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Employees</span><span class="eqv4-v">{{ companyData.total_employees != null ? fmtVol(companyData.total_employees) : '—' }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Listed</span><span class="eqv4-v">{{ companyData.list_date || '—' }}</span></div>
       </div>
-      <div v-if="data.description" class="eqv4-company-desc-wrap">
+      <div v-if="companyData.description" class="eqv4-company-desc-wrap">
         <span class="eqv4-company-desc-text">
-          {{ expanded ? data.description : truncateDesc(data.description) }}
+          {{ expanded ? companyData.description : truncateDesc(companyData.description) }}
         </span>
-        <span v-if="!expanded && truncateDesc(data.description) !== data.description">
+        <span v-if="!expanded && truncateDesc(companyData.description) !== companyData.description">
           <span class="eqv4-company-desc-ellipsis">… </span>
           <button class="eqv4-see-more" @click="expanded = true">see more</button>
         </span>
@@ -32,17 +32,26 @@ import { ref, computed } from 'vue'
 import { truncateUrl, truncateDesc, fmtVol } from './eqv3Utils.js'
 
 const props = defineProps({
-  data:     { type: Object,  default: () => ({}) },
-  loading:  { type: Boolean, default: false },
-  isLocked: { type: Boolean, default: true },
+  companyData: { type: Object,  default: () => ({}) },
+  loading:     { type: Boolean, default: false },
+  isLocked:    { type: Boolean, default: true },
 })
 
 const expanded = ref(false)
 
 const allNull = computed(() => {
-  const d = props.data
+  const d = props.companyData
   if (!d) return true
-  return d.name == null && d.sic_description == null && d.description == null && d.homepage_url == null
+  return (
+    d.homepage_url == null &&
+    d.primary_exchange == null &&
+    d.market_cap == null &&
+    d.total_employees == null &&
+    d.list_date == null &&
+    d.name == null &&
+    d.sic_description == null &&
+    d.description == null
+  )
 })
 </script>
 

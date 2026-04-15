@@ -72,6 +72,28 @@ describe('EQV4HeroCard', () => {
     expect(wrapper.text()).toContain('+2.30')
   })
 
+  test('with empty quoteData object expect no crash and dashes rendered', () => {
+    // Arrange
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: {}, isLocked: true, brandingMode: 'logo', activeBrandingUrl: null },
+    })
+
+    // Act — (mount is the act)
+
+    // Assert — no throw; dashes for numeric fields
+    expect(wrapper.text()).toContain('—')
+  })
+
+  test('with null end_timestamp expect dataAge shows dash', () => {
+    // Arrange
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: { ...QUOTE, end_timestamp: null }, isLocked: true },
+    })
+
+    // Assert
+    expect(wrapper.text()).toContain('as of —')
+  })
+
   test('with positive change expect positive badge class', () => {
     // Arrange
     const wrapper = mount(EQV4HeroCard, {
@@ -375,7 +397,7 @@ describe('EQV4CompanyCard', () => {
   test('with company data expect kv rows rendered', () => {
     // Arrange
     const wrapper = mount(EQV4CompanyCard, {
-      props: { data: COMPANY_DATA, loading: false },
+      props: { companyData: COMPANY_DATA, loading: false },
     })
 
     // Assert
@@ -388,7 +410,7 @@ describe('EQV4CompanyCard', () => {
   test('with loading true expect loading message', () => {
     // Arrange
     const wrapper = mount(EQV4CompanyCard, {
-      props: { data: {}, loading: true },
+      props: { companyData: {}, loading: true },
     })
 
     // Assert
@@ -399,18 +421,42 @@ describe('EQV4CompanyCard', () => {
   test('with all null data expect unavailable message', () => {
     // Arrange
     const wrapper = mount(EQV4CompanyCard, {
-      props: { data: { name: null, sic_description: null, description: null, homepage_url: null }, loading: false },
+      props: {
+        companyData: {
+          name: null, sic_description: null, description: null, homepage_url: null,
+          primary_exchange: null, market_cap: null, total_employees: null, list_date: null,
+        },
+        loading: false,
+      },
     })
 
     // Assert
     expect(wrapper.text()).toContain('unavailable')
   })
 
+  test('with only primary_exchange set expect kv rows rendered not unavailable message', () => {
+    // Arrange
+    const wrapper = mount(EQV4CompanyCard, {
+      props: {
+        companyData: {
+          name: null, sic_description: null, description: null, homepage_url: null,
+          primary_exchange: 'XNAS', market_cap: null, total_employees: null, list_date: null,
+        },
+        loading: false,
+      },
+    })
+
+    // Assert
+    expect(wrapper.find('.eqv4-kv-list').exists()).toBe(true)
+    expect(wrapper.text()).toContain('XNAS')
+    expect(wrapper.text()).not.toContain('unavailable')
+  })
+
   test('with long description expect see more button and truncated text', () => {
     // Arrange
     const longDesc = 'A'.repeat(300)
     const wrapper = mount(EQV4CompanyCard, {
-      props: { data: { ...COMPANY_DATA, description: longDesc }, loading: false },
+      props: { companyData: { ...COMPANY_DATA, description: longDesc }, loading: false },
     })
 
     // Assert
@@ -422,7 +468,7 @@ describe('EQV4CompanyCard', () => {
     // Arrange
     const longDesc = 'B'.repeat(300)
     const wrapper = mount(EQV4CompanyCard, {
-      props: { data: { ...COMPANY_DATA, description: longDesc }, loading: false },
+      props: { companyData: { ...COMPANY_DATA, description: longDesc }, loading: false },
     })
 
     // Act
@@ -435,7 +481,7 @@ describe('EQV4CompanyCard', () => {
   test('with description shorter than maxLen expect no see more button', () => {
     // Arrange
     const wrapper = mount(EQV4CompanyCard, {
-      props: { data: { ...COMPANY_DATA, description: 'Short desc.' }, loading: false },
+      props: { companyData: { ...COMPANY_DATA, description: 'Short desc.' }, loading: false },
     })
 
     // Assert
