@@ -1,8 +1,49 @@
 <template>
   <div :class="['eqv4-hero-card', heroMode === 'wide' ? 'eqv4-hero--wide' : 'eqv4-hero--narrow']">
 
-    <!-- Wide mode: vertical stack (symbol → price → identity) -->
+    <!-- Wide mode: two columns — left: logo/symbol/flame/name/sic; right: price/change/since-open/as-of -->
     <template v-if="heroMode === 'wide'">
+      <div class="eqv4-hero-left">
+        <img
+          v-if="activeBrandingUrl"
+          :src="activeBrandingUrl"
+          class="eqv4-hero-logo"
+          :alt="brandingMode === 'icon' ? 'Company icon' : 'Company logo'"
+        />
+        <div class="eqv4-hero-symbol-row">
+          <span class="eqv4-symbol">{{ quoteData?.symbol }}</span>
+          <img v-if="flameIcon" :src="flameIcon.src" :title="flameIcon.tooltip" class="eqv4-flame-icon" />
+        </div>
+        <span v-if="companyData?.name" class="eqv4-hero-company-name">{{ companyData.name }}</span>
+        <span v-if="companyData?.sic_description" class="eqv4-hero-sic">{{ companyData.sic_description }}</span>
+        <button
+          v-if="!isLocked"
+          class="eqv4-branding-toggle filter-btn"
+          :title="brandingMode === 'logo' ? 'Switch to icon' : 'Switch to logo'"
+          @click="emit('toggle-branding')"
+        >{{ brandingMode === 'logo' ? 'icon' : 'logo' }}</button>
+      </div>
+      <div class="eqv4-hero-right">
+        <span class="eqv4-price">${{ fmt(quoteData?.close, 2) }}</span>
+        <span :class="['eqv4-change-badge', changeClass]">
+          {{ (quoteData?.change ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.change, 2) }}
+          ({{ (quoteData?.pct_change ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.pct_change, 2) }}%)
+        </span>
+        <div class="eqv4-since-open">
+          since open
+          <span :class="(quoteData?.pct_change_since_open ?? 0) >= 0 ? 'eqv4-pos' : 'eqv4-neg'">
+            <span v-if="quoteData?.change_since_open != null">
+              {{ (quoteData?.change_since_open ?? 0) >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData?.change_since_open ?? 0), 2) }}
+            </span>
+            ({{ (quoteData?.pct_change_since_open ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.pct_change_since_open, 2) }}%)
+          </span>
+        </div>
+        <div class="eqv4-as-of">as of {{ dataAge }}</div>
+      </div>
+    </template>
+
+    <!-- Narrow mode: vertical stack — symbol → price → identity -->
+    <template v-else>
       <div class="eqv4-hero-symbol-block">
         <img
           v-if="activeBrandingUrl"
@@ -41,47 +82,6 @@
       <div class="eqv4-hero-identity-block">
         <span v-if="companyData?.name" class="eqv4-hero-company-name">{{ companyData.name }}</span>
         <span v-if="companyData?.sic_description" class="eqv4-hero-sic">{{ companyData.sic_description }}</span>
-      </div>
-    </template>
-
-    <!-- Narrow mode: two columns — left: logo/symbol/flame/name/sic; right: price/change/since-open/as-of -->
-    <template v-else>
-      <div class="eqv4-hero-left">
-        <img
-          v-if="activeBrandingUrl"
-          :src="activeBrandingUrl"
-          class="eqv4-hero-logo"
-          :alt="brandingMode === 'icon' ? 'Company icon' : 'Company logo'"
-        />
-        <div class="eqv4-hero-symbol-row">
-          <span class="eqv4-symbol">{{ quoteData?.symbol }}</span>
-          <img v-if="flameIcon" :src="flameIcon.src" :title="flameIcon.tooltip" class="eqv4-flame-icon" />
-        </div>
-        <span v-if="companyData?.name" class="eqv4-hero-company-name">{{ companyData.name }}</span>
-        <span v-if="companyData?.sic_description" class="eqv4-hero-sic">{{ companyData.sic_description }}</span>
-        <button
-          v-if="!isLocked"
-          class="eqv4-branding-toggle filter-btn"
-          :title="brandingMode === 'logo' ? 'Switch to icon' : 'Switch to logo'"
-          @click="emit('toggle-branding')"
-        >{{ brandingMode === 'logo' ? 'icon' : 'logo' }}</button>
-      </div>
-      <div class="eqv4-hero-right">
-        <span class="eqv4-price">${{ fmt(quoteData?.close, 2) }}</span>
-        <span :class="['eqv4-change-badge', changeClass]">
-          {{ (quoteData?.change ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.change, 2) }}
-          ({{ (quoteData?.pct_change ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.pct_change, 2) }}%)
-        </span>
-        <div class="eqv4-since-open">
-          since open
-          <span :class="(quoteData?.pct_change_since_open ?? 0) >= 0 ? 'eqv4-pos' : 'eqv4-neg'">
-            <span v-if="quoteData?.change_since_open != null">
-              {{ (quoteData?.change_since_open ?? 0) >= 0 ? '+' : '-' }}${{ fmt(Math.abs(quoteData?.change_since_open ?? 0), 2) }}
-            </span>
-            ({{ (quoteData?.pct_change_since_open ?? 0) >= 0 ? '+' : '' }}{{ fmt(quoteData?.pct_change_since_open, 2) }}%)
-          </span>
-        </div>
-        <div class="eqv4-as-of">as of {{ dataAge }}</div>
       </div>
     </template>
 
@@ -129,31 +129,31 @@ const dataAge = computed(() => {
   gap: 6px;
 }
 
-/* ── Wide mode: vertical stack ── */
+/* ── Wide mode: two columns ── */
 .eqv4-hero--wide {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+/* ── Narrow mode: vertical stack ── */
+.eqv4-hero--narrow {
   flex-direction: column;
 }
-.eqv4-hero--wide .eqv4-hero-symbol-block {
+.eqv4-hero--narrow .eqv4-hero-symbol-block {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.eqv4-hero--wide .eqv4-hero-price-block {
+.eqv4-hero--narrow .eqv4-hero-price-block {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.eqv4-hero--wide .eqv4-hero-identity-block {
+.eqv4-hero--narrow .eqv4-hero-identity-block {
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-top: 4px;
-}
-
-/* ── Narrow mode: two columns ── */
-.eqv4-hero--narrow {
-  flex-direction: row;
-  align-items: flex-start;
 }
 .eqv4-hero-left {
   display: flex;
