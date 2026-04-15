@@ -19,6 +19,12 @@ export const truncateDesc = (text, maxLen = 175) => {
   return cut > 0 ? text.slice(0, cut) : text.slice(0, maxLen)
 }
 
+/** Format a numeric value to a fixed number of decimal places. Returns '—' for non-finite values. */
+export const fmt = (val, decimals = 2) => {
+  const n = parseFloat(val)
+  return isFinite(n) ? n.toFixed(decimals) : '—'
+}
+
 /** Format large numbers with K/M/B suffixes. Returns '—' for non-finite values. */
 export const fmtVol = (val) => {
   const v = parseFloat(val)
