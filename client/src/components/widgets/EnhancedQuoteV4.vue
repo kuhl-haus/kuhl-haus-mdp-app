@@ -494,11 +494,20 @@ watch(isConnected, (connected) => {
 })
 
 // ── Flame icon ────────────────────────────────────────────────────────────────
+const FLAME_SRCS = {
+  red:    new URL('@/assets/icons/flame-red.svg',    import.meta.url).href,
+  orange: new URL('@/assets/icons/flame-orange.svg', import.meta.url).href,
+  yellow: new URL('@/assets/icons/flame-yellow.svg', import.meta.url).href,
+  white:  new URL('@/assets/icons/flame-white.svg',  import.meta.url).href,
+  blue:   new URL('@/assets/icons/flame-blue.svg',   import.meta.url).href,
+  dark:   new URL('@/assets/icons/flame-dark.svg',   import.meta.url).href,
+}
+
 const flameIcon = computed(() => {
   if (!activeTicker.value) return null
   const variant = getFlameVariant(activeTicker.value)
   if (!variant) return null
-  return { src: variant, tooltip: getFlameTooltip(activeTicker.value) }
+  return { src: FLAME_SRCS[variant], tooltip: getFlameTooltip(activeTicker.value) }
 })
 
 // ── Branding ──────────────────────────────────────────────────────────────────
