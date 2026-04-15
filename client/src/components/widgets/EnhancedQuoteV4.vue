@@ -79,7 +79,7 @@
             :loading="item.i === 'short' ? shortInterestLoading : (item.i === 'company' ? companyLoading : false)"
             :is-locked="isLocked"
             :chips-mode="chipCardIds.has(item.i)"
-            :hero-mode="heroMode"
+            :hero-mode="item.i === 'hero' ? heroMode : undefined"
             :branding-mode="brandingMode"
             :active-branding-url="activeBrandingUrl"
             :flame-icon="flameIcon"
