@@ -73,7 +73,7 @@
       <!-- Adaptive sections -->
       <div :class="['eqv3-sections', { 'eqv3-dragging': isDragging }]">
 
-        <!-- FULL mode (≥1024px): single horizontal draggable row — hero left, all cards right -->
+        <!-- FULL mode (≥1600px): single horizontal draggable row — hero left, all cards right -->
         <template v-if="layoutMode === 'full'">
           <draggable
             :model-value="fullRowCards"
@@ -584,7 +584,7 @@ import EQV3CompanyCard from './EQV3CompanyCard.vue'
 import { fmtVol } from './eqv3Utils.js'
 
 // Shared breakpoint constants — must match CSS @container thresholds exactly.
-const BREAKPOINTS = { WIDE: 360, FULL: 1024 }
+const BREAKPOINTS = { WIDE: 360, FULL: 1600 }
 
 // Card registry — defines the set of draggable cards and their default order.
 // chipsCapable: whether the card supports a chip render mode (company excluded).
@@ -1469,7 +1469,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
 }
 
 /* ── Sections: narrow (< 360px) — single flex column ── */
-/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=360, FULL=1024 */
+/* Breakpoint constants — must match BREAKPOINTS in JS: WIDE=360, FULL=1600 */
 .eqv3-sections {
   display: flex;
   flex-direction: column;
@@ -1509,8 +1509,8 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   .eqv3-col-2 { display: flex; flex: 1; }
 }
 
-/* ── FULL mode (1024px+): hero left, single horizontal card row right ── */
-@container (min-width: 1024px) {
+/* ── FULL mode (1600px+): hero left, single horizontal card row right ── */
+@container (min-width: 1600px) {
   .eqv3-symbol { font-size: 22px; }
   .eqv3-price  { font-size: 30px; }
 
