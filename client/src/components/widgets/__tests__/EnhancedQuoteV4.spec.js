@@ -324,12 +324,12 @@ describe('addCard', () => {
   })
 
   test('with addCard called and no gap fits expect card appended to bottom', async () => {
-    // Arrange — gridCols:3, one card at x=0,y=0,w=3,h=2 fills entire grid for 2 rows.
-    // Adding 'session' (defaultW:3): no gap in rows 0-1 (full width occupied),
-    // so fallback appends at x=0, y=maxOccupiedY (=2).
+    // Arrange — gridCols:2, hero at x=0,y=0,w=2,h=2 fills the entire 2-column grid.
+    // Adding 'session' (defaultW:3): cols-defaultW = 2-3 = -1, so the inner
+    // loop condition (x <= -1) never executes — placed stays null, fallback fires.
     const emitted = []
     const wrapper = mountWidget(
-      { settings: { gridCols: 3, cards: [{ id: 'hero', x: 0, y: 0, w: 3, h: 2 }] } },
+      { settings: { gridCols: 2, cards: [{ id: 'hero', x: 0, y: 0, w: 2, h: 2 }] } },
       (s) => emitted.push(s)
     )
 
