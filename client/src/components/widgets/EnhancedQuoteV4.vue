@@ -28,6 +28,9 @@
 
     <!-- Quote data available -->
     <div v-else class="eqv4-body">
+
+      <!-- Edit bar — always visible when unlocked, regardless of data state -->
+
       <GridLayout
         v-model:layout="internalLayout"
         :col-num="gridCols"
@@ -74,35 +77,36 @@
         </GridItem>
       </GridLayout>
 
-      <!-- Edit mode: add card + grid config -->
-      <div v-if="!isLocked" class="eqv4-edit-bar">
-        <EQV4CardPicker
-          v-if="absentCards.length > 0"
-          :absent-cards="absentCards"
-          @add-card="addCard"
-        />
-        <div class="eqv4-grid-config">
-          <label class="eqv4-config-label">
-            Cols
-            <input
-              type="number"
-              :value="gridCols"
-              min="1" max="24"
-              class="eqv4-config-input"
-              @change="onGridColsChange"
-            />
-          </label>
-          <label class="eqv4-config-label">
-            Row H
-            <input
-              type="number"
-              :value="gridRowHeight"
-              min="20" max="120"
-              class="eqv4-config-input"
-              @change="onGridRowHeightChange"
-            />
-          </label>
-        </div>
+    </div>
+
+    <!-- Edit bar — visible whenever unlocked, outside the data guard -->
+    <div v-if="!isLocked" class="eqv4-edit-bar">
+      <EQV4CardPicker
+        v-if="absentCards.length > 0"
+        :absent-cards="absentCards"
+        @add-card="addCard"
+      />
+      <div class="eqv4-grid-config">
+        <label class="eqv4-config-label">
+          Cols
+          <input
+            type="number"
+            :value="gridCols"
+            min="1" max="24"
+            class="eqv4-config-input"
+            @change="onGridColsChange"
+          />
+        </label>
+        <label class="eqv4-config-label">
+          Row H
+          <input
+            type="number"
+            :value="gridRowHeight"
+            min="20" max="120"
+            class="eqv4-config-input"
+            @change="onGridRowHeightChange"
+          />
+        </label>
       </div>
     </div>
   </div>
@@ -181,9 +185,16 @@ const gridLayout = computed(() =>
 
 // Internal mutable layout ref — v-model:layout for GridLayout reactivity.
 // Kept in sync with gridLayout computed on settings change.
+// Guard flag: prevents re-syncing internalLayout when the settings change
+// was triggered by our own onLayoutUpdated emit (avoids feedback loop).
 const internalLayout = ref(gridLayout.value.map(c => ({ ...c })))
+let _ownLayoutUpdate = false
 
 watch(gridLayout, (newLayout) => {
+  if (_ownLayoutUpdate) {
+    _ownLayoutUpdate = false
+    return
+  }
   internalLayout.value = newLayout.map(c => ({ ...c }))
 }, { deep: true })
 
@@ -206,7 +217,9 @@ watch(settingsCards, (cards) => {
 
 // @layout-updated fires on dragend/resizeend only (not on every drag tick).
 // Persist new positions via update-settings.
+// Set guard before emitting so the gridLayout watcher skips the echo-back.
 const onLayoutUpdated = (newLayout) => {
+  _ownLayoutUpdate = true
   emit('update-settings', {
     ...props.settings,
     cards: newLayout.map(({ i, ...rest }) => ({ ...rest, id: i })),
