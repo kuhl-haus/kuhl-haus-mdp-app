@@ -535,6 +535,29 @@ describe('onLayoutUpdated', () => {
       expect(card.id).toBeDefined()
     }
   })
+
+  test('with layout-updated event expect update-settings emitted exactly once (no feedback loop)', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget(
+      { settings: { cards: [{ id: 'hero', x: 0, y: 0, w: 6, h: 3 }] } },
+      (s) => emitted.push(s)
+    )
+    wrapper.vm.manualTicker = 'TSLA'
+    await nextTick()
+    wrapper.vm.quoteData = SAMPLE_QUOTE
+    await nextTick()
+    const beforeCount = emitted.length
+
+    // Act — simulate one drag-end event
+    const grid = wrapper.findComponent({ name: 'GridLayout' })
+    await grid.vm.$emit('layout-updated', [{ i: 'hero', x: 1, y: 0, w: 5, h: 3 }])
+    await nextTick()
+    await nextTick() // allow any potential echo-back to propagate
+
+    // Assert — exactly one emission per drag event
+    expect(emitted.length - beforeCount).toBe(1)
+  })
 })
 
 // ── EQV4CardPicker ────────────────────────────────────────────────────────────
