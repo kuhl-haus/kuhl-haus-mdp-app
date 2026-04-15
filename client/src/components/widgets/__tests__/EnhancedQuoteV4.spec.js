@@ -729,7 +729,7 @@ const HERO_QUOTE = {
 const HERO_COMPANY = { name: 'Apple Inc.', sic_description: 'Electronic Computers' }
 
 describe('EQV4HeroCard', () => {
-  test('with heroMode wide expect vertical-stack class applied', () => {
+  test('with heroMode wide expect two-column class applied', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
       props: { quoteData: HERO_QUOTE, heroMode: 'wide', isLocked: true },
@@ -740,7 +740,7 @@ describe('EQV4HeroCard', () => {
     expect(wrapper.find('.eqv4-hero--narrow').exists()).toBe(false)
   })
 
-  test('with heroMode narrow expect two-column class applied', () => {
+  test('with heroMode narrow expect vertical-stack class applied', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
       props: { quoteData: HERO_QUOTE, heroMode: 'narrow', isLocked: true },
@@ -751,10 +751,10 @@ describe('EQV4HeroCard', () => {
     expect(wrapper.find('.eqv4-hero--wide').exists()).toBe(false)
   })
 
-  test('with heroMode narrow expect left and right columns rendered', () => {
+  test('with heroMode wide expect left and right columns rendered', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
-      props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'narrow', isLocked: true },
+      props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'wide', isLocked: true },
     })
 
     // Assert
@@ -765,10 +765,10 @@ describe('EQV4HeroCard', () => {
     expect(wrapper.text()).toContain('189.50')
   })
 
-  test('with heroMode wide expect all data present in vertical layout', () => {
+  test('with heroMode narrow expect vertical stack rendered', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
-      props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'wide', isLocked: true },
+      props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'narrow', isLocked: true },
     })
 
     // Assert
