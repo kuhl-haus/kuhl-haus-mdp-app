@@ -887,17 +887,20 @@ const _col2 = ref(null)
 const _col3 = ref(null)
 const _fullRow = ref(null)
 
-const onColReorder = (newVal, colNum) => {
+// onColReorder is called by @update:model-value, which fires AFTER @end per vuedraggable's
+// event order. For cross-column drags it fires once per affected column. We accumulate
+// the new column state here and schedule a single coalesced emit via nextTick.
+let _emitScheduled = false
+const onColReorder = async (newVal, colNum) => {
   if (colNum === 1) _col1.value = newVal
   else if (colNum === 2) _col2.value = newVal
   else _col3.value = newVal
-}
 
-// Drag end for narrow/wide/medium column layout.
-const onDragEnd = async () => {
-  isDragging.value = false
-  await nextTick()
-  await nextTick()
+  if (_emitScheduled) return
+  _emitScheduled = true
+  await nextTick()  // yield — lets any second @update:model-value (cross-col) run first
+  _emitScheduled = false
+
   const c1 = (_col1.value ?? col1Cards.value).map(c => c.id)
   const c2 = (_col2.value ?? col2Cards.value).map(c => c.id)
   const c3 = (_col3.value ?? col3Cards.value).map(c => c.id)
@@ -911,6 +914,10 @@ const onDragEnd = async () => {
       : [c1, c2, []]
   emit('update-settings', { ...props.settings, columns })
 }
+
+// onDragEnd: only updates isDragging. Emit is driven by onColReorder (@update:model-value)
+// which fires after @end — same pattern as onFullRowReorder in full mode.
+const onDragEnd = () => { isDragging.value = false }
 
 // Full-mode flat row reorder — fires from @update:model-value (after vuedraggable updates the list).
 // NOTE: vuedraggable fires @end before @update:model-value, so we cannot read the new order in @end.
