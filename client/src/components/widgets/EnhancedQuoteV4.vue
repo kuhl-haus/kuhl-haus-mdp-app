@@ -546,7 +546,7 @@ defineExpose({
   --surface: #141420;
   --border: #2d2d3d;
   --text-primary: #e2e8f0;
-  --text-muted: #64748b;
+  --text-muted: #afafaf;
   --accent: #7c3aed;
   --pd-accent: #7c3aed;
   background: var(--bg);
