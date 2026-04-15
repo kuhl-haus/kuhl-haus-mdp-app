@@ -729,54 +729,34 @@ const HERO_QUOTE = {
 const HERO_COMPANY = { name: 'Apple Inc.', sic_description: 'Electronic Computers' }
 
 describe('EQV4HeroCard', () => {
-  test('with heroMode wide expect two-column class applied', () => {
-    // Arrange / Act
-    const wrapper = mount(EQV4HeroCard, {
-      props: { quoteData: HERO_QUOTE, heroMode: 'wide', isLocked: true },
-    })
-
-    // Assert
-    expect(wrapper.find('.eqv4-hero--wide').exists()).toBe(true)
-    expect(wrapper.find('.eqv4-hero--narrow').exists()).toBe(false)
-  })
-
-  test('with heroMode narrow expect vertical-stack class applied', () => {
-    // Arrange / Act
-    const wrapper = mount(EQV4HeroCard, {
-      props: { quoteData: HERO_QUOTE, heroMode: 'narrow', isLocked: true },
-    })
-
-    // Assert
-    expect(wrapper.find('.eqv4-hero--narrow').exists()).toBe(true)
-    expect(wrapper.find('.eqv4-hero--wide').exists()).toBe(false)
-  })
-
-  test('with heroMode wide expect left and right columns rendered', () => {
+  test('with heroMode wide expect symbol, price, and identity blocks rendered', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
       props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'wide', isLocked: true },
     })
 
-    // Assert
-    expect(wrapper.find('.eqv4-hero-left').exists()).toBe(true)
-    expect(wrapper.find('.eqv4-hero-right').exists()).toBe(true)
+    // Assert — all three blocks present in wide mode
+    expect(wrapper.find('.eqv4-hero-symbol-block').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero-price-block').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero-identity-block').exists()).toBe(true)
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('Apple Inc.')
     expect(wrapper.text()).toContain('189.50')
   })
 
-  test('with heroMode narrow expect vertical stack rendered', () => {
+  test('with heroMode narrow expect identity block hidden', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
       props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'narrow', isLocked: true },
     })
 
-    // Assert
+    // Assert — symbol + price present; identity block absent
     expect(wrapper.find('.eqv4-hero-symbol-block').exists()).toBe(true)
     expect(wrapper.find('.eqv4-hero-price-block').exists()).toBe(true)
-    expect(wrapper.find('.eqv4-hero-identity-block').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Apple Inc.')
+    expect(wrapper.find('.eqv4-hero-identity-block').exists()).toBe(false)
+    expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('189.50')
+    expect(wrapper.text()).not.toContain('Apple Inc.')
   })
 
   test('with null quoteData expect no crash', () => {
