@@ -397,16 +397,12 @@ describe('removeCard', () => {
 
 describe('Grid config', () => {
   test('with gridCols change expect update-settings emitted with new gridCols', async () => {
-    // Arrange — need isLocked:false, activeTicker, and quoteData to render body + edit bar
+    // Arrange — edit bar is always visible when !isLocked; no ticker or data needed
     const emitted = []
     const wrapper = mountWidget(
       { isLocked: false, settings: { cards: [{ id: 'hero', x: 0, y: 0, w: 6, h: 3 }] } },
       (s) => emitted.push(s)
     )
-    // Set ticker so activeTicker is truthy, then set quoteData
-    wrapper.vm.manualTicker = 'TSLA'
-    await nextTick()
-    wrapper.vm.quoteData = SAMPLE_QUOTE
     await nextTick()
 
     // Act
@@ -421,15 +417,12 @@ describe('Grid config', () => {
   })
 
   test('with gridRowHeight change expect update-settings emitted with new gridRowHeight', async () => {
-    // Arrange
+    // Arrange — edit bar is always visible when !isLocked; no ticker or data needed
     const emitted = []
     const wrapper = mountWidget(
       { isLocked: false, settings: { cards: [{ id: 'hero', x: 0, y: 0, w: 6, h: 3 }] } },
       (s) => emitted.push(s)
     )
-    wrapper.vm.manualTicker = 'TSLA'
-    await nextTick()
-    wrapper.vm.quoteData = SAMPLE_QUOTE
     await nextTick()
 
     // Act
