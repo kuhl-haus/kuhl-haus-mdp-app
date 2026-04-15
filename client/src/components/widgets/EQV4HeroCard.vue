@@ -129,31 +129,31 @@ const dataAge = computed(() => {
   gap: 6px;
 }
 
-/* ── Wide mode: vertical stack ── */
+/* ── Wide mode: two columns ── */
 .eqv4-hero--wide {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+/* ── Narrow mode: vertical stack ── */
+.eqv4-hero--narrow {
   flex-direction: column;
 }
-.eqv4-hero--wide .eqv4-hero-symbol-block {
+.eqv4-hero--narrow .eqv4-hero-symbol-block {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.eqv4-hero--wide .eqv4-hero-price-block {
+.eqv4-hero--narrow .eqv4-hero-price-block {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.eqv4-hero--wide .eqv4-hero-identity-block {
+.eqv4-hero--narrow .eqv4-hero-identity-block {
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-top: 4px;
-}
-
-/* ── Narrow mode: two columns ── */
-.eqv4-hero--narrow {
-  flex-direction: row;
-  align-items: flex-start;
 }
 .eqv4-hero-left {
   display: flex;
