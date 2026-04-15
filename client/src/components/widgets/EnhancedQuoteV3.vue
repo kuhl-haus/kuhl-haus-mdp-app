@@ -1687,6 +1687,7 @@ defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, c
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 48px;  /* ensures empty columns have a drop target for vuedraggable */
 }
 
 /* Col-2 hidden at narrow */
