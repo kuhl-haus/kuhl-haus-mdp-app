@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import EQV4CardPicker from '../EQV4CardPicker.vue'
 
 // ── Global stubs ─────────────────────────────────────────────────────────────
 
@@ -323,22 +324,25 @@ describe('addCard', () => {
   })
 
   test('with addCard called and no gap fits expect card appended to bottom', async () => {
-    // Arrange — hero fills all 6 columns at y=0 to y=2
+    // Arrange — gridCols:3, one card at x=0,y=0,w=3,h=2 fills entire grid for 2 rows.
+    // Adding 'session' (defaultW:3): no gap in rows 0-1 (full width occupied),
+    // so fallback appends at x=0, y=maxOccupiedY (=2).
     const emitted = []
     const wrapper = mountWidget(
-      { settings: { gridCols: 6, cards: [{ id: 'hero', x: 0, y: 0, w: 6, h: 3 }] } },
+      { settings: { gridCols: 3, cards: [{ id: 'hero', x: 0, y: 0, w: 3, h: 2 }] } },
       (s) => emitted.push(s)
     )
 
-    // Act — add 'today' (defaultW: 2); hero occupies full width for 3 rows
-    wrapper.vm.addCard('today')
+    // Act
+    wrapper.vm.addCard('session')
     await nextTick()
 
-    // Assert — today placed at y >= 3 (below hero)
+    // Assert — fallback places session at x=0, y=2 (maxOccupiedY)
     const lastPayload = emitted[emitted.length - 1]
-    const added = lastPayload.cards.find(c => c.id === 'today')
+    const added = lastPayload.cards.find(c => c.id === 'session')
     expect(added).toBeDefined()
-    expect(added.y).toBeGreaterThanOrEqual(3)
+    expect(added.x).toBe(0)
+    expect(added.y).toBe(2)
   })
 
   test('with addCard called for unknown id expect no emission', async () => {
@@ -481,6 +485,113 @@ describe('activeCardIds', () => {
     expect(wrapper.vm.activeCardIds.has('hero')).toBe(true)
     expect(wrapper.vm.activeCardIds.has('today')).toBe(true)
     expect(wrapper.vm.activeCardIds.has('session')).toBe(false)
+  })
+})
+
+// ── onLayoutUpdated ─────────────────────────────────────────────────────────
+
+describe('onLayoutUpdated', () => {
+  test('with layout-updated event expect update-settings emitted with new card positions', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget(
+      { settings: { cards: [{ id: 'hero', x: 0, y: 0, w: 6, h: 3 }] } },
+      (s) => emitted.push(s)
+    )
+    wrapper.vm.manualTicker = 'TSLA'
+    await nextTick()
+    wrapper.vm.quoteData = SAMPLE_QUOTE
+    await nextTick()
+
+    // Act — emit layout-updated from the mock GridLayout with new positions
+    const grid = wrapper.findComponent({ name: 'GridLayout' })
+    await grid.vm.$emit('layout-updated', [{ i: 'hero', x: 1, y: 0, w: 5, h: 3 }])
+    await nextTick()
+
+    // Assert
+    const payload = emitted[emitted.length - 1]
+    expect(payload.cards[0].id).toBe('hero')
+    expect(payload.cards[0].x).toBe(1)
+    expect(payload.cards[0].w).toBe(5)
+  })
+
+  test('with layout-updated event expect persisted cards do not contain i field', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget(
+      { settings: { cards: [{ id: 'hero', x: 0, y: 0, w: 6, h: 3 }, { id: 'today', x: 0, y: 3, w: 2, h: 2 }] } },
+      (s) => emitted.push(s)
+    )
+    wrapper.vm.manualTicker = 'TSLA'
+    await nextTick()
+    wrapper.vm.quoteData = SAMPLE_QUOTE
+    await nextTick()
+
+    // Act
+    const grid = wrapper.findComponent({ name: 'GridLayout' })
+    await grid.vm.$emit('layout-updated', [
+      { i: 'hero',  x: 0, y: 0, w: 6, h: 3 },
+      { i: 'today', x: 0, y: 3, w: 2, h: 2 },
+    ])
+    await nextTick()
+
+    // Assert — no i field on any persisted card
+    const payload = emitted[emitted.length - 1]
+    for (const card of payload.cards) {
+      expect(card.i).toBeUndefined()
+      expect(card.id).toBeDefined()
+    }
+  })
+})
+
+// ── EQV4CardPicker ────────────────────────────────────────────────────────────
+
+describe('EQV4CardPicker', () => {
+  const absentCards = [{ id: 'today', label: 'Today' }, { id: 'volume', label: 'Volume' }]
+
+  test('with add-card button click expect dropdown opens', async () => {
+    // Arrange
+    const wrapper = mount(EQV4CardPicker, { props: { absentCards } })
+
+    // Act / Assert — dropdown hidden initially
+    expect(wrapper.find('.eqv4-picker-dropdown').exists()).toBe(false)
+
+    // Act
+    await wrapper.find('.eqv4-picker-btn').trigger('click')
+
+    // Assert
+    expect(wrapper.find('.eqv4-picker-dropdown').exists()).toBe(true)
+  })
+
+  test('with card item click expect add-card emitted and dropdown closes', async () => {
+    // Arrange
+    const calls = []
+    const wrapper = mount(EQV4CardPicker, {
+      props: { absentCards },
+      attrs: { 'onAdd-card': (id) => calls.push(id) },
+    })
+
+    // Act
+    await wrapper.find('.eqv4-picker-btn').trigger('click')
+    await wrapper.find('.eqv4-picker-item').trigger('click')
+
+    // Assert
+    expect(calls).toEqual(['today'])
+    expect(wrapper.find('.eqv4-picker-dropdown').exists()).toBe(false)
+  })
+
+  test('with absent cards list expect all absent card labels rendered in dropdown', async () => {
+    // Arrange
+    const wrapper = mount(EQV4CardPicker, { props: { absentCards } })
+
+    // Act
+    await wrapper.find('.eqv4-picker-btn').trigger('click')
+
+    // Assert
+    const items = wrapper.findAll('.eqv4-picker-item')
+    expect(items.length).toBe(2)
+    expect(items[0].text()).toBe('Today')
+    expect(items[1].text()).toBe('Volume')
   })
 })
 
