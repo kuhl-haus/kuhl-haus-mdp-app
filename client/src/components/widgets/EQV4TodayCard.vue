@@ -2,14 +2,14 @@
   <div class="eqv4-card-body">
     <template v-if="chipsMode">
       <div class="eqv4-chip-row">
-        <div class="eqv4-chip"><span class="eqv4-chip-label">O</span><span class="eqv4-chip-val">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-        <div class="eqv4-chip"><span class="eqv4-chip-label">VWAP</span><span class="eqv4-chip-val">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">O</span><span class="eqv4-chip-val">${{ fmt(quoteData?.official_open_price, 2) }}</span></div>
+        <div class="eqv4-chip"><span class="eqv4-chip-label">VWAP</span><span class="eqv4-chip-val">${{ fmt(quoteData?.aggregate_vwap, 2) }}</span></div>
       </div>
     </template>
     <template v-else>
       <div class="eqv4-kv-list">
-        <div class="eqv4-kv"><span class="eqv4-k">Open</span><span class="eqv4-v">${{ fmt(quoteData.official_open_price, 2) }}</span></div>
-        <div class="eqv4-kv"><span class="eqv4-k">VWAP</span><span class="eqv4-v">${{ fmt(quoteData.aggregate_vwap, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">Open</span><span class="eqv4-v">${{ fmt(quoteData?.official_open_price, 2) }}</span></div>
+        <div class="eqv4-kv"><span class="eqv4-k">VWAP</span><span class="eqv4-v">${{ fmt(quoteData?.aggregate_vwap, 2) }}</span></div>
       </div>
     </template>
   </div>
@@ -19,7 +19,7 @@
 import { fmt } from './eqv3Utils.js'
 
 defineProps({
-  quoteData:  { type: Object,  required: true },
+  quoteData:  { type: Object,  default: null },
   isLocked:   { type: Boolean, default: true },
   chipsMode:  { type: Boolean, default: false },
 })

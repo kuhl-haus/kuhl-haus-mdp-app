@@ -122,16 +122,16 @@ function mountWidget(props = {}, onUpdateSettings = null) {
 // ── Empty / waiting states ────────────────────────────────────────────────────
 
 describe('Empty and waiting states', () => {
-  test('with no ticker expect empty state rendered', () => {
+  test('with no ticker expect overlay shown and grid still rendered', () => {
     // Arrange / Act
     const wrapper = mountWidget()
 
-    // Assert
-    expect(wrapper.find('.eqv4-empty').exists()).toBe(true)
-    expect(wrapper.find('.eqv4-body').exists()).toBe(false)
+    // Assert — overlay visible, body (grid) always rendered
+    expect(wrapper.find('.eqv4-overlay').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-body').exists()).toBe(true)
   })
 
-  test('with ticker but no quote data expect waiting state shown', async () => {
+  test('with ticker but no quote data expect waiting overlay shown', async () => {
     // Arrange
     const wrapper = mountWidget()
 
@@ -141,7 +141,7 @@ describe('Empty and waiting states', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.find('.eqv4-empty').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-overlay').exists()).toBe(true)
     expect(wrapper.find('.eqv4-empty-text').text()).toContain('TSLA')
   })
 })
@@ -633,8 +633,159 @@ describe('Exposed interface', () => {
     expect(vm.gridCols).toBeDefined()
     expect(vm.gridRowHeight).toBeDefined()
     expect(vm.chipCardIds).toBeDefined()
+    expect(vm.heroMode).toBeDefined()
     expect(typeof vm.addCard).toBe('function')
     expect(typeof vm.removeCard).toBe('function')
+    expect(typeof vm.toggleCardChips).toBe('function')
+    expect(typeof vm.toggleHeroMode).toBe('function')
     expect(vm.activeCardIds).toBeDefined()
+  })
+})
+
+// ── heroMode ──────────────────────────────────────────────────────────────
+
+describe('heroMode', () => {
+  test('with no settings.heroMode expect default wide mode', () => {
+    // Arrange / Act
+    const wrapper = mountWidget({ settings: {} })
+
+    // Assert
+    expect(wrapper.vm.heroMode).toBe('wide')
+  })
+
+  test('with toggleHeroMode called expect update-settings emitted with narrow', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget({ settings: {} }, (s) => emitted.push(s))
+
+    // Act
+    wrapper.vm.toggleHeroMode()
+    await nextTick()
+
+    // Assert
+    const last = emitted[emitted.length - 1]
+    expect(last.heroMode).toBe('narrow')
+  })
+
+  test('with toggleHeroMode called twice expect heroMode returns to wide', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget({ settings: { heroMode: 'narrow' } }, (s) => emitted.push(s))
+
+    // Act
+    wrapper.vm.toggleHeroMode()
+    await nextTick()
+
+    // Assert
+    expect(emitted[emitted.length - 1].heroMode).toBe('wide')
+  })
+})
+
+// ── toggleCardChips ─────────────────────────────────────────────────────────
+
+describe('toggleCardChips', () => {
+  test('with toggleCardChips called on non-chip card expect card added to chipCards', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget({ settings: { chipCards: [] } }, (s) => emitted.push(s))
+
+    // Act
+    wrapper.vm.toggleCardChips('today')
+    await nextTick()
+
+    // Assert
+    const last = emitted[emitted.length - 1]
+    expect(last.chipCards).toContain('today')
+  })
+
+  test('with toggleCardChips called on active chip card expect card removed from chipCards', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget({ settings: { chipCards: ['today'] } }, (s) => emitted.push(s))
+
+    // Act
+    wrapper.vm.toggleCardChips('today')
+    await nextTick()
+
+    // Assert
+    const last = emitted[emitted.length - 1]
+    expect(last.chipCards).not.toContain('today')
+  })
+})
+
+// ── EQV4HeroCard ───────────────────────────────────────────────────────────
+
+import EQV4HeroCard from '../EQV4HeroCard.vue'
+
+const HERO_QUOTE = {
+  symbol: 'AAPL',
+  close: 189.5,
+  change: 2.3,
+  pct_change: 1.23,
+  change_since_open: 1.1,
+  pct_change_since_open: 0.58,
+  end_timestamp: new Date('2026-04-15T16:00:00Z').getTime(),
+}
+const HERO_COMPANY = { name: 'Apple Inc.', sic_description: 'Electronic Computers' }
+
+describe('EQV4HeroCard', () => {
+  test('with heroMode wide expect vertical-stack class applied', () => {
+    // Arrange / Act
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: HERO_QUOTE, heroMode: 'wide', isLocked: true },
+    })
+
+    // Assert
+    expect(wrapper.find('.eqv4-hero--wide').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero--narrow').exists()).toBe(false)
+  })
+
+  test('with heroMode narrow expect two-column class applied', () => {
+    // Arrange / Act
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: HERO_QUOTE, heroMode: 'narrow', isLocked: true },
+    })
+
+    // Assert
+    expect(wrapper.find('.eqv4-hero--narrow').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero--wide').exists()).toBe(false)
+  })
+
+  test('with heroMode narrow expect left and right columns rendered', () => {
+    // Arrange / Act
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'narrow', isLocked: true },
+    })
+
+    // Assert
+    expect(wrapper.find('.eqv4-hero-left').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero-right').exists()).toBe(true)
+    expect(wrapper.text()).toContain('AAPL')
+    expect(wrapper.text()).toContain('Apple Inc.')
+    expect(wrapper.text()).toContain('189.50')
+  })
+
+  test('with heroMode wide expect all data present in vertical layout', () => {
+    // Arrange / Act
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'wide', isLocked: true },
+    })
+
+    // Assert
+    expect(wrapper.find('.eqv4-hero-symbol-block').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero-price-block').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-hero-identity-block').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Apple Inc.')
+    expect(wrapper.text()).toContain('189.50')
+  })
+
+  test('with null quoteData expect no crash', () => {
+    // Arrange / Act — grid renders cards with null quoteData before ticker set
+    const wrapper = mount(EQV4HeroCard, {
+      props: { quoteData: null, heroMode: 'wide', isLocked: true },
+    })
+
+    // Assert
+    expect(wrapper.text()).toContain('—')
   })
 })
