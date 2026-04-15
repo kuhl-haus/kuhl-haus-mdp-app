@@ -744,20 +744,20 @@ describe('EQV4HeroCard', () => {
     expect(wrapper.text()).toContain('189.50')
   })
 
-  test('with heroMode narrow expect narrow class applied, identity hidden, price and symbol present', () => {
+  test('with heroMode narrow expect narrow class applied and all three blocks present', () => {
     // Arrange / Act
     const wrapper = mount(EQV4HeroCard, {
       props: { quoteData: HERO_QUOTE, companyData: HERO_COMPANY, heroMode: 'narrow', isLocked: true },
     })
 
-    // Assert — narrow class on root; symbol + price present; identity block absent
+    // Assert — narrow class on root; all three blocks present (same data, column layout)
     expect(wrapper.find('.eqv4-hero--narrow').exists()).toBe(true)
     expect(wrapper.find('.eqv4-hero-symbol-block').exists()).toBe(true)
     expect(wrapper.find('.eqv4-hero-price-block').exists()).toBe(true)
-    expect(wrapper.find('.eqv4-hero-identity-block').exists()).toBe(false)
+    expect(wrapper.find('.eqv4-hero-identity-block').exists()).toBe(true)
     expect(wrapper.text()).toContain('AAPL')
     expect(wrapper.text()).toContain('189.50')
-    expect(wrapper.text()).not.toContain('Apple Inc.')
+    expect(wrapper.text()).toContain('Apple Inc.')
   })
 
   test('with null quoteData expect no crash', () => {

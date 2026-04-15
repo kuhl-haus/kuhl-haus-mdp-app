@@ -40,8 +40,8 @@
       <div class="eqv4-as-of">as of {{ dataAge }}</div>
     </div>
 
-    <!-- Identity block: company name + SIC — spans full width below; hidden in narrow mode -->
-    <div v-if="heroMode === 'wide'" class="eqv4-hero-identity-block">
+    <!-- Identity block: company name + SIC — always rendered, spans full width below in wide; stacks in narrow -->
+    <div class="eqv4-hero-identity-block">
       <span v-if="companyData?.name" class="eqv4-hero-company-name">{{ companyData.name }}</span>
       <span v-if="companyData?.sic_description" class="eqv4-hero-sic">{{ companyData.sic_description }}</span>
     </div>
@@ -93,11 +93,12 @@ const dataAge = computed(() => {
   gap: 4px 12px;
 }
 
-/* Narrow mode: column stack instead of side-by-side row */
+/* Narrow mode: column stack — mirrors EQv3 full-mode hero (symbol → price → identity, all stacked) */
 .eqv4-hero--narrow {
   flex-direction: column;
-  align-items: flex-start;
   flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 
 /* Symbol block: logo + symbol row — flex row, left side */
@@ -118,9 +119,20 @@ const dataAge = computed(() => {
 }
 .eqv4-hero--narrow .eqv4-hero-price-block {
   align-items: flex-start;
+  width: 100%;
 }
 .eqv4-hero--narrow .eqv4-since-open {
   text-align: left;
+}
+.eqv4-hero--narrow .eqv4-hero-company-name {
+  white-space: normal;
+}
+.eqv4-hero--narrow .eqv4-hero-sic {
+  white-space: normal;
+}
+.eqv4-hero--narrow .eqv4-hero-identity-block {
+  margin-top: 8px;
+  width: 100%;
 }
 
 /* Identity block: spans full width below symbol + price */
