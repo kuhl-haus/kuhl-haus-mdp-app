@@ -1,5 +1,5 @@
 <template>
-  <div class="eqv4-hero-card">
+  <div :class="['eqv4-hero-card', { 'eqv4-hero--narrow': heroMode === 'narrow' }]">
     <!-- Symbol block: logo + symbol + flame — left side -->
     <div class="eqv4-hero-symbol-block">
       <img
@@ -93,6 +93,13 @@ const dataAge = computed(() => {
   gap: 4px 12px;
 }
 
+/* Narrow mode: column stack instead of side-by-side row */
+.eqv4-hero--narrow {
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
 /* Symbol block: logo + symbol row — flex row, left side */
 .eqv4-hero-symbol-block {
   display: flex;
@@ -101,13 +108,19 @@ const dataAge = computed(() => {
   flex-shrink: 0;
 }
 
-/* Price block: stacked column, right side */
+/* Price block: stacked column, right side in wide / left-aligned in narrow */
 .eqv4-hero-price-block {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
   flex-shrink: 0;
+}
+.eqv4-hero--narrow .eqv4-hero-price-block {
+  align-items: flex-start;
+}
+.eqv4-hero--narrow .eqv4-since-open {
+  text-align: left;
 }
 
 /* Identity block: spans full width below symbol + price */
