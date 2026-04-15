@@ -59,7 +59,7 @@ defineProps({
 .eqv4-v { font-family: 'Roboto Mono', monospace; font-size: 13px; color: var(--text-primary, #e2e8f0); text-align: right; }
 .eqv4-session-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .eqv4-session-chip { display: flex; flex-direction: column; align-items: center; background: var(--surface, #141420); border: 1px solid var(--border, #2d2d3d); border-radius: 4px; padding: 4px 8px; min-width: 56px; gap: 2px; }
-.eqv4-chip-label { font-size: 9px; color: var(--text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.eqv4-session-chip-vals { display: flex; flex-direction: column; align-items: center; font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text-primary, #e2e8f0); gap: 1px; }
+.eqv4-chip-label { font-size: 11px; color: var(--text-muted, #64748b); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.eqv4-session-chip-vals { display: flex; flex-direction: column; align-items: center; font-family: 'Roboto Mono', monospace; font-size: 14px; color: var(--text-primary, #e2e8f0); gap: 1px; }
 .eqv4-muted-val { color: var(--text-muted, #64748b); }
 </style>
