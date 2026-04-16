@@ -12,16 +12,19 @@ vi.mock('vue-virtual-scroller', () => ({
   },
 }))
 
+// Export _configRef so individual tests can mutate it (e.g. to simulate missing key)
 vi.mock('@/composables/useConfig.js', async () => {
   const { ref } = await import('vue')
+  const _configRef = ref({ finlightApiKey: 'test-finlight-key', massiveApiKey: 'k', apiKey: 's' })
   return {
-    useConfig: () => ({
-      config: ref({ finlightApiKey: 'test-finlight-key', massiveApiKey: 'k', apiKey: 's' }),
+    useConfig: vi.fn(() => ({
+      config: _configRef,
       loading: ref(false),
       error: ref(null),
       fetchConfig: vi.fn(),
       isAuthenticated: () => true,
-    }),
+    })),
+    _configRef,
   }
 })
 
@@ -162,22 +165,22 @@ describe('Fetch triggers', () => {
     expect(global.fetch.mock.calls.length).toBeGreaterThan(firstCallCount)
   })
 
-  test('with null finlightApiKey expect error state shown without fetch', async () => {
-    // Arrange — override config mock to have no key
-    vi.doMock('@/composables/useConfig.js', async () => {
-      const { ref } = await import('vue')
-      return { useConfig: () => ({ config: ref({ finlightApiKey: null }), loading: ref(false), error: ref(null), fetchConfig: vi.fn(), isAuthenticated: () => false }) }
-    })
+  test('with null finlightApiKey expect error shown and fetch not called', async () => {
+    // Arrange — mutate the shared config ref to remove the key
+    const { _configRef } = await import('@/composables/useConfig.js')
+    _configRef.value.finlightApiKey = null
 
-    // Use the exposed fetchNews directly on a mounted card
+    // Act
     const wrapper = mountCard({ ticker: 'AAPL' })
-    // Manually clear key from config via exposed ref — simulate missing key
-    // We test the guard via the exposed fetchNews function
-    wrapper.vm.articles  // just access to ensure mounted
-    // Simulate the guard by calling fetchNews with config null
-    // The actual mock has a key; test the guard branch via a direct call after clearing
-    // This is covered by the integration — the guard fires if finlightApiKey is falsy
-    expect(global.fetch).toBeDefined() // fetch is available; guard tested via articles count
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(wrapper.vm.error).toBe('Finlight API key not configured')
+
+    // Restore
+    _configRef.value.finlightApiKey = 'test-finlight-key'
   })
 })
 
