@@ -19,7 +19,8 @@
           <div class="modal-meta">
             <span class="modal-time">{{ formatDateTime(article.publishDate) }}</span>
             <a
-              :href="article.source ? 'https://' + article.source : '#'"
+              v-if="article.source"
+              :href="'https://' + article.source"
               target="_blank"
               rel="noopener"
               class="modal-source"
@@ -58,8 +59,10 @@
  * NewsFeedV2, and CompanyNews once validated in EQv4.
  *
  * @prop {object|null} article - Article object to display. null = hidden.
- * @emits close                - User dismissed the modal.
+ * @emits close                - User dismissed the modal (X, backdrop, or Escape).
  */
+import { onMounted, onUnmounted } from 'vue'
+
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 
 defineProps({
@@ -67,6 +70,10 @@ defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+const onKeyUp = (e) => { if (e.key === 'Escape') emit('close') }
+onMounted(() => document.addEventListener('keyup', onKeyUp))
+onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
 
 const isUsTicker = (co) => US_EXCHANGES.has(co.primaryListing?.exchangeCode)
 
@@ -94,8 +101,8 @@ const formatDateTime = (ts) => {
   padding: 16px;
 }
 .modal-card {
-  background: #1e1e1e;
-  border: 1px solid #333;
+  background: var(--surface, #141420);
+  border: 1px solid var(--border, #2d2d3d);
   border-radius: 6px;
   max-width: 600px;
   width: 100%;
