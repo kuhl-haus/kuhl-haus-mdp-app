@@ -109,6 +109,17 @@
             class="btn-icon"
             :title="isLocked ? 'Unlock layout (edit mode)' : 'Lock layout'"
         >{{ isLocked ? '🔒' : '✏️' }}</button>
+        <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
+          Cols
+          <input
+              type="number"
+              :value="dashboardColNum"
+              min="4"
+              max="24"
+              class="col-num-input"
+              @change="dashboardColNum = Math.max(4, Math.min(24, parseInt($event.target.value, 10) || 12))"
+          />
+        </label>
         <button
             @click="autosaveEnabled = !autosaveEnabled"
             :class="['btn-icon', autosaveEnabled ? '' : 'btn-icon--inactive']"
@@ -249,7 +260,7 @@
     <GridLayout
         v-else
         v-model:layout="layout"
-        :col-num="12"
+        :col-num="dashboardColNum"
         :row-height="30"
         :is-draggable="!isLocked"
         :is-resizable="!isLocked"
@@ -341,6 +352,9 @@ let widgetCounter = 0
 let autoSaveTimeout = null
 let hoverTimeout = null
 
+// Configurable column count — persisted per layout as `dashboardColNum`
+const dashboardColNum = ref(12)
+
 // Computed
 const savedLayoutNames = computed(() =>
     Object.keys(savedLayouts.value)
@@ -397,6 +411,7 @@ const saveLayout = () => {
   savedLayouts.value[name] = {
     layout: layoutCopy,
     widgetCounter: widgetCounter,
+    dashboardColNum: dashboardColNum.value,
     created: existing?.created || now,
     modified: now,
     description: saveLayoutDescription.value.trim()
@@ -418,6 +433,7 @@ const loadLayout = () => {
   const saved = savedLayouts.value[name]
   layout.value = JSON.parse(JSON.stringify(saved.layout))
   widgetCounter = saved.widgetCounter || 0
+  dashboardColNum.value = saved.dashboardColNum ?? 12
 }
 
 const deleteCurrentLayout = () => {
@@ -449,6 +465,7 @@ const loadDefaultLayout = () => {
     const saved = savedLayouts.value[AUTOSAVE_KEY]
     layout.value = JSON.parse(JSON.stringify(saved.layout))
     widgetCounter = saved.widgetCounter || 0
+    dashboardColNum.value = saved.dashboardColNum ?? 12
   }
 }
 
@@ -467,6 +484,7 @@ const autoSaveLayout = () => {
     savedLayouts.value[name || AUTOSAVE_KEY] = {
       layout: layoutCopy,
       widgetCounter: widgetCounter,
+      dashboardColNum: dashboardColNum.value,
       modified: Date.now()
     }
 
@@ -564,18 +582,19 @@ const showLayoutPreview = (layoutName) => {
   cancelHoverPreview()
 
   nextTick(() => {
-    drawLayoutPreview(savedLayouts.value[layoutName].layout)
+    const saved = savedLayouts.value[layoutName]
+    drawLayoutPreview(saved.layout, saved.dashboardColNum ?? 12)
   })
 }
 
-const drawLayoutPreview = (layoutData) => {
+const drawLayoutPreview = (layoutData, colOverride) => {
   const canvas = previewCanvas.value
   if (!canvas) return
 
   const ctx = canvas.getContext('2d')
   const width = 600
   const height = 400
-  const cols = 12
+  const cols = colOverride ?? dashboardColNum.value
   const rowHeight = 30
 
   canvas.width = width
@@ -667,7 +686,8 @@ const startHoverPreview = (layoutName, event) => {
     hoverPreviewVisible.value = true
 
     nextTick(() => {
-      drawMiniPreview(savedLayouts.value[layoutName].layout)
+      const saved = savedLayouts.value[layoutName]
+      drawMiniPreview(saved.layout, saved.dashboardColNum ?? 12)
     })
   }, 300) // 300ms hover delay
 }
@@ -682,14 +702,14 @@ const cancelHoverPreview = () => {
   hoverPreviewMetadata.value = null
 }
 
-const drawMiniPreview = (layoutData) => {
+const drawMiniPreview = (layoutData, colOverride) => {
   const canvas = hoverPreviewCanvas.value
   if (!canvas) return
 
   const ctx = canvas.getContext('2d')
   const width = 300
   const height = 200
-  const cols = 12
+  const cols = colOverride ?? dashboardColNum.value
   const rowHeight = 30
 
   // Background
@@ -746,13 +766,14 @@ const closeSaveDialog = () => {
 
 // Widget Operations
 const addWidget = (widgetType) => {
-  const cols = 2
+  const perRow = 2  // always place 2 widgets side by side
+  const w = Math.floor(dashboardColNum.value / perRow)
   const index = layout.value.length
 
   layout.value.push({
-    x: (index % cols) * 6,
-    y: Math.floor(index / cols) * 19,
-    w: 6,
+    x: (index % perRow) * w,
+    y: Math.floor(index / perRow) * 19,
+    w,
     h: 19,
     i: `widget-${widgetCounter++}`,
     type: widgetType
@@ -823,6 +844,8 @@ onBeforeUnmount(() => {
   if (autoSaveTimeout) clearTimeout(autoSaveTimeout)
   if (hoverTimeout) clearTimeout(hoverTimeout)
 })
+
+defineExpose({ dashboardColNum, layout, addWidget })
 </script>
 
 <style scoped>
@@ -995,6 +1018,29 @@ onBeforeUnmount(() => {
 .btn-icon--inactive {
   opacity: 0.4;
   filter: grayscale(1);
+}
+
+.col-num-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--pd-text-muted);
+  white-space: nowrap;
+}
+.col-num-input {
+  width: 48px;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
+  border-radius: 4px;
+  color: var(--pd-text);
+  font-size: 12px;
+  padding: 2px 4px;
+  text-align: center;
+}
+.col-num-input:focus {
+  outline: none;
+  border-color: var(--pd-accent);
 }
 
 .auto-save-indicator {
