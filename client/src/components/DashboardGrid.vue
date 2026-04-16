@@ -109,17 +109,6 @@
             class="btn-icon"
             :title="isLocked ? 'Unlock layout (edit mode)' : 'Lock layout'"
         >{{ isLocked ? '🔒' : '✏️' }}</button>
-        <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
-          Cols
-          <input
-              type="number"
-              :value="dashboardColNum"
-              min="2"
-              max="48"
-              class="col-num-input"
-              @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
-          />
-        </label>
         <button
             @click="autosaveEnabled = !autosaveEnabled"
             :class="['btn-icon', autosaveEnabled ? '' : 'btn-icon--inactive']"
@@ -138,6 +127,18 @@
             @change="importLayouts"
             style="display: none"
         />
+        <div class="col-num-spacer"></div>
+        <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
+          Cols
+          <input
+              type="number"
+              :value="dashboardColNum"
+              min="2"
+              max="48"
+              class="col-num-input"
+              @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
+          />
+        </label>
       </div>
 
       <div class="auto-save-indicator" v-if="isAutoSaving">
@@ -1018,6 +1019,10 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName })
 .btn-icon--inactive {
   opacity: 0.4;
   filter: grayscale(1);
+}
+
+.col-num-spacer {
+  flex: 1;
 }
 
 .col-num-label {
