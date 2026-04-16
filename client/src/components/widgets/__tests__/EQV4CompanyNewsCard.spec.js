@@ -4,6 +4,15 @@ import { nextTick } from 'vue'
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
 
+vi.mock('../NewsArticleModal.vue', () => ({
+  default: {
+    name: 'NewsArticleModal',
+    props: ['article'],
+    emits: ['close'],
+    template: '<div class="mock-news-modal" :data-has-article="!!article"></div>',
+  },
+}))
+
 vi.mock('vue-virtual-scroller', () => ({
   RecycleScroller: {
     name: 'RecycleScroller',
@@ -472,7 +481,7 @@ describe('Refresh button', () => {
 // ── Detail modal ──────────────────────────────────────────────────────────────
 
 describe('Detail modal', () => {
-  test('with row click expect detail modal shown with article content', async () => {
+  test('with row click expect selected set and modal receives article', async () => {
     // Arrange
     mockFinlightSuccess()
     const wrapper = mountCard({ ticker: 'AAPL' })
@@ -483,9 +492,10 @@ describe('Detail modal', () => {
     await wrapper.find('.eqv4-news-row').trigger('click')
     await nextTick()
 
-    // Assert — modal content (Teleport renders to body in jsdom)
+    // Assert — selected is set; NewsArticleModal stub shows article present
     expect(wrapper.vm.selected).not.toBeNull()
     expect(wrapper.vm.selected.title).toBe('Apple beats earnings estimates')
+    expect(wrapper.find('.mock-news-modal').attributes('data-has-article')).toBe('true')
   })
 })
 
