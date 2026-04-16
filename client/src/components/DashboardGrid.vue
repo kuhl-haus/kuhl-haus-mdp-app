@@ -114,10 +114,10 @@
           <input
               type="number"
               :value="dashboardColNum"
-              min="4"
-              max="24"
+              min="2"
+              max="48"
               class="col-num-input"
-              @change="dashboardColNum = Math.max(4, Math.min(24, parseInt($event.target.value, 10) || 12))"
+              @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
           />
         </label>
         <button
