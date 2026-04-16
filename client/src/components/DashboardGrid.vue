@@ -499,6 +499,11 @@ watch(layout, () => {
   if (!isLocked.value) autoSaveLayout()
 }, { deep: true })
 
+// Watch dashboardColNum — autosave so col count is persisted without a manual save
+watch(dashboardColNum, () => {
+  if (!isLocked.value) autoSaveLayout()
+})
+
 // Import/Export
 const exportLayouts = () => {
   const exportData = {
