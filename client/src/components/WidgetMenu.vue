@@ -33,9 +33,9 @@ const availableWidgets = [
   { type: 'top-volume', label: 'Top Volume', icon: '📊' },
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
   { type: 'company-news', label: 'Company News', icon: '🗞️' },
-  { type: 'quote', label: 'Quote', icon: '⚡' },
-  { type: 'enhanced-quote', label: 'Enhanced Quote', icon: '✨' },
-  { type: 'enhanced-quote-v4', label: 'Enhanced Quote V4', icon: '💎' },
+  { type: 'quote', label: 'Mini Quote', icon: '⚡' },
+  { type: 'enhanced-quote', label: 'Quote', icon: '✨' },
+  { type: 'enhanced-quote-v4', label: 'Enhanced Quote', icon: '💎' },
 ]
 
 const selectWidget = (widgetType) => {

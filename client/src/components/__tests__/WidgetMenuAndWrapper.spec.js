@@ -5,7 +5,7 @@ import { mount } from '@vue/test-utils'
 import WidgetMenu from '../WidgetMenu.vue'
 
 describe('WidgetMenu', () => {
-  test('with menu open expect enhanced-quote-v4 option present', async () => {
+  test('with menu open expect enhanced-quote option present', async () => {
     // Arrange
     const wrapper = mount(WidgetMenu)
 
@@ -13,10 +13,10 @@ describe('WidgetMenu', () => {
     await wrapper.find('.menu-toggle').trigger('click')
 
     // Assert
-    expect(wrapper.text()).toContain('Enhanced Quote V4')
+    expect(wrapper.text()).toContain('Enhanced Quote')
   })
 
-  test('with Enhanced Quote V4 clicked expect add-widget emitted with enhanced-quote-v4', async () => {
+  test('with Enhanced Quote clicked expect add-widget emitted with enhanced-quote-v4', async () => {
     // Arrange
     const calls = []
     const wrapper = mount(WidgetMenu, {
@@ -26,7 +26,7 @@ describe('WidgetMenu', () => {
     // Act
     await wrapper.find('.menu-toggle').trigger('click')
     const buttons = wrapper.findAll('.widget-button')
-    const v4btn = buttons.find(b => b.text().includes('Enhanced Quote V4'))
+    const v4btn = buttons.find(b => b.text().trim().endsWith('Enhanced Quote'))
     await v4btn.trigger('click')
 
     // Assert
