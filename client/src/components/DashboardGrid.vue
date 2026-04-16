@@ -127,23 +127,23 @@
             @change="importLayouts"
             style="display: none"
         />
-        <div class="col-num-spacer"></div>
-        <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
-          Cols
-          <input
-              type="number"
-              :value="dashboardColNum"
-              min="2"
-              max="48"
-              class="col-num-input"
-              @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
-          />
-        </label>
       </div>
 
       <div class="auto-save-indicator" v-if="isAutoSaving">
         <span>💾 Auto-saving...</span>
       </div>
+
+      <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
+        Cols
+        <input
+            type="number"
+            :value="dashboardColNum"
+            min="2"
+            max="48"
+            class="col-num-input"
+            @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
+        />
+      </label>
 
     </div>
 
@@ -1021,11 +1021,8 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName })
   filter: grayscale(1);
 }
 
-.col-num-spacer {
-  flex: 1;
-}
-
 .col-num-label {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 4px;
