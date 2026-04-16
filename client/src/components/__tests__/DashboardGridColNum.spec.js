@@ -182,6 +182,33 @@ describe('dashboardColNum loaded from saved layout', () => {
   })
 })
 
+// ── dashboardColNum persisted on save ───────────────────────────────────────────────
+
+describe('dashboardColNum persisted on save', () => {
+  test('with dashboardColNum=16 expect saveLayout writes it to localStorage', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    wrapper.vm.dashboardColNum = 16
+    wrapper.vm.saveLayoutName = 'test-save'
+    await nextTick()
+
+    // Act
+    wrapper.vm.saveLayout()
+    await nextTick()
+
+    // Assert — find the dashboard-layouts write in localStorage calls
+    const call = localStorageMock.setItem.mock.calls
+      .reverse()
+      .find(([k]) => k === 'dashboard-layouts')
+    expect(call).toBeDefined()
+    const saved = JSON.parse(call[1])
+    expect(saved['test-save']?.dashboardColNum).toBe(16)
+
+    wrapper.unmount()
+  })
+})
+
 // ── addWidget uses dashboardColNum ────────────────────────────────────────────
 
 describe('addWidget with dashboardColNum', () => {

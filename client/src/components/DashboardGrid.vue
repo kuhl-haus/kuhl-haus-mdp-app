@@ -845,7 +845,7 @@ onBeforeUnmount(() => {
   if (hoverTimeout) clearTimeout(hoverTimeout)
 })
 
-defineExpose({ dashboardColNum, layout, addWidget })
+defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName })
 </script>
 
 <style scoped>
