@@ -432,9 +432,11 @@ const loadLayout = () => {
   if (!name || !savedLayouts.value[name]) return
 
   const saved = savedLayouts.value[name]
+  // Set dashboardColNum BEFORE layout so the grid never renders widgets
+  // against the wrong column count during the reactive update cycle.
+  dashboardColNum.value = saved.dashboardColNum ?? 12
   layout.value = JSON.parse(JSON.stringify(saved.layout))
   widgetCounter = saved.widgetCounter || 0
-  dashboardColNum.value = saved.dashboardColNum ?? 12
 }
 
 const deleteCurrentLayout = () => {
@@ -464,9 +466,10 @@ const loadDefaultLayout = () => {
   // Fall back to autosave
   if (savedLayouts.value[AUTOSAVE_KEY]) {
     const saved = savedLayouts.value[AUTOSAVE_KEY]
+    // Set dashboardColNum BEFORE layout — same ordering rule as loadLayout()
+    dashboardColNum.value = saved.dashboardColNum ?? 12
     layout.value = JSON.parse(JSON.stringify(saved.layout))
     widgetCounter = saved.widgetCounter || 0
-    dashboardColNum.value = saved.dashboardColNum ?? 12
   }
 }
 
@@ -851,7 +854,7 @@ onBeforeUnmount(() => {
   if (hoverTimeout) clearTimeout(hoverTimeout)
 })
 
-defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName })
+defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, loadLayout, selectedLayoutName })
 </script>
 
 <style scoped>

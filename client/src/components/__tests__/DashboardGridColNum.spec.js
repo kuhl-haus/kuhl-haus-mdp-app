@@ -327,3 +327,43 @@ describe('dashboardColNum autosave', () => {
     wrapper.unmount()
   })
 })
+
+// ── Layout switch col-count ordering (BUG-2 regression) ────────────────────────────────
+
+describe('dashboardColNum on layout switch', () => {
+  test('with switch from 12-col layout to 24-col layout expect grid renders col-num 24', async () => {
+    // Arrange — two layouts: source=12 cols, target=24 cols
+    // Target has widget positions valid at 24 cols (x=12 is out-of-bounds at 12 cols)
+    seedLayouts({
+      'source-layout': {
+        layout: [{ x: 0, y: 0, w: 6, h: 19, i: 'widget-0', type: 'quote' }],
+        widgetCounter: 1, dashboardColNum: 12,
+        created: Date.now(), modified: Date.now(), description: '',
+      },
+      'target-layout': {
+        layout: [{ x: 12, y: 0, w: 12, h: 19, i: 'widget-0', type: 'quote' }],
+        widgetCounter: 1, dashboardColNum: 24,
+        created: Date.now(), modified: Date.now(), description: '',
+      },
+    }, 'source-layout')
+
+    const wrapper = mountGrid()
+    await nextTick()
+    await nextTick()
+
+    // Confirm loaded on source layout at 12 cols
+    expect(wrapper.vm.dashboardColNum).toBe(12)
+
+    // Act — switch to 24-col layout (mirrors selectLayout() flow)
+    wrapper.vm.selectedLayoutName = 'target-layout'
+    wrapper.vm.loadLayout()
+    await nextTick()
+    await nextTick()
+
+    // Assert — col-num must be 24 (not mangled by intermediate 12-col render)
+    expect(wrapper.vm.dashboardColNum).toBe(24)
+    expect(wrapper.find('.mock-grid-layout').attributes('data-col-num')).toBe('24')
+
+    wrapper.unmount()
+  })
+})
