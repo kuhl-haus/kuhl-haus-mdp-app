@@ -597,7 +597,7 @@ defineExpose({
 }
 .eqv4-overlay {
   position: absolute;
-  inset: 40px 0 0 0; /* below controls bar */
+  inset: 80px 8px 40px 8px; /* below controls bar */
   display: flex;
   flex-direction: column;
   align-items: center;
