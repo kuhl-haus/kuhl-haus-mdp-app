@@ -91,11 +91,7 @@
           <span class="eqv4-news-title">
             {{ item.title }}<span v-if="item.source" class="eqv4-headline-source"> — {{ shortSource(item.source) }}</span>
           </span>
-          <span
-            v-for="co in usCompanies(item)"
-            :key="co.ticker"
-            class="eqv4-ticker-tag"
-          >{{ co.ticker }}</span>
+          <!-- Finlight REST API does not populate companies/tickers on ticker queries -->
         </div>
       </div>
     </RecycleScroller>
@@ -113,7 +109,6 @@ import { useConfig } from '@/composables/useConfig.js'
 import NewsArticleModal from './NewsArticleModal.vue'
 
 const ARTICLE_COUNT_OPTIONS = [5, 10, 20, 50, 100]
-const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 
 const props = defineProps({
   ticker:       { type: String,  default: null },
@@ -206,8 +201,6 @@ const filteredArticles = computed(() => {
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const isUsTicker  = (co) => US_EXCHANGES.has(co.primaryListing?.exchangeCode)
-const usCompanies = (item) => (item.companies ?? []).filter(isUsTicker)
 const shortSource = (src) => src ? src.replace(/^www\./, '').replace(/\.[^.]+$/, '') : ''
 const sentimentClass = (s) => s === 'positive' ? 'positive' : s === 'negative' ? 'negative' : 'neutral'
 
@@ -429,16 +422,5 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
 .eqv4-sentiment-dot.negative { background: #ef4444; }
 .eqv4-sentiment-dot.neutral  { background: #64748b; }
 
-/* ── Ticker tags (inline in headline cell) ── */
-.eqv4-ticker-tag {
-  font-size: 9px;
-  font-family: 'Roboto Mono', monospace;
-  background: var(--surface, #141420);
-  border: 1px solid var(--border, #2d2d3d);
-  border-radius: 3px;
-  padding: 0 3px;
-  color: var(--text-muted, #64748b);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+/* Ticker tags removed — Finlight REST API does not populate companies on ticker queries */
 </style>
