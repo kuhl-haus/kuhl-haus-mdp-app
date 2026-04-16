@@ -115,9 +115,9 @@ const formatDateTime = (ts) => {
   top: 8px;
   float: right;
   margin: 8px 8px 0 0;
-  background: #333;
+  background: var(--surface, #141420);
   border: none;
-  color: #aaa;
+  color: var(--text-muted, #afafaf);
   cursor: pointer;
   font-size: 14px;
   width: 26px;
@@ -128,7 +128,7 @@ const formatDateTime = (ts) => {
   justify-content: center;
   z-index: 1;
 }
-.modal-close:hover { background: #444; color: #fff; }
+.modal-close:hover { background: var(--pd-border, #2d2d3d); color: #fff; }
 .modal-images {
   width: 100%;
   max-height: 200px;
@@ -149,9 +149,9 @@ const formatDateTime = (ts) => {
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
-.modal-time   { font-size: 11px; color: #666; }
-.modal-source { font-size: 11px; color: #888; text-decoration: none; }
-.modal-source:hover { color: #aaa; text-decoration: underline; }
+.modal-time   { font-size: 11px; color: var(--text-muted, #afafaf); }
+.modal-source { font-size: 11px; color: var(--text-muted, #afafaf); text-decoration: none; }
+.modal-source:hover { color: var(--text-primary, #e2e8f0); text-decoration: underline; }
 .modal-sentiment {
   font-size: 10px;
   font-weight: 600;
@@ -162,12 +162,12 @@ const formatDateTime = (ts) => {
 }
 .modal-sentiment.positive { color: #22c55e; background: rgba(34,197,94,0.1); }
 .modal-sentiment.negative { color: #ef4444; background: rgba(239,68,68,0.1); }
-.modal-sentiment.neutral  { color: #888;    background: rgba(255,255,255,0.05); }
+.modal-sentiment.neutral  { color: var(--text-muted, #afafaf); background: rgba(255,255,255,0.05); }
 .modal-title {
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--text-primary, #e2e8f0);
   text-decoration: none;
   line-height: 1.4;
   margin-bottom: 10px;
@@ -175,7 +175,7 @@ const formatDateTime = (ts) => {
 .modal-title:hover { color: #fff; text-decoration: underline; }
 .modal-summary {
   font-size: 13px;
-  color: #aaa;
+  color: var(--text-muted, #afafaf);
   line-height: 1.6;
   margin: 0 0 14px;
 }
@@ -184,19 +184,19 @@ const formatDateTime = (ts) => {
   flex-direction: column;
   gap: 5px;
   padding-top: 10px;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--border, #2d2d3d);
 }
 .modal-company    { display: flex; align-items: center; gap: 8px; }
-.company-name     { font-size: 12px; color: #999; flex: 1; }
-.company-exchange { font-size: 10px; color: #555; }
+.company-name     { font-size: 12px; color: var(--text-muted, #afafaf); flex: 1; }
+.company-exchange { font-size: 10px; color: var(--text-muted, #afafaf); }
 .ticker-tag {
   font-size: 10px;
   font-family: 'Roboto Mono', monospace;
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--bg, #0d0d12);
+  border: 1px solid var(--border, #2d2d3d);
   border-radius: 3px;
   padding: 0 4px;
-  color: #999;
+  color: var(--text-muted, #afafaf);
   white-space: nowrap;
 }
 .ticker-foreign { opacity: 0.5; }
