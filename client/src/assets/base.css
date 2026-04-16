@@ -30,6 +30,7 @@
   --pd-border-hover: #2e2e4e;
   --pd-text:         #e2e2f0;
   --pd-text-muted:   #afafaf;
+  --text-muted:       #afafaf;  /* global alias for component var(--text-muted) */
   --pd-accent:       #7c3aed;
   --pd-accent-hover: #6d28d9;
   --pd-positive:     #22c55e;
