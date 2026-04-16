@@ -258,8 +258,11 @@
     </div>
 
     <!-- Desktop/tablet: grid layout -->
+    <!-- :key forces full remount on layout switch, preventing vue3-grid-layout-next
+         from merging stale internal state with new widget positions -->
     <GridLayout
         v-else
+        :key="selectedLayoutName || '__default__'"
         v-model:layout="layout"
         :col-num="dashboardColNum"
         :row-height="30"
