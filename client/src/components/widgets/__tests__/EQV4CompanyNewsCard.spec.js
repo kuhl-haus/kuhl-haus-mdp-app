@@ -115,7 +115,7 @@ describe('Empty state', () => {
 // ── Fetch on ticker change ────────────────────────────────────────────────────
 
 describe('Fetch triggers', () => {
-  test('with ticker set expect fetch called with correct query', async () => {
+  test('with ticker set expect fetch called with correct query and X-API-KEY header', async () => {
     // Arrange
     mockFinlightSuccess()
 
@@ -129,6 +129,7 @@ describe('Fetch triggers', () => {
       'https://api.finlight.me/v2/articles',
       expect.objectContaining({
         method: 'POST',
+        headers: expect.objectContaining({ 'X-API-KEY': 'test-finlight-key' }),
         body: expect.stringContaining('"query":"ticker:AAPL"'),
       })
     )
