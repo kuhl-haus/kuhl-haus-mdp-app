@@ -243,3 +243,87 @@ describe('addWidget with dashboardColNum', () => {
     wrapper.unmount()
   })
 })
+
+// ── Autosave on dashboardColNum change ──────────────────────────────────────────────────────
+
+describe('dashboardColNum autosave', () => {
+  test('with autosave enabled and colNum changed expect dashboardColNum written to storage', async () => {
+    // Arrange
+    vi.useFakeTimers()
+    seedLayouts({
+      'my-layout': {
+        layout: [], widgetCounter: 0, dashboardColNum: 12,
+        created: Date.now(), modified: Date.now(), description: '',
+      }
+    }, 'my-layout')
+    const wrapper = mountGrid()
+    await nextTick()
+    await nextTick()
+
+    // Ensure edit mode and autosave on
+    await wrapper.find('button[title="Unlock layout (edit mode)"]').trigger('click')
+    await nextTick()
+    const autosaveBtn = wrapper.find('button[title="Autosave ON \u2014 click to disable"]')
+    if (!autosaveBtn.exists()) {
+      // autosave already off — enable it
+      await wrapper.find('button[title="Autosave OFF \u2014 click to enable"]').trigger('click')
+      await nextTick()
+    }
+
+    // Act — change column count
+    wrapper.vm.dashboardColNum = 24
+    await nextTick()
+    vi.runAllTimers()
+    await nextTick()
+
+    // Assert — storage contains updated dashboardColNum for the selected layout
+    const call = localStorageMock.setItem.mock.calls
+      .reverse()
+      .find(([k]) => k === 'dashboard-layouts')
+    expect(call).toBeDefined()
+    const saved = JSON.parse(call[1])
+    expect(saved['my-layout']?.dashboardColNum).toBe(24)
+
+    vi.useRealTimers()
+    wrapper.unmount()
+  })
+
+  test('with autosave disabled and colNum changed expect storage not updated', async () => {
+    // Arrange
+    vi.useFakeTimers()
+    seedLayouts({
+      'my-layout': {
+        layout: [], widgetCounter: 0, dashboardColNum: 12,
+        created: Date.now(), modified: Date.now(), description: '',
+      }
+    }, 'my-layout')
+    const wrapper = mountGrid()
+    await nextTick()
+    await nextTick()
+
+    // Unlock, then disable autosave
+    await wrapper.find('button[title="Unlock layout (edit mode)"]').trigger('click')
+    await nextTick()
+    // Toggle autosave off (it's on by default)
+    const autosaveOnBtn = wrapper.find('button[title="Autosave ON \u2014 click to disable"]')
+    if (autosaveOnBtn.exists()) {
+      await autosaveOnBtn.trigger('click')
+      await nextTick()
+    }
+
+    localStorageMock.setItem.mockClear()
+
+    // Act
+    wrapper.vm.dashboardColNum = 24
+    await nextTick()
+    vi.runAllTimers()
+    await nextTick()
+
+    // Assert — no layout write triggered
+    const layoutWrite = localStorageMock.setItem.mock.calls.find(([k]) => k === 'dashboard-layouts')
+    expect(layoutWrite).toBeUndefined()
+
+    vi.useRealTimers()
+    wrapper.unmount()
+  })
+})
