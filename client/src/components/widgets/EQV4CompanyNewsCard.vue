@@ -186,7 +186,7 @@ const fetchNews = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.value.finlightApiKey}`,
+        'X-API-KEY': config.value.finlightApiKey,
       },
       body: JSON.stringify({
         query: `ticker:${props.ticker}`,
