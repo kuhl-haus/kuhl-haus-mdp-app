@@ -172,7 +172,7 @@ const formatDateTime = (ts) => {
   line-height: 1.4;
   margin-bottom: 10px;
 }
-.modal-title:hover { color: #fff; text-decoration: underline; }
+.modal-title:hover { color: var(--pd-text, #e2e2f0); text-decoration: underline; }
 .modal-summary {
   font-size: 13px;
   color: var(--text-muted, #afafaf);
