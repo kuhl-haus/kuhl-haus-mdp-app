@@ -5,16 +5,14 @@
     <div class="eqv4-news-header">
       <span class="eqv4-news-label">Company News</span>
       <div class="eqv4-news-controls">
-        <span class="eqv4-news-count-wrap">
-          <select
-            :value="articleCount"
-            class="eqv4-news-count-select"
-            title="Number of articles"
-            @change="onArticleCountChange"
-          >
-            <option v-for="n in ARTICLE_COUNT_OPTIONS" :key="n" :value="n">{{ n }}</option>
-          </select>
-        </span>
+        <select
+          :value="articleCount"
+          class="eqv4-news-count-select"
+          title="Number of articles"
+          @change="onArticleCountChange"
+        >
+          <option v-for="n in ARTICLE_COUNT_OPTIONS" :key="n" :value="n">{{ n }}</option>
+        </select>
         <button
           class="eqv4-news-refresh"
           :class="{ 'eqv4-news-refresh--spinning': loading }"
@@ -50,7 +48,7 @@
       </span>
     </div>
 
-    <!-- Column header -->
+    <!-- Column header — two columns: Time + Headline (matches NewsFeed layout) -->
     <div class="eqv4-news-thead">
       <div
         class="eqv4-nth eqv4-nth-time"
@@ -62,19 +60,22 @@
         :class="{ 'eqv4-nth-sorted': sortKey === 'title' }"
         @click="cycleSort('title')"
       >Headline<span v-if="sortKey === 'title'" class="eqv4-sort-indicator">{{ sortDir === 'asc' ? ' ▲' : ' ▼' }}</span></div>
-      <div class="eqv4-nth eqv4-nth-source">Source</div>
-      <div class="eqv4-nth eqv4-nth-tickers">Tickers</div>
     </div>
 
     <!-- States -->
     <div v-if="!ticker" class="eqv4-news-empty">Enter a ticker to load news</div>
-    <div v-else-if="error" class="eqv4-news-error">{{ error }} <button class="eqv4-retry-btn" @click="fetchNews">↻ Retry</button></div>
+    <div v-else-if="error" class="eqv4-news-error">
+      {{ error }}
+      <button class="eqv4-retry-btn" @click="fetchNews">↻ Retry</button>
+    </div>
     <div v-else-if="loading && articles.length === 0" class="eqv4-news-empty">
       <span class="eqv4-news-spinner">↻</span> Loading…
     </div>
-    <div v-else-if="!loading && articles.length === 0" class="eqv4-news-empty">No news found for {{ ticker }}</div>
+    <div v-else-if="!loading && articles.length === 0" class="eqv4-news-empty">
+      No news found for {{ ticker }}
+    </div>
 
-    <!-- Virtual scroller -->
+    <!-- Virtual scroller — same row pattern as NewsFeed.vue -->
     <RecycleScroller
       v-else
       class="eqv4-news-scroller"
@@ -87,12 +88,11 @@
         <div class="eqv4-ntd eqv4-ntd-time">{{ formatTime(item.publishDate) }}</div>
         <div class="eqv4-ntd eqv4-ntd-headline">
           <span :class="['eqv4-sentiment-dot', sentimentClass(item.sentiment)]" :title="item.sentiment"></span>
-          <span class="eqv4-news-title">{{ item.title }}</span>
-        </div>
-        <div class="eqv4-ntd eqv4-ntd-source">{{ shortSource(item.source) }}</div>
-        <div class="eqv4-ntd eqv4-ntd-tickers">
+          <span class="eqv4-news-title">
+            {{ item.title }}<span v-if="item.source" class="eqv4-headline-source"> — {{ shortSource(item.source) }}</span>
+          </span>
           <span
-            v-for="co in usCompanies(item).slice(0, 3)"
+            v-for="co in usCompanies(item)"
             :key="co.ticker"
             class="eqv4-ticker-tag"
           >{{ co.ticker }}</span>
@@ -100,54 +100,17 @@
       </div>
     </RecycleScroller>
 
-    <!-- Detail modal -->
-    <Teleport to="body">
-      <div v-if="selected" class="eqv4-modal-backdrop" @click.self="selected = null">
-        <div class="eqv4-modal-card">
-          <button class="eqv4-modal-close" @click="selected = null">✕</button>
-          <div class="eqv4-modal-body">
-            <div class="eqv4-modal-meta">
-              <span class="eqv4-modal-time">{{ formatDateTime(selected.publishDate) }}</span>
-              <a
-                v-if="selected.source"
-                :href="'https://' + selected.source"
-                target="_blank"
-                rel="noopener"
-                class="eqv4-modal-source"
-              >{{ selected.source }}</a>
-              <span :class="['eqv4-modal-sentiment', sentimentClass(selected.sentiment)]">
-                {{ selected.sentiment }}
-              </span>
-            </div>
-            <a :href="selected.link" target="_blank" rel="noopener" class="eqv4-modal-title">
-              {{ selected.title }}
-            </a>
-            <p v-if="selected.summary" class="eqv4-modal-summary">{{ selected.summary }}</p>
-            <div v-if="selected.companies && selected.companies.length" class="eqv4-modal-companies">
-              <div
-                v-for="co in selected.companies"
-                :key="co.companyId || co.ticker"
-                class="eqv4-modal-company"
-              >
-                <span
-                  :class="['eqv4-ticker-tag', isUsTicker(co) ? '' : 'eqv4-ticker-foreign']"
-                >{{ co.ticker }}</span>
-                <span class="eqv4-modal-company-name">{{ co.name }}</span>
-                <span class="eqv4-modal-exchange">{{ co.primaryListing?.exchangeCode }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Detail modal — shared NewsArticleModal SFC -->
+    <NewsArticleModal :article="selected" @close="selected = null" />
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useConfig } from '@/composables/useConfig.js'
+import NewsArticleModal from './NewsArticleModal.vue'
 
 const ARTICLE_COUNT_OPTIONS = [5, 10, 20, 50, 100]
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
@@ -255,17 +218,6 @@ const formatTime = (ts) => {
   return `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
 }
 
-const formatDateTime = (ts) => {
-  if (!ts) return ''
-  const d = new Date(ts)
-  return isNaN(d.getTime()) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-// Escape closes modal
-const onKeyUp = (e) => { if (e.key === 'Escape') selected.value = null }
-onMounted(()   => document.addEventListener('keyup', onKeyUp))
-onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
-
 // ── Expose ────────────────────────────────────────────────────────────────────
 defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews })
 </script>
@@ -363,7 +315,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   flex-shrink: 0;
 }
 
-/* ── Column header ── */
+/* ── Column header — two columns, matches NewsFeed ── */
 .eqv4-news-thead {
   display: flex;
   border-bottom: 1px solid var(--border, #2d2d3d);
@@ -383,9 +335,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   overflow: hidden;
 }
 .eqv4-nth-time    { width: 90px; flex-shrink: 0; }
-.eqv4-nth-headline { flex: 1; min-width: 0; cursor: pointer; }
-.eqv4-nth-source  { width: 80px; flex-shrink: 0; }
-.eqv4-nth-tickers { width: 70px; flex-shrink: 0; }
+.eqv4-nth-headline { flex: 1; min-width: 0; }
 .eqv4-nth-sorted  { color: var(--pd-accent, #7c3aed); }
 .eqv4-sort-indicator { font-size: 8px; }
 
@@ -447,10 +397,25 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   color: var(--text-primary, #e2e8f0);
 }
 .eqv4-ntd-time    { width: 90px; flex-shrink: 0; color: var(--text-muted, #64748b); }
-.eqv4-ntd-headline { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
-.eqv4-ntd-source  { width: 80px; flex-shrink: 0; color: var(--text-muted, #64748b); font-size: 10px; }
-.eqv4-ntd-tickers { width: 70px; flex-shrink: 0; display: flex; gap: 2px; overflow: hidden; }
-.eqv4-news-title  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.eqv4-ntd-headline {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+.eqv4-news-title  {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.eqv4-headline-source {
+  color: var(--text-muted, #64748b);
+  font-size: 10px;
+}
 
 /* ── Sentiment dot ── */
 .eqv4-sentiment-dot {
@@ -464,7 +429,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
 .eqv4-sentiment-dot.negative { background: #ef4444; }
 .eqv4-sentiment-dot.neutral  { background: #64748b; }
 
-/* ── Ticker tags ── */
+/* ── Ticker tags (inline in headline cell) ── */
 .eqv4-ticker-tag {
   font-size: 9px;
   font-family: 'Roboto Mono', monospace;
@@ -474,73 +439,6 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   padding: 0 3px;
   color: var(--text-muted, #64748b);
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.eqv4-ticker-foreign { opacity: 0.5; }
-
-/* ── Detail modal ── */
-.eqv4-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-.eqv4-modal-card {
-  background: var(--surface, #141420);
-  border: 1px solid var(--border, #2d2d3d);
-  border-radius: 8px;
-  max-width: 600px;
-  width: 90vw;
-  max-height: 80vh;
-  overflow-y: auto;
-  position: relative;
-  padding: 16px;
-}
-.eqv4-modal-close {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  background: none;
-  border: none;
-  color: var(--text-muted, #64748b);
-  font-size: 16px;
-  cursor: pointer;
-  line-height: 1;
-}
-.eqv4-modal-close:hover { color: var(--text-primary, #e2e8f0); }
-.eqv4-modal-body { display: flex; flex-direction: column; gap: 8px; }
-.eqv4-modal-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  flex-wrap: wrap;
-}
-.eqv4-modal-time   { color: var(--text-muted, #64748b); }
-.eqv4-modal-source { color: var(--pd-accent, #7c3aed); text-decoration: none; font-size: 11px; }
-.eqv4-modal-source:hover { text-decoration: underline; }
-.eqv4-modal-sentiment { font-size: 11px; font-weight: 600; }
-.eqv4-modal-sentiment.positive { color: #22c55e; }
-.eqv4-modal-sentiment.negative { color: #ef4444; }
-.eqv4-modal-sentiment.neutral  { color: #64748b; }
-.eqv4-modal-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #e2e8f0);
-  text-decoration: none;
-  line-height: 1.4;
-}
-.eqv4-modal-title:hover { text-decoration: underline; color: var(--pd-accent, #7c3aed); }
-.eqv4-modal-summary {
-  font-size: 12px;
-  color: var(--text-muted, #64748b);
-  line-height: 1.5;
-  margin: 0;
-}
-.eqv4-modal-companies { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-.eqv4-modal-company  { display: flex; align-items: center; gap: 6px; font-size: 11px; }
-.eqv4-modal-company-name { color: var(--text-primary, #e2e8f0); }
-.eqv4-modal-exchange { color: var(--text-muted, #64748b); font-size: 10px; }
 </style>
