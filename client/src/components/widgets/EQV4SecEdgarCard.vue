@@ -157,7 +157,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
   flex-shrink: 0;
 }
 .eqv4-edgar-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted, #64748b);
   text-transform: uppercase;
@@ -173,7 +173,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
   border: 1px solid var(--border, #2d2d3d);
   border-radius: 3px;
   color: var(--text-muted, #64748b);
-  font-size: 11px;
+  font-size: 13px;
   padding: 1px 3px;
   cursor: pointer;
 }
@@ -195,7 +195,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
   border: none;
   color: var(--text-muted, #64748b);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   padding: 0 2px;
   line-height: 1;
 }
@@ -227,7 +227,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted, #64748b);
   font-style: italic;
   padding: 8px;
@@ -239,7 +239,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: #ef4444;
   padding: 8px;
 }
@@ -271,7 +271,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
 }
 .eqv4-edgar-row:hover { background: var(--surface, #141420); }
 .eqv4-etd {
-  font-size: 11px;
+  font-size: 13px;
   padding: 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -283,12 +283,12 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
 .eqv4-edgar-link {
   color: var(--pd-accent, #7c3aed);
   text-decoration: none;
-  font-size: 11px;
+  font-size: 13px;
 }
 .eqv4-edgar-link:hover { text-decoration: underline; }
 .eqv4-edgar-raw-link {
   color: var(--text-muted, #64748b);
-  font-size: 10px;
+  font-size: 11px;
   text-decoration: none;
   margin-left: 5px;
   flex-shrink: 0;
