@@ -4,10 +4,16 @@
       <label for="volVolumeThreshold">Volume</label>
       <select v-model="volumeThreshold" class="filter-select">
         <option value="10">10K+ Volume</option>
+        <option value="50">50K+ Volume</option>
         <option value="100">100K+ Volume</option>
+        <option value="250">250K+ Volume</option>
+        <option value="500">500K+ Volume</option>
+        <option value="750">750K+ Volume</option>
         <option value="1000">1M+ Volume</option>
+        <option value="2000">2M+ Volume</option>
         <option value="5000">5M+ Volume</option>
         <option value="10000">10M+ Volume</option>
+        <option value="25000">25M+ Volume</option>
         <option value="50000">50M+ Volume</option>
         <option value="100000">100M+ Volume</option>
       </select>
@@ -22,7 +28,18 @@
         <option value="10">$10</option>
         <option value="15">$15</option>
         <option value="20">$20</option>
+        <option value="25">$25</option>
+        <option value="50">$50</option>
+        <option value="75">$75</option>
         <option value="100">$100</option>
+        <option value="125">$125</option>
+        <option value="150">$150</option>
+        <option value="200">$200</option>
+        <option value="250">$250</option>
+        <option value="300">$300</option>
+        <option value="400">$400</option>
+        <option value="500">$500</option>
+        <option value="1000">$1K+</option>
       </select>
       <label for="volMaxPriceThreshold">Max Price</label>
       <select v-model="maxPriceThreshold" class="filter-select">
@@ -34,7 +51,18 @@
         <option value="10">$10</option>
         <option value="15">$15</option>
         <option value="20">$20</option>
+        <option value="25">$25</option>
+        <option value="50">$50</option>
+        <option value="75">$75</option>
         <option value="100">$100</option>
+        <option value="125">$125</option>
+        <option value="150">$150</option>
+        <option value="200">$200</option>
+        <option value="250">$250</option>
+        <option value="300">$300</option>
+        <option value="400">$400</option>
+        <option value="500">$500</option>
+        <option value="1000">$1K</option>
         <option value="1000000000">$100B+</option>
       </select>
       <label for="volRelVolumeThreshold">Rel. Vol.</label>
