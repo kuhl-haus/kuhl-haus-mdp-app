@@ -142,7 +142,7 @@ defineExpose({ events, transitions, entityName, loading, error, fetchEvents })
   overflow: hidden;
 }
 .eqv4-events-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted, #64748b);
   text-transform: uppercase;
@@ -180,7 +180,7 @@ defineExpose({ events, transitions, entityName, loading, error, fetchEvents })
   border: none;
   color: var(--text-muted, #64748b);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   padding: 0 2px;
   line-height: 1;
 }
@@ -212,7 +212,7 @@ defineExpose({ events, transitions, entityName, loading, error, fetchEvents })
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted, #64748b);
   font-style: italic;
   padding: 8px;
@@ -224,7 +224,7 @@ defineExpose({ events, transitions, entityName, loading, error, fetchEvents })
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: #ef4444;
   padding: 8px;
 }
@@ -256,7 +256,7 @@ defineExpose({ events, transitions, entityName, loading, error, fetchEvents })
 }
 .eqv4-events-row:hover { background: var(--surface, #141420); }
 .eqv4-evtd {
-  font-size: 11px;
+  font-size: 13px;
   padding: 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;

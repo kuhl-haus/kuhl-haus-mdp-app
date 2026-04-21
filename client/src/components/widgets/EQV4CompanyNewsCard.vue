@@ -237,7 +237,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   flex-shrink: 0;
 }
 .eqv4-news-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted, #64748b);
   text-transform: uppercase;
@@ -253,7 +253,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   border: 1px solid var(--border, #2d2d3d);
   border-radius: 3px;
   color: var(--text-muted, #64748b);
-  font-size: 11px;
+  font-size: 13px;
   padding: 1px 3px;
   cursor: pointer;
 }
@@ -275,7 +275,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   border: none;
   color: var(--text-muted, #64748b);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   padding: 0 2px;
   line-height: 1;
 }
@@ -296,7 +296,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   border: 1px solid var(--border, #2d2d3d);
   border-radius: 3px;
   color: var(--text-primary, #e2e8f0);
-  font-size: 11px;
+  font-size: 13px;
   padding: 2px 6px;
   outline: none;
 }
@@ -338,7 +338,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted, #64748b);
   font-style: italic;
   padding: 8px;
@@ -350,7 +350,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: #ef4444;
   padding: 8px;
 }
@@ -382,7 +382,7 @@ defineExpose({ articles, filteredArticles, loading, error, selected, fetchNews }
 }
 .eqv4-news-row:hover { background: var(--surface, #141420); }
 .eqv4-ntd {
-  font-size: 11px;
+  font-size: 13px;
   padding: 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
