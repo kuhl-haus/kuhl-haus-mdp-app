@@ -11,7 +11,7 @@
       <button
           v-for="widget in availableWidgets"
           :key="widget.type"
-          @click="selectWidget(widget.type)"
+          @click="selectWidget(widget)"
           class="widget-button"
       >
         <span>{{ widget.icon }}</span>
@@ -38,8 +38,8 @@ const availableWidgets = [
   { type: 'enhanced-quote-v4', label: 'Enhanced Quote', icon: '💎' },
 ]
 
-const selectWidget = (widgetType) => {
-  emit('add-widget', widgetType)
+const selectWidget = (widget) => {
+  emit('add-widget', { type: widget.type, label: widget.label })
   isOpen.value = false
 }
 </script>

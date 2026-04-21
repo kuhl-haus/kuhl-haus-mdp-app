@@ -20,7 +20,7 @@ describe('WidgetMenu', () => {
     // Arrange
     const calls = []
     const wrapper = mount(WidgetMenu, {
-      attrs: { onAddWidget: (t) => calls.push(t) },
+      attrs: { onAddWidget: (w) => calls.push(w) },
     })
 
     // Act
@@ -29,8 +29,39 @@ describe('WidgetMenu', () => {
     const v4btn = buttons.find(b => b.text().trim().endsWith('Enhanced Quote'))
     await v4btn.trigger('click')
 
+    // Assert — emits { type, label } object, no icon
+    expect(calls[0]).toMatchObject({ type: 'enhanced-quote-v4', label: 'Enhanced Quote' })
+    expect(calls[0]).not.toHaveProperty('icon')
+  })
+
+  test.each([
+    { type: 'top-gainers',       label: 'Top Gainers' },
+    { type: 'top-gappers',       label: 'Top Gappers' },
+    { type: 'top-volume',        label: 'Top Volume' },
+    { type: 'news-feed',         label: 'News Feed' },
+    { type: 'company-news',      label: 'Company News' },
+    { type: 'quote',             label: 'Mini Quote' },
+    { type: 'enhanced-quote',    label: 'Quote' },
+    { type: 'enhanced-quote-v4', label: 'Enhanced Quote' },
+  ])('with $label clicked expect add-widget emitted with { type: $type, label: $label }', async ({ type, label }) => {
+    // Arrange
+    const calls = []
+    const wrapper = mount(WidgetMenu, {
+      attrs: { onAddWidget: (w) => calls.push(w) },
+    })
+    await wrapper.find('.menu-toggle').trigger('click')
+    const buttons = wrapper.findAll('.widget-button')
+    // Button text is "<icon><label>" — strip leading non-letter chars to isolate label
+    const btn = buttons.find(b => b.text().trim().replace(/^\P{L}+/u, '') === label)
+    expect(btn, `button for "${label}" not found`).toBeTruthy()
+
+    // Act
+    await btn.trigger('click')
+
     // Assert
-    expect(calls).toContain('enhanced-quote-v4')
+    expect(calls[0]).toMatchObject({ type, label })
+    expect(calls[0]).not.toHaveProperty('icon')
+    wrapper.unmount()
   })
 })
 

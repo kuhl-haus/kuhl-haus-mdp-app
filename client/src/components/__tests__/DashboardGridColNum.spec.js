@@ -219,7 +219,7 @@ describe('addWidget with dashboardColNum', () => {
     expect(wrapper.vm.dashboardColNum).toBe(12)
 
     // Act
-    wrapper.vm.addWidget('quote')
+    wrapper.vm.addWidget({ type: 'quote', label: 'Mini Quote' })
     await nextTick()
 
     // Assert
@@ -235,11 +235,73 @@ describe('addWidget with dashboardColNum', () => {
     await nextTick()
 
     // Act
-    wrapper.vm.addWidget('quote')
+    wrapper.vm.addWidget({ type: 'quote', label: 'Mini Quote' })
     await nextTick()
 
     // Assert
     expect(wrapper.vm.layout[0].w).toBe(12)
+    wrapper.unmount()
+  })
+})
+
+// ── addWidget sets userLabel ─────────────────────────────────────────────────────────────
+
+describe('addWidget userLabel', () => {
+  test('with quote widget added expect userLabel set to friendly label', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Act
+    wrapper.vm.addWidget({ type: 'quote', label: 'Mini Quote' })
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.layout[0].userLabel).toBe('Mini Quote')
+    wrapper.unmount()
+  })
+
+  test('with top-gainers widget added expect userLabel set to friendly label', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Act
+    wrapper.vm.addWidget({ type: 'top-gainers', label: 'Top Gainers' })
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.layout[0].userLabel).toBe('Top Gainers')
+    wrapper.unmount()
+  })
+
+  test('with enhanced-quote-v4 added expect userLabel set to Enhanced Quote', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Act
+    wrapper.vm.addWidget({ type: 'enhanced-quote-v4', label: 'Enhanced Quote' })
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.layout[0].userLabel).toBe('Enhanced Quote')
+    wrapper.unmount()
+  })
+})
+
+// ── defineExpose includes addWidget ───────────────────────────────────────────────
+
+describe('exposed interface', () => {
+  test('with DashboardGrid mounted expect addWidget exposed on vm', async () => {
+    // Arrange / Act
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.addWidget).toBeDefined()
+    expect(wrapper.vm.layout).toBeDefined()
+    expect(wrapper.vm.dashboardColNum).toBeDefined()
     wrapper.unmount()
   })
 })

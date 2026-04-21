@@ -652,7 +652,7 @@ const drawLayoutPreview = (layoutData, colOverride) => {
     ctx.font = '12px monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(item.type || 'widget', x + w/2, y + h/2)
+    ctx.fillText(item.userLabel || item.type || 'widget', x + w/2, y + h/2)
   })
 }
 
@@ -764,7 +764,7 @@ const drawMiniPreview = (layoutData, colOverride) => {
     ctx.font = '10px monospace'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(item.type || 'widget', x + w/2, y + h/2)
+    ctx.fillText(item.userLabel || item.type || 'widget', x + w/2, y + h/2)
   })
 }
 
@@ -777,7 +777,7 @@ const closeSaveDialog = () => {
 }
 
 // Widget Operations
-const addWidget = (widgetType) => {
+const addWidget = ({ type: widgetType, label: widgetLabel }) => {
   const perRow = 2  // always place 2 widgets side by side
   const w = Math.floor(dashboardColNum.value / perRow)
   const index = layout.value.length
@@ -788,7 +788,12 @@ const addWidget = (widgetType) => {
     w,
     h: 19,
     i: `widget-${widgetCounter++}`,
-    type: widgetType
+    type: widgetType,
+    // userLabel is set to the friendly menu label on creation so the widget header
+    // shows a human-readable name immediately. The user can rename from here.
+    // Widgets from saved layouts that predate this change will have no userLabel
+    // and fall back to the raw type string in WidgetWrapper — intentional.
+    userLabel: widgetLabel,
   })
 }
 
