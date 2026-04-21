@@ -44,8 +44,8 @@
           class="eqv4-grid-item"
         >
           <!-- Card header: label + edit-mode controls
-               Suppressed for company-news — that card owns its full header -->
-          <div v-if="item.i !== 'company-news'" class="eqv4-card-header">
+               Suppressed for active cards that own their full header -->
+          <div v-if="!isActiveCard(item.i)" class="eqv4-card-header">
             <span class="eqv4-card-label">{{ cardLabel(item.i) }}</span>
             <span v-if="!isLocked" class="eqv4-card-controls">
               <!-- Hero layout toggle -->
@@ -81,14 +81,16 @@
             :is-locked="isLocked"
             :chips-mode="chipCardIds.has(item.i)"
             :hero-mode="item.i === 'hero' ? heroMode : undefined"
-            :ticker="item.i === 'company-news' ? activeTicker : undefined"
+            :ticker="isActiveCard(item.i) ? activeTicker : undefined"
             :article-count="item.i === 'company-news' ? newsArticleCount : undefined"
+            :filing-count="item.i === 'sec-edgar' ? secEdgarFilingCount : undefined"
             :branding-mode="brandingMode"
             :active-branding-url="activeBrandingUrl"
             :flame-icon="flameIcon"
             @toggle-branding="toggleBranding"
             @update-article-count="item.i === 'company-news' ? onNewsArticleCountChange($event) : undefined"
-            @remove="item.i === 'company-news' ? removeCard('company-news') : undefined"
+            @update-filing-count="item.i === 'sec-edgar' ? onSecEdgarFilingCountChange($event) : undefined"
+            @remove="isActiveCard(item.i) ? removeCard(item.i) : undefined"
             class="eqv4-card-component"
           />
         </GridItem>
@@ -142,6 +144,9 @@ import EQV4SessionCard from './EQV4SessionCard.vue'
 import EQV4ShortCard   from './EQV4ShortCard.vue'
 import EQV4CompanyCard     from './EQV4CompanyCard.vue'
 import EQV4CompanyNewsCard from './EQV4CompanyNewsCard.vue'
+import EQV4StockSplitsCard from './EQV4StockSplitsCard.vue'
+import EQV4SecEdgarCard    from './EQV4SecEdgarCard.vue'
+import EQV4TickerEventsCard from './EQV4TickerEventsCard.vue'
 import EQV4CardPicker  from './EQV4CardPicker.vue'
 
 // ── Card registry ────────────────────────────────────────────────────────────
@@ -154,6 +159,9 @@ const CARD_REGISTRY = [
   { id: 'short',   label: 'Short Interest', component: EQV4ShortCard,   defaultW: 3, defaultH: 2 },
   { id: 'company',      label: 'Company',        component: EQV4CompanyCard,     defaultW: 3, defaultH: 3 },
   { id: 'company-news', label: 'Company News',   component: EQV4CompanyNewsCard, defaultW: 6, defaultH: 4 },
+  { id: 'stock-splits',  label: 'Stock Splits',  component: EQV4StockSplitsCard,  defaultW: 4, defaultH: 3 },
+  { id: 'sec-edgar',     label: 'SEC EDGAR',     component: EQV4SecEdgarCard,     defaultW: 6, defaultH: 4 },
+  { id: 'ticker-events', label: 'Ticker Events', component: EQV4TickerEventsCard, defaultW: 4, defaultH: 3 },
 ]
 
 const CARD_MAP = Object.fromEntries(CARD_REGISTRY.map(c => [c.id, c]))
@@ -191,6 +199,11 @@ const chipCardIds = computed(() => new Set(props.settings?.chipCards ?? []))
 const brandingMode = computed(() => props.settings?.brandingMode ?? 'logo')
 const heroMode = computed(() => props.settings?.heroMode ?? 'wide')
 const newsArticleCount = computed(() => props.settings?.newsArticleCount ?? 20)
+const secEdgarFilingCount = computed(() => props.settings?.secEdgarFilingCount ?? 10)
+
+// Cards that own their full header and receive ticker/isLocked props
+const ACTIVE_CARD_IDS = new Set(['company-news', 'stock-splits', 'sec-edgar', 'ticker-events'])
+const isActiveCard = (id) => ACTIVE_CARD_IDS.has(id)
 
 // Cards that support chip render mode (company card does not)
 const CHIPS_CAPABLE = new Set(['today', 'prev', 'volume', 'session', 'short'])
@@ -210,6 +223,10 @@ const toggleHeroMode = () => {
 
 const onNewsArticleCountChange = (count) => {
   emit('update-settings', { ...props.settings, newsArticleCount: count })
+}
+
+const onSecEdgarFilingCountChange = (count) => {
+  emit('update-settings', { ...props.settings, secEdgarFilingCount: count })
 }
 
 const settingsCards = computed(() => {
@@ -554,6 +571,7 @@ defineExpose({
   chipCardIds,
   heroMode,
   newsArticleCount,
+  secEdgarFilingCount,
   addCard,
   removeCard,
   toggleCardChips,

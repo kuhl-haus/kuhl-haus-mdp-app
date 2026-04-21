@@ -713,6 +713,104 @@ describe('toggleCardChips', () => {
   })
 })
 
+// ── New card registry entries (tests 11-13) ───────────────────────────────────
+
+describe('New card registry entries', () => {
+  test('test_EnhancedQuoteV4_with_registry_expect_stock_splits_sec_edgar_ticker_events_present', () => {
+    // Arrange / Act
+    const wrapper = mountWidget()
+
+    // Assert — CARD_REGISTRY is not directly exposed, but absentCards + activeCardIds
+    // confirm all registry entries. addCard is the best proxy: unknown ids are ignored.
+    // We verify indirectly via addCard accepting known new IDs.
+    // More directly: confirm the cards can be added (they're in the registry).
+    const emitted = []
+    const wrapper2 = mountWidget(
+      { settings: { cards: [] } },
+      (s) => emitted.push(s)
+    )
+    wrapper2.vm.addCard('stock-splits')
+    wrapper2.vm.addCard('sec-edgar')
+    wrapper2.vm.addCard('ticker-events')
+
+    const ids = emitted.flatMap(s => s.cards?.map(c => c.id) ?? [])
+    expect(ids).toContain('stock-splits')
+    expect(ids).toContain('sec-edgar')
+    expect(ids).toContain('ticker-events')
+  })
+
+  test('test_EnhancedQuoteV4_with_sec_edgar_card_expect_filingCount_from_settings_secEdgarFilingCount', () => {
+    // Arrange
+    const wrapper = mountWidget({
+      settings: {
+        secEdgarFilingCount: 25,
+        cards: [{ id: 'sec-edgar', x: 0, y: 0, w: 6, h: 4 }],
+      },
+    })
+
+    // Assert — secEdgarFilingCount computed reflects settings value
+    expect(wrapper.vm.secEdgarFilingCount).toBe(25)
+  })
+
+  test('test_EnhancedQuoteV4_with_update_filing_count_from_sec_edgar_expect_settings_updated', async () => {
+    // Arrange
+    const emitted = []
+    const wrapper = mountWidget(
+      { settings: { secEdgarFilingCount: 10, cards: [{ id: 'sec-edgar', x: 0, y: 0, w: 6, h: 4 }] } },
+      (s) => emitted.push(s)
+    )
+
+    // Act — find the rendered EQV4SecEdgarCard and emit update-filing-count
+    const secEdgarCard = wrapper.findComponent({ name: 'EQV4SecEdgarCard' })
+    expect(secEdgarCard.exists()).toBe(true)
+    await secEdgarCard.vm.$emit('update-filing-count', 50)
+    await nextTick()
+
+    // Assert — update-settings emitted with secEdgarFilingCount updated
+    const last = emitted[emitted.length - 1]
+    expect(last.secEdgarFilingCount).toBe(50)
+  })
+})
+
+// ── Header suppression for new cards (test 14) ────────────────────────────────
+
+describe('Header suppression', () => {
+  test('test_EnhancedQuoteV4_with_new_active_cards_expect_generic_header_suppressed', () => {
+    // Arrange — layout contains all three new cards
+    const wrapper = mountWidget({
+      settings: {
+        cards: [
+          { id: 'stock-splits',  x: 0, y: 0, w: 4, h: 3 },
+          { id: 'sec-edgar',     x: 4, y: 0, w: 6, h: 4 },
+          { id: 'ticker-events', x: 0, y: 3, w: 4, h: 3 },
+        ],
+      },
+    })
+
+    // Assert — no generic .eqv4-card-header rendered for any of the three new card IDs.
+    // The generic header is rendered inside a GridItem with data-i matching the card id.
+    for (const id of ['stock-splits', 'sec-edgar', 'ticker-events']) {
+      const gridItem = wrapper.find(`[data-i="${id}"]`)
+      expect(gridItem.exists()).toBe(true)
+      // The generic card header should NOT appear inside this grid item.
+      expect(gridItem.find('.eqv4-card-header').exists()).toBe(false)
+    }
+  })
+})
+
+// ── secEdgarFilingCount exposed (test 15) ─────────────────────────────────────
+
+describe('secEdgarFilingCount exposed', () => {
+  test('test_EnhancedQuoteV4_with_widget_mounted_expect_secEdgarFilingCount_exposed', () => {
+    // Arrange / Act
+    const wrapper = mountWidget({ settings: { secEdgarFilingCount: 50 } })
+
+    // Assert
+    expect(wrapper.vm.secEdgarFilingCount).toBeDefined()
+    expect(wrapper.vm.secEdgarFilingCount).toBe(50)
+  })
+})
+
 // ── EQV4HeroCard ───────────────────────────────────────────────────────────
 
 import EQV4HeroCard from '../EQV4HeroCard.vue'
