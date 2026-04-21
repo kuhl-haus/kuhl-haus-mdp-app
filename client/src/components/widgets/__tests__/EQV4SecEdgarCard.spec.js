@@ -18,8 +18,8 @@ vi.mock('@/composables/useConfig.js', async () => {
 })
 
 const SAMPLE_FILINGS = [
-  { filing_date: '2026-02-03', form_type: '10-K', filing_url: 'https://sec.gov/Archives/1', issuer_name: 'Apple Inc.' },
-  { filing_date: '2025-11-01', form_type: '10-Q', filing_url: 'https://sec.gov/Archives/2', issuer_name: 'Apple Inc.' },
+  { filing_date: '2026-02-03', form_type: '10-K', filing_url: 'https://sec.gov/Archives/1', issuer_name: 'Apple Inc.', cik: '0000320193', accession_number: '0000320193-26-000001' },
+  { filing_date: '2025-11-01', form_type: '10-Q', filing_url: 'https://sec.gov/Archives/2', issuer_name: 'Apple Inc.', cik: '0000320193', accession_number: '0000320193-25-000002' },
 ]
 
 function mockFilingsSuccess(results = SAMPLE_FILINGS) {
@@ -125,12 +125,23 @@ describe('Data rows', () => {
     expect(wrapper.text()).toContain('2025-11-01')
     expect(wrapper.text()).toContain('10-Q')
 
-    // Assert — links with correct hrefs and target=_blank
+    // Assert — primary links use EDGAR index URL (text/html)
     const links = wrapper.findAll('.eqv4-edgar-link')
     expect(links.length).toBe(2)
-    expect(links[0].attributes('href')).toBe('https://sec.gov/Archives/1')
+    expect(links[0].attributes('href')).toBe(
+      'https://www.sec.gov/Archives/edgar/data/0000320193/000032019326000001/0000320193-26-000001-index.htm'
+    )
     expect(links[0].attributes('target')).toBe('_blank')
-    expect(links[1].attributes('href')).toBe('https://sec.gov/Archives/2')
+    expect(links[1].attributes('href')).toBe(
+      'https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000002/0000320193-25-000002-index.htm'
+    )
+
+    // Assert — secondary raw links use filing_url (.txt backup)
+    const rawLinks = wrapper.findAll('.eqv4-edgar-raw-link')
+    expect(rawLinks.length).toBe(2)
+    expect(rawLinks[0].attributes('href')).toBe('https://sec.gov/Archives/1')
+    expect(rawLinks[0].attributes('target')).toBe('_blank')
+    expect(rawLinks[0].text()).toBe('txt')
   })
 })
 
@@ -209,5 +220,19 @@ describe('Exposed interface', () => {
 
     // Assert
     expect(typeof wrapper.vm.fetchFilings).toBe('function')
+  })
+
+  test('test_EQV4SecEdgarCard_with_filing_having_cik_and_accession_expect_edgarIndexUrl_returns_index_htm', () => {
+    // Arrange
+    const wrapper = mountCard()
+    const filing = { cik: '0000320193', accession_number: '0000320193-26-000079' }
+
+    // Act
+    const url = wrapper.vm.edgarIndexUrl(filing)
+
+    // Assert — index page (text/html) rather than raw filing_url (text/plain)
+    expect(url).toBe(
+      'https://www.sec.gov/Archives/edgar/data/0000320193/000032019326000079/0000320193-26-000079-index.htm'
+    )
   })
 })

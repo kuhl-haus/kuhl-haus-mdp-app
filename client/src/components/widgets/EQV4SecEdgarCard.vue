@@ -54,11 +54,18 @@
         <div class="eqv4-etd eqv4-etd-date">{{ f.filing_date }}</div>
         <div class="eqv4-etd eqv4-etd-form">
           <a
-            :href="f.filing_url"
+            :href="edgarIndexUrl(f)"
             target="_blank"
             rel="noopener"
             class="eqv4-edgar-link"
           >{{ f.form_type }}</a>
+          <a
+            :href="f.filing_url"
+            target="_blank"
+            rel="noopener"
+            class="eqv4-edgar-raw-link"
+            title="Raw filing (.txt)"
+          >txt</a>
         </div>
       </div>
     </div>
@@ -116,7 +123,16 @@ const onFilingCountChange = (e) => {
 }
 
 // ── Expose ────────────────────────────────────────────────────────────────────
-defineExpose({ filings, loading, error, fetchFilings })
+// SEC EDGAR serves filing_url with Content-Type: text/plain, which browsers
+// render as raw text regardless of actual HTML content. The filing index page
+// (.../accession_nodash/accession-index.htm) is served as text/html and links
+// to all documents in the filing with proper formatting.
+const edgarIndexUrl = (filing) => {
+  const accessionNodash = filing.accession_number?.replace(/-/g, '') ?? ''
+  return `https://www.sec.gov/Archives/edgar/data/${filing.cik}/${accessionNodash}/${filing.accession_number}-index.htm`
+}
+
+defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
 </script>
 
 <style scoped>
@@ -270,4 +286,13 @@ defineExpose({ filings, loading, error, fetchFilings })
   font-size: 11px;
 }
 .eqv4-edgar-link:hover { text-decoration: underline; }
+.eqv4-edgar-raw-link {
+  color: var(--text-muted, #64748b);
+  font-size: 10px;
+  text-decoration: none;
+  margin-left: 5px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.eqv4-edgar-raw-link:hover { text-decoration: underline; opacity: 1; }
 </style>
