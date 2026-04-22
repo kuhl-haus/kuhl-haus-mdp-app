@@ -91,18 +91,17 @@ import { useConfig } from '@/composables/useConfig.js'
 const FORM_IMPACT = {
   // Dilution / Capital Structure (High)
   'S-1':        { note: 'Dilution risk',            level: 'high' },
+  'S-1/A':      { note: 'Dilution risk',            level: 'high' },
+  'S-3':        { note: 'Shelf registration',       level: 'high' },
+  'S-3/A':      { note: 'Shelf registration',       level: 'high' },
+  'S-3ASR':     { note: 'Auto-shelf registration',  level: 'high' },
+  'F-1':        { note: 'Dilution risk',            level: 'high' },
+  'F-3':        { note: 'Shelf registration',       level: 'high' },
   '424B1':      { note: 'Offering priced',          level: 'high' },
   '424B2':      { note: 'Offering priced',          level: 'high' },
   '424B3':      { note: 'Offering priced',          level: 'high' },
   '424B4':      { note: 'Offering priced',          level: 'high' },
   '424B5':      { note: 'Offering priced',          level: 'high' },
-  // Dilution / Capital Structure (Medium)
-  'S-1/A':      { note: 'Dilution risk',            level: 'medium' },
-  'S-3':        { note: 'Shelf registration',       level: 'medium' },
-  'S-3/A':      { note: 'Shelf registration',       level: 'medium' },
-  'S-3ASR':     { note: 'Shelf registration',       level: 'medium' },
-  'F-1':        { note: 'Dilution risk',            level: 'medium' },
-  'F-3':        { note: 'Shelf registration',       level: 'medium' },
   // Ownership (High)
   'SC 13D':     { note: '>5% activist stake',       level: 'high' },
   'SC TO-T':    { note: 'Tender offer',             level: 'high' },
@@ -136,9 +135,9 @@ const FORM_IMPACT = {
   '4/A':        { note: 'Insider trade (amended)',  level: 'medium' },
   '144':        { note: 'Insider sale pending',     level: 'medium' },
   // Foreign (Medium)
-  '6-K':        { note: 'Foreign material event',  level: 'medium' },
-  '20-F':       { note: 'Foreign annual report',   level: 'medium' },
-  '20-F/A':     { note: 'Foreign annual (amended)', level: 'medium' },
+  '6-K':        { note: 'Foreign material event',   level: 'high' },
+  '20-F':       { note: 'Foreign annual report',    level: 'medium' },
+  '20-F/A':     { note: 'Foreign annual (amended)', level: 'high' },
   // Earnings (Medium)
   '10-K':       { note: 'Annual earnings',          level: 'medium' },
   '10-Q':       { note: 'Quarterly earnings',       level: 'medium' },
