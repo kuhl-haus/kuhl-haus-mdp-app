@@ -221,7 +221,7 @@ describe('Impact badge', () => {
     return mount(EQV4SecEdgarCard, { props: { ticker: 'TST', isLocked: true, filingCount: 10 } })
   }
 
-  test('test_EQV4SecEdgarCard_with_S3_expect_medium_shelf_badge', async () => {
+  test('test_EQV4SecEdgarCard_with_S3_expect_high_shelf_badge', async () => {
     // Arrange / Act
     const wrapper = mountWithFormType('S-3')
     await nextTick()
@@ -231,7 +231,7 @@ describe('Impact badge', () => {
     const badge = wrapper.find('.eqv4-impact-badge')
     expect(badge.exists()).toBe(true)
     expect(badge.text()).toBe('Shelf registration')
-    expect(badge.classes()).toContain('eqv4-impact-badge--medium')
+    expect(badge.classes()).toContain('eqv4-impact-badge--high')
   })
 
   test('test_EQV4SecEdgarCard_with_8K_expect_high_material_event_badge', async () => {
@@ -334,7 +334,7 @@ describe('Impact badge', () => {
     expect(wrapper.find('.eqv4-impact-badge').exists()).toBe(false)
   })
 
-  test('test_EQV4SecEdgarCard_with_S1A_expect_medium_dilution_risk_badge', async () => {
+  test('test_EQV4SecEdgarCard_with_S1A_expect_high_dilution_risk_badge', async () => {
     // Arrange / Act
     const wrapper = mountWithFormType('S-1/A')
     await nextTick()
@@ -344,7 +344,7 @@ describe('Impact badge', () => {
     const badge = wrapper.find('.eqv4-impact-badge')
     expect(badge.exists()).toBe(true)
     expect(badge.text()).toBe('Dilution risk')
-    expect(badge.classes()).toContain('eqv4-impact-badge--medium')
+    expect(badge.classes()).toContain('eqv4-impact-badge--high')
   })
 })
 
