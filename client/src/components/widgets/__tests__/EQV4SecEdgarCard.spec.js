@@ -211,7 +211,144 @@ describe('Remove button', () => {
   })
 })
 
-// ── Exposed interface ─────────────────────────────────────────────────────────
+// ── Impact badge ────────────────────────────────────────────────────────────────────────────────
+
+describe('Impact badge', () => {
+  function mountWithFormType(form_type) {
+    mockFilingsSuccess([
+      { filing_date: '2026-01-01', form_type, filing_url: 'https://sec.gov/x', cik: '1234', accession_number: '0000001234-26-000001' },
+    ])
+    return mount(EQV4SecEdgarCard, { props: { ticker: 'TST', isLocked: true, filingCount: 10 } })
+  }
+
+  test('test_EQV4SecEdgarCard_with_S3_expect_medium_shelf_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('S-3')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Shelf registration')
+    expect(badge.classes()).toContain('eqv4-impact-badge--medium')
+  })
+
+  test('test_EQV4SecEdgarCard_with_8K_expect_high_material_event_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('8-K')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Material event')
+    expect(badge.classes()).toContain('eqv4-impact-badge--high')
+  })
+
+  test('test_EQV4SecEdgarCard_with_DEF14A_expect_medium_proxy_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('DEF 14A')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Proxy statement')
+    expect(badge.classes()).toContain('eqv4-impact-badge--medium')
+  })
+
+  test('test_EQV4SecEdgarCard_with_SC13D_expect_high_activist_stake_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('SC 13D')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('>5% activist stake')
+    expect(badge.classes()).toContain('eqv4-impact-badge--high')
+  })
+
+  test('test_EQV4SecEdgarCard_with_10Q_expect_medium_quarterly_earnings_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('10-Q')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Quarterly earnings')
+    expect(badge.classes()).toContain('eqv4-impact-badge--medium')
+  })
+
+  test('test_EQV4SecEdgarCard_with_NT10K_expect_high_late_filing_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('NT 10-K')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Late filing notice')
+    expect(badge.classes()).toContain('eqv4-impact-badge--high')
+  })
+
+  test('test_EQV4SecEdgarCard_with_10KA_expect_high_restated_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('10-K/A')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Annual report (restated)')
+    expect(badge.classes()).toContain('eqv4-impact-badge--high')
+  })
+
+  test('test_EQV4SecEdgarCard_with_whitespace_form_type_expect_badge_rendered_via_trim', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType(' S-3 ')
+    await nextTick()
+    await nextTick()
+
+    // Assert — trim normalization fires
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Shelf registration')
+  })
+
+  test('test_EQV4SecEdgarCard_with_S8_expect_no_badge_rendered', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('S-8')
+    await nextTick()
+    await nextTick()
+
+    // Assert — S-8 not in map
+    expect(wrapper.find('.eqv4-impact-badge').exists()).toBe(false)
+  })
+
+  test('test_EQV4SecEdgarCard_with_S1A_expect_medium_dilution_risk_badge', async () => {
+    // Arrange / Act
+    const wrapper = mountWithFormType('S-1/A')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    const badge = wrapper.find('.eqv4-impact-badge')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('Dilution risk')
+    expect(badge.classes()).toContain('eqv4-impact-badge--medium')
+  })
+})
+
+// ── Exposed interface ────────────────────────────────────────────────────────────────────────────────
 
 describe('Exposed interface', () => {
   test('test_EQV4SecEdgarCard_with_card_mounted_expect_fetchFilings_exposed', () => {
