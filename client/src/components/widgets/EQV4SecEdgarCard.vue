@@ -33,6 +33,7 @@
     <div class="eqv4-edgar-thead">
       <div class="eqv4-eth eqv4-eth-date">Date</div>
       <div class="eqv4-eth eqv4-eth-form">Form Type</div>
+      <div class="eqv4-eth eqv4-eth-note">Note</div>
     </div>
 
     <!-- States -->
@@ -67,6 +68,13 @@
             title="Raw filing (.txt)"
           >txt</a>
         </div>
+        <div class="eqv4-etd eqv4-etd-note">
+          <span
+            v-if="FORM_IMPACT[f.form_type?.trim()]"
+            :class="['eqv4-impact-badge', `eqv4-impact-badge--${FORM_IMPACT[f.form_type?.trim()].level}`]"
+            :title="FORM_IMPACT[f.form_type?.trim()].note"
+          >{{ FORM_IMPACT[f.form_type?.trim()].note }}</span>
+        </div>
       </div>
     </div>
 
@@ -76,6 +84,66 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useConfig } from '@/composables/useConfig.js'
+
+// Form type → price impact map.
+// Keys match SEC-canonical form type strings exactly (case-sensitive, spaces preserved).
+// Source: Tom's SEC Filing Forms Impact reference (Projects/EQv4-SecEdgar-PriceImpact-Design.md)
+const FORM_IMPACT = {
+  // Dilution / Capital Structure (High)
+  'S-1':        { note: 'Dilution risk',            level: 'high' },
+  '424B1':      { note: 'Offering priced',          level: 'high' },
+  '424B2':      { note: 'Offering priced',          level: 'high' },
+  '424B3':      { note: 'Offering priced',          level: 'high' },
+  '424B4':      { note: 'Offering priced',          level: 'high' },
+  '424B5':      { note: 'Offering priced',          level: 'high' },
+  // Dilution / Capital Structure (Medium)
+  'S-1/A':      { note: 'Dilution risk',            level: 'medium' },
+  'S-3':        { note: 'Shelf registration',       level: 'medium' },
+  'S-3/A':      { note: 'Shelf registration',       level: 'medium' },
+  'S-3ASR':     { note: 'Shelf registration',       level: 'medium' },
+  'F-1':        { note: 'Dilution risk',            level: 'medium' },
+  'F-3':        { note: 'Shelf registration',       level: 'medium' },
+  // Ownership (High)
+  'SC 13D':     { note: '>5% activist stake',       level: 'high' },
+  'SC TO-T':    { note: 'Tender offer',             level: 'high' },
+  'SC TO-I':    { note: 'Issuer tender offer',      level: 'high' },
+  'SC 13E3':    { note: 'Going private',            level: 'high' },
+  'SC 14D9':    { note: 'Tender offer response',    level: 'high' },
+  // Ownership (Medium)
+  'SC 13D/A':   { note: 'Activist stake update',    level: 'medium' },
+  'SC 13G':     { note: '>5% passive stake',        level: 'medium' },
+  'SC 13G/A':   { note: 'Passive stake update',     level: 'medium' },
+  // M&A / Corporate Actions (High)
+  'S-4':        { note: 'M&A share issuance',       level: 'high' },
+  'DEFM14A':    { note: 'Merger vote',              level: 'high' },
+  'Form 25':    { note: 'Delisting',                level: 'high' },
+  '25-NSE':     { note: 'Delisting',                level: 'high' },
+  'Form 15':    { note: 'Going dark',               level: 'high' },
+  // Material Events (High — flag all 8-Ks)
+  '8-K':        { note: 'Material event',           level: 'high' },
+  '8-K/A':      { note: 'Material event (amended)', level: 'high' },
+  // Late Filings (High)
+  'NT 10-K':    { note: 'Late filing notice',       level: 'high' },
+  'NT 10-Q':    { note: 'Late filing notice',       level: 'high' },
+  // Earnings — restated/amended = High
+  '10-K/A':     { note: 'Annual report (restated)', level: 'high' },
+  '10-Q/A':     { note: 'Quarterly (restated)',     level: 'high' },
+  // Proxy (Medium)
+  'DEF 14A':    { note: 'Proxy statement',          level: 'medium' },
+  'PRE 14A':    { note: 'Proxy statement',          level: 'medium' },
+  // Insider (Medium)
+  '4':          { note: 'Insider trade',            level: 'medium' },
+  '4/A':        { note: 'Insider trade (amended)',  level: 'medium' },
+  '144':        { note: 'Insider sale pending',     level: 'medium' },
+  // Foreign (Medium)
+  '6-K':        { note: 'Foreign material event',  level: 'medium' },
+  '20-F':       { note: 'Foreign annual report',   level: 'medium' },
+  '20-F/A':     { note: 'Foreign annual (amended)', level: 'medium' },
+  // Earnings (Medium)
+  '10-K':       { note: 'Annual earnings',          level: 'medium' },
+  '10-Q':       { note: 'Quarterly earnings',       level: 'medium' },
+  // Not mapped (no badge): S-8, 11-K, SD, ARS, Form 3, Form 5, CORRESP, DEFA14A
+}
 
 const FILING_COUNT_OPTIONS = [5, 10, 25, 50, 100]
 
@@ -220,6 +288,7 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
 }
 .eqv4-eth-date { width: 90px; flex-shrink: 0; }
 .eqv4-eth-form { flex: 1; min-width: 0; }
+.eqv4-eth-note { width: 120px; flex-shrink: 0; text-align: right; }
 
 /* ── Empty / error states ── */
 .eqv4-edgar-empty {
@@ -280,6 +349,22 @@ defineExpose({ filings, loading, error, fetchFilings, edgarIndexUrl })
 }
 .eqv4-etd-date { width: 90px; flex-shrink: 0; color: var(--text-muted, #64748b); }
 .eqv4-etd-form { flex: 1; min-width: 0; }
+.eqv4-etd-note { width: 120px; flex-shrink: 0; text-align: right; }
+
+/* ── Impact badge ── */
+.eqv4-impact-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 118px;
+}
+.eqv4-impact-badge--high   { background: rgba(239, 68,  68,  0.15); color: #ef4444; }
+.eqv4-impact-badge--medium { background: rgba(234, 179, 8,   0.15); color: #eab308; }
 .eqv4-edgar-link {
   color: var(--pd-accent, #7c3aed);
   text-decoration: none;
