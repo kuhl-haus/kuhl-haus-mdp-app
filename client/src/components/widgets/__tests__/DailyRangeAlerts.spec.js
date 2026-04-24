@@ -29,7 +29,20 @@ vi.mock('@/composables/useScannerLink.js', async () => {
   }
 })
 
+vi.mock('@/composables/useWidgetBus.js', async () => {
+  const { reactive } = await import('vue')
+  return {
+    getFlameVariant:  vi.fn(() => null),
+    getFlameTooltip:  vi.fn(() => ''),
+    newsTimestamps:   reactive({}),
+    getActiveTicker:  vi.fn(() => null),
+    setActiveTicker:  vi.fn(),
+    clearActiveTicker: vi.fn(),
+  }
+})
+
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { getFlameVariant } from '@/composables/useWidgetBus.js'
 import DailyRangeAlerts from '../DailyRangeAlerts.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -699,6 +712,43 @@ describe('Reactive loop regression', () => {
 
     // No additional emissions — the loop is broken
     expect(emitted.length - before).toBe(0)
+    wrapper.unmount()
+  })
+})
+
+// ── Flame icon ────────────────────────────────────────────────────────────────
+
+describe('Flame icon', () => {
+  test('renders flame img in symbol cell when variant is available', async () => {
+    // Arrange
+    vi.mocked(getFlameVariant).mockReturnValue('red')
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+
+    // Act
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Assert — flame img present and src is non-empty
+    // (In the test environment import.meta.url resolves to a data URL, not a filename)
+    const img = wrapper.find('.symbol-cell img.flame-icon')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toBeTruthy()
+    wrapper.unmount()
+  })
+
+  test('does not render flame img when no variant is available', async () => {
+    // Arrange
+    vi.mocked(getFlameVariant).mockReturnValue(null)
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+
+    // Act
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Assert — no flame icon rendered
+    expect(wrapper.find('.flame-icon').exists()).toBe(false)
     wrapper.unmount()
   })
 })

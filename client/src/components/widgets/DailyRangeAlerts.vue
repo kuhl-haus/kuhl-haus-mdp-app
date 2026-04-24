@@ -107,7 +107,24 @@
             @click="onRowClick(row)"
           >
             <td v-for="col in visibleColumns" :key="col.key" :class="getCellClass(col, row)">
-              {{ formatCell(col, row) }}
+              <template v-if="col.key === 'symbol'">
+                <span class="symbol-cell">
+                  {{ row.symbol }}
+                  <img
+                    v-if="getFlame(row.symbol)"
+                    :src="getFlame(row.symbol).src"
+                    :title="getFlame(row.symbol).tooltip"
+                    width="14" height="14"
+                    class="flame-icon"
+                    @touchstart.passive="onFlameTouchStart($event, row.symbol)"
+                    @touchend.passive="onFlameTouchEnd"
+                    @touchmove.passive="onFlameTouchEnd"
+                  />
+                </span>
+              </template>
+              <template v-else>
+                {{ formatCell(col, row) }}
+              </template>
             </td>
           </tr>
         </tbody>
@@ -121,6 +138,7 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { parseShareCount } from '@/utils/parseShareCount.js'
+import { getFlameVariant, getFlameTooltip, newsTimestamps } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
@@ -227,6 +245,34 @@ const filteredEvents = computed(() => {
 
 // ── Row click / scanner link ──────────────────────────────────────────────────
 const { activeTicker, onRowClick } = useScannerLink(computed(() => props.linkColor))
+
+// ── Flame freshness icons ───────────────────────────────────────────────────────
+const FLAME_SRCS = {
+  red:    new URL('@/assets/icons/flame-red.svg',    import.meta.url).href,
+  orange: new URL('@/assets/icons/flame-orange.svg', import.meta.url).href,
+  yellow: new URL('@/assets/icons/flame-yellow.svg', import.meta.url).href,
+  white:  new URL('@/assets/icons/flame-white.svg',  import.meta.url).href,
+  blue:   new URL('@/assets/icons/flame-blue.svg',   import.meta.url).href,
+  dark:   new URL('@/assets/icons/flame-dark.svg',   import.meta.url).href,
+}
+
+const getFlame = (ticker) => {
+  void newsTimestamps[ticker]  // reactive dependency
+  const variant = getFlameVariant(ticker)
+  if (!variant) return null
+  return { src: FLAME_SRCS[variant], tooltip: getFlameTooltip(ticker) }
+}
+
+let flameLongPressTimer = null
+const onFlameTouchStart = (e, ticker) => {
+  flameLongPressTimer = setTimeout(() => {
+    const tooltip = getFlameTooltip(ticker)
+    if (tooltip) alert(tooltip)
+  }, 500)
+}
+const onFlameTouchEnd = () => {
+  if (flameLongPressTimer) { clearTimeout(flameLongPressTimer); flameLongPressTimer = null }
+}
 
 // ── Column definitions ────────────────────────────────────────────────────────
 const toNum = (val) => {
@@ -633,6 +679,20 @@ tr:hover {
 .pct_change_since_open.negative { color: #f87171; }
 
 .symbol { font-weight: 600; color: #fff; }
+
+.symbol-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.flame-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
 
 /* ── Active row ── */
 tr.row-active { outline: 1px solid #a78bfa; outline-offset: -1px; background: transparent !important; }
