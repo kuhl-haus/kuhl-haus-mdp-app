@@ -294,8 +294,10 @@ const columns = [
     key: 'timestamp',
     label: 'Time',
     format: (val) => val == null ? '' : new Date(val * 1000).toLocaleTimeString('en-US', {
-      timeZone: 'America/New_York',
-      hour12: false,
+      hour12:  false,
+      hour:    '2-digit',
+      minute:  '2-digit',
+      second:  '2-digit',
     }),
   },
   { key: 'symbol', label: 'Symbol' },
