@@ -673,3 +673,32 @@ describe('Empty state', () => {
     wrapper.unmount()
   })
 })
+
+// ── Reactive loop regression ──────────────────────────────────────────────────────────────
+
+describe('Reactive loop regression', () => {
+  // Regression: spreading hiddenColsLocal in the settings watcher always created a new
+  // array reference, triggering the watch → emitSettings → props change → watch → ∞ loop.
+  // Fix: preserve the array reference (no spread) so Vue detects no change when the
+  // same hiddenCols reference comes back from the parent after emitSettings.
+  // This test would have failed with the original spread code.
+  test('settings watcher does not loop when hiddenCols reference is stable', async () => {
+    const emitted = []
+    const hiddenCols = []  // stable reference
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { hiddenCols } },
+      attrs: { 'onUpdate-settings': (s) => emitted.push(s) },
+    })
+    const before = emitted.length
+
+    // Simulate parent passing back the same hiddenCols reference (as updateSettings does
+    // via { ...settings } spread which preserves the array reference)
+    await wrapper.setProps({ settings: { hiddenCols } })
+    await nextTick()
+    await nextTick()
+
+    // No additional emissions — the loop is broken
+    expect(emitted.length - before).toBe(0)
+    wrapper.unmount()
+  })
+})
