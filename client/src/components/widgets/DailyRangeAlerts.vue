@@ -318,7 +318,7 @@ const startResize = (e, colKey) => {
 onUnmounted(() => { resizeState = null })
 
 // ── Column visibility ─────────────────────────────────────────────────────────
-const hiddenColsLocal = ref([...(config.value.hiddenCols ?? [])])
+const hiddenColsLocal = ref(config.value.hiddenCols ?? [])
 
 const visibleColumns = computed(() =>
   columns.filter(col => !hiddenColsLocal.value.includes(col.key))
@@ -389,7 +389,7 @@ watch(() => props.settings, (s) => {
   minFloatInput.value      = merged.minFloat !== null ? String(merged.minFloat) : ''
   maxFloatInput.value      = merged.maxFloat !== null ? String(merged.maxFloat) : ''
   pctChangeLocal.value     = merged.pctChangeThreshold !== null ? String(merged.pctChangeThreshold) : ''
-  hiddenColsLocal.value    = [...merged.hiddenCols]
+  hiddenColsLocal.value    = merged.hiddenCols ?? []
 })
 
 // ── Settings persistence ──────────────────────────────────────────────────────
