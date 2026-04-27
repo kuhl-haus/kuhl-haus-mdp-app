@@ -755,47 +755,120 @@ describe('Flame icon', () => {
 
 // ── Relative volume styling ───────────────────────────────────────────────────
 
-describe('Relative volume cell styling', () => {
-  async function getRelVolCell(wrapper, relVol) {
-    const onData = getOnData()
-    onData([makeEvent({ relative_volume: relVol })])
-    await nextTick()
-    return wrapper.find('td.relative_volume')
-  }
+// Default column order — matches the `columns` array declaration in DailyRangeAlerts.vue.
+// Use this constant instead of hardcoded arrays or magic numbers in column order tests.
+const DEFAULT_COL_ORDER = [
+  'timestamp', 'symbol', 'price', 'previous', 'note', 'pct_change',
+  'accumulated_volume', 'relative_volume', 'session', 'close', 'change',
+  'pct_change_since_open', 'free_float', 'avg_volume', 'vwap', 'prev_day_close', 'direction',
+]
 
+describe('Relative volume cell styling', () => {
   test('relative_volume >= 5 gets extreme class', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
-    const cell = await getRelVolCell(wrapper, 5)
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 5 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
     expect(cell.classes()).toContain('extreme')
     wrapper.unmount()
   })
 
   test('relative_volume >= 3 and < 5 gets high class', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
-    const cell = await getRelVolCell(wrapper, 3)
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 3 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
     expect(cell.classes()).toContain('high')
     wrapper.unmount()
   })
 
   test('relative_volume >= 2 and < 3 gets medium class', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
-    const cell = await getRelVolCell(wrapper, 2)
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 2 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
     expect(cell.classes()).toContain('medium')
     wrapper.unmount()
   })
 
   test('relative_volume < 2 gets normal class', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
-    const cell = await getRelVolCell(wrapper, 1.5)
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 1.5 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
     expect(cell.classes()).toContain('normal')
     wrapper.unmount()
   })
 
   test('relative_volume threshold boundary: 4.99 gets high not extreme', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
-    const cell = await getRelVolCell(wrapper, 4.99)
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 4.99 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
     expect(cell.classes()).toContain('high')
     expect(cell.classes()).not.toContain('extreme')
+    wrapper.unmount()
+  })
+
+  test('relative_volume threshold boundary: 2.99 gets medium not high', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 2.99 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
+    expect(cell.classes()).toContain('medium')
+    expect(cell.classes()).not.toContain('high')
+    wrapper.unmount()
+  })
+
+  test('relative_volume threshold boundary: 1.99 gets normal not medium', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+    onData([makeEvent({ relative_volume: 1.99 })])
+    await nextTick()
+
+    // Act
+    const cell = wrapper.find('td.relative_volume')
+
+    // Assert
+    expect(cell.classes()).toContain('normal')
+    expect(cell.classes()).not.toContain('medium')
     wrapper.unmount()
   })
 })
@@ -809,93 +882,94 @@ describe('Column order', () => {
   }
 
   test('default order matches columns array order', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
     await openControls(wrapper)
     const onData = getOnData()
     onData([makeEvent()])
     await nextTick()
 
+    // Act
     const ths = wrapper.findAll('th')
-    // First two visible columns by default are Time and Symbol
+
+    // Assert — first two visible columns by default are Time and Symbol
     expect(ths[0].text()).toContain('Time')
     expect(ths[1].text()).toContain('Symbol')
     wrapper.unmount()
   })
 
   test('moveCol up: ▲ button moves column up in settings panel list', async () => {
+    // Arrange
     const settingsCalls = []
     const wrapper = mount(DailyRangeAlerts, {
       props: defaultProps,
       attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
     await openControls(wrapper)
-
-    // Click ▲ on the second column item (idx 1) — should move it to idx 0
     const items = wrapper.findAll('.col-menu-item')
-    const upBtn = items[1].find('button[title="Move up"]')
-    await upBtn.trigger('click')
+
+    // Act — click ▲ on second item (idx 1), moves it to idx 0
+    await items[1].find('button[title="Move up"]').trigger('click')
     await nextTick()
 
-    expect(settingsCalls.length).toBeGreaterThan(0)
+    // Assert
     const emittedOrder = settingsCalls[settingsCalls.length - 1].colOrder
-    // The item that was at idx 1 should now be at idx 0
-    const defaultOrder = ['timestamp', 'symbol', 'price', 'previous', 'note', 'pct_change',
-      'accumulated_volume', 'relative_volume', 'session', 'close', 'change',
-      'pct_change_since_open', 'free_float', 'avg_volume', 'vwap', 'prev_day_close', 'direction']
-    expect(emittedOrder[0]).toBe(defaultOrder[1])
-    expect(emittedOrder[1]).toBe(defaultOrder[0])
+    expect(emittedOrder[0]).toBe(DEFAULT_COL_ORDER[1])
+    expect(emittedOrder[1]).toBe(DEFAULT_COL_ORDER[0])
     wrapper.unmount()
   })
 
   test('moveCol down: ▼ button moves column down in settings panel list', async () => {
+    // Arrange
     const settingsCalls = []
     const wrapper = mount(DailyRangeAlerts, {
       props: defaultProps,
       attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
     await openControls(wrapper)
-
-    // Click ▼ on the first column item (idx 0)
     const items = wrapper.findAll('.col-menu-item')
-    const downBtn = items[0].find('button[title="Move down"]')
-    await downBtn.trigger('click')
+
+    // Act — click ▼ on first item (idx 0), moves it to idx 1
+    await items[0].find('button[title="Move down"]').trigger('click')
     await nextTick()
 
-    expect(settingsCalls.length).toBeGreaterThan(0)
+    // Assert
     const emittedOrder = settingsCalls[settingsCalls.length - 1].colOrder
-    const defaultOrder = ['timestamp', 'symbol', 'price', 'previous', 'note', 'pct_change',
-      'accumulated_volume', 'relative_volume', 'session', 'close', 'change',
-      'pct_change_since_open', 'free_float', 'avg_volume', 'vwap', 'prev_day_close', 'direction']
-    expect(emittedOrder[0]).toBe(defaultOrder[1])
-    expect(emittedOrder[1]).toBe(defaultOrder[0])
+    expect(emittedOrder[0]).toBe(DEFAULT_COL_ORDER[1])
+    expect(emittedOrder[1]).toBe(DEFAULT_COL_ORDER[0])
     wrapper.unmount()
   })
 
   test('▲ button disabled on first item', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
     await openControls(wrapper)
 
-    const items = wrapper.findAll('.col-menu-item')
-    const upBtn = items[0].find('button[title="Move up"]')
+    // Act
+    const upBtn = wrapper.findAll('.col-menu-item')[0].find('button[title="Move up"]')
+
+    // Assert
     expect(upBtn.attributes('disabled')).toBeDefined()
     wrapper.unmount()
   })
 
   test('▼ button disabled on last item', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
     await openControls(wrapper)
 
+    // Act
     const items = wrapper.findAll('.col-menu-item')
-    const lastItem = items[items.length - 1]
-    const downBtn = lastItem.find('button[title="Move down"]')
+    const downBtn = items[items.length - 1].find('button[title="Move down"]')
+
+    // Assert
     expect(downBtn.attributes('disabled')).toBeDefined()
     wrapper.unmount()
   })
 
   test('saved colOrder is restored from settings prop', async () => {
-    const reversed = ['direction', 'prev_day_close', 'vwap', 'avg_volume', 'free_float',
-      'pct_change_since_open', 'change', 'close', 'session', 'relative_volume',
-      'accumulated_volume', 'pct_change', 'note', 'previous', 'price', 'symbol', 'timestamp']
+    // Arrange
+    const reversed = [...DEFAULT_COL_ORDER].reverse()
     const wrapper = mount(DailyRangeAlerts, {
       props: { ...defaultProps, settings: { colOrder: reversed } },
     })
@@ -904,57 +978,66 @@ describe('Column order', () => {
     onData([makeEvent()])
     await nextTick()
 
+    // Act
     const ths = wrapper.findAll('th')
-    // First visible column should be direction (not hidden; it's at idx 0 in reversed order)
+
+    // Assert — first visible column should be direction (idx 0 in reversed order)
     expect(ths[0].text()).toContain('Direction')
     wrapper.unmount()
   })
 
   test('colOrder in emitted settings contains all column keys', async () => {
+    // Arrange
     const settingsCalls = []
     const wrapper = mount(DailyRangeAlerts, {
       props: defaultProps,
       attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
     await openControls(wrapper)
-
     const items = wrapper.findAll('.col-menu-item')
+
+    // Act
     await items[1].find('button[title="Move up"]').trigger('click')
     await nextTick()
 
+    // Assert
     const emittedOrder = settingsCalls[settingsCalls.length - 1].colOrder
-    expect(emittedOrder.length).toBe(17)  // total column count
+    expect(emittedOrder.length).toBe(DEFAULT_COL_ORDER.length)
     wrapper.unmount()
   })
 
   test('unknown saved colOrder keys are dropped; missing keys appended', async () => {
-    // Settings has a stale key 'old_col' and is missing several columns
+    // Arrange — settings has a stale key 'old_col' and is missing several columns
     const partialOrder = ['symbol', 'old_col', 'price']
     const wrapper = mount(DailyRangeAlerts, {
       props: { ...defaultProps, settings: { colOrder: partialOrder } },
     })
     await openControls(wrapper)
 
+    // Act
     const items = wrapper.findAll('.col-menu-item')
-    // 'old_col' must not appear; total items = all known columns
+
+    // Assert — 'old_col' absent; all known columns present
     const labels = items.map(i => i.text())
     expect(labels.some(l => l.includes('old_col'))).toBe(false)
-    expect(items.length).toBe(17)
+    expect(items.length).toBe(DEFAULT_COL_ORDER.length)
     wrapper.unmount()
   })
 
   test('column order reflected in table header order after move', async () => {
+    // Arrange
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
     await openControls(wrapper)
     const onData = getOnData()
     onData([makeEvent()])
     await nextTick()
-
-    // Move Symbol (idx 1) up to idx 0
     const items = wrapper.findAll('.col-menu-item')
+
+    // Act — move Symbol (idx 1) up to idx 0
     await items[1].find('button[title="Move up"]').trigger('click')
     await nextTick()
 
+    // Assert
     const ths = wrapper.findAll('th')
     expect(ths[0].text()).toContain('Symbol')
     expect(ths[1].text()).toContain('Time')

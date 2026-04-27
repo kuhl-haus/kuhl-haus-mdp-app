@@ -377,7 +377,8 @@ const getRelVolClass = (relVol) => {
 }
 
 // ── Column order & visibility ─────────────────────────────────────────────────
-const columnByKey = (key) => columns.find(c => c.key === key)
+const columnMap = Object.fromEntries(columns.map(c => [c.key, c]))
+const columnByKey = (key) => columnMap[key]
 
 const mergeColOrder = (saved) => {
   const allKeys = columns.map(c => c.key)
