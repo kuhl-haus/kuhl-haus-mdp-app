@@ -42,6 +42,7 @@ vi.mock('@/composables/useWidgetBus.js', async () => {
 })
 
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useScannerLink } from '@/composables/useScannerLink.js'
 import { getFlameVariant } from '@/composables/useWidgetBus.js'
 import DailyRangeAlerts from '../DailyRangeAlerts.vue'
 
@@ -1041,6 +1042,350 @@ describe('Column order', () => {
     const ths = wrapper.findAll('th')
     expect(ths[0].text()).toContain('Symbol')
     expect(ths[1].text()).toContain('Time')
+    wrapper.unmount()
+  })
+})
+
+// ── Ticker filter input ───────────────────────────────────────────────────────
+
+describe('Ticker filter input', () => {
+  test('filter input is rendered by default', () => {
+    // Arrange + Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('typing a ticker filters rows to matching symbol only', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+    onData([
+      makeEvent({ symbol: 'AAPL' }),
+      makeEvent({ symbol: 'TSLA' }),
+    ])
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('AAPL')
+    await nextTick()
+
+    // Assert
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows.length).toBe(1)
+    expect(rows[0].text()).toContain('AAPL')
+    wrapper.unmount()
+  })
+
+  test('typing a non-matching ticker shows empty state', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('ZZZZ')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('ticker filter is case-insensitive: lowercase input matches uppercase symbol', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+    onData([
+      makeEvent({ symbol: 'AAPL' }),
+      makeEvent({ symbol: 'TSLA' }),
+    ])
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('aapl')
+    await nextTick()
+
+    // Assert — AAPL row is visible despite lowercase input
+    const rows = wrapper.findAll('tbody tr').filter(r => !r.find('.empty-state').exists())
+    expect(rows.length).toBe(1)
+    expect(rows[0].text()).toContain('AAPL')
+    wrapper.unmount()
+  })
+
+  test('clear button is absent when filter is empty', () => {
+    // Arrange + Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    expect(wrapper.find('[data-testid="ticker-filter-clear"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('clear button is present when filter is non-empty', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Act
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('AAPL')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="ticker-filter-clear"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('clicking clear button removes the filter and shows all rows', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const onData = getOnData()
+    onData([
+      makeEvent({ symbol: 'AAPL' }),
+      makeEvent({ symbol: 'TSLA' }),
+    ])
+    await nextTick()
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('AAPL')
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="ticker-filter-clear"]').trigger('click')
+    await nextTick()
+
+    // Assert — both rows visible again
+    expect(countDataRows(wrapper)).toBe(2)
+    wrapper.unmount()
+  })
+
+  test('tickerFilter is NOT included in emitted settings', async () => {
+    // Arrange
+    const settingsCalls = []
+    const wrapper = mount(DailyRangeAlerts, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+
+    // Act — set ticker filter, then trigger a real emitSettings via mode toggle
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('AAPL')
+    await nextTick()
+    await wrapper.find('[data-testid="row-click-mode-toggle"]').trigger('click')
+    await nextTick()
+
+    // Assert — guard against vacuous truth, then verify tickerFilter absent from all payloads
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    expect(settingsCalls.every(s => !('tickerFilter' in s))).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ── Row-click mode toggle ─────────────────────────────────────────────────────
+
+describe('Row-click mode toggle', () => {
+  test('mode toggle button renders when isLocked is true', () => {
+    // Arrange + Act
+    const wrapper = mount(DailyRangeAlerts, { props: { ...defaultProps, isLocked: true } })
+
+    // Assert
+    expect(wrapper.find('[data-testid="row-click-mode-toggle"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('mode toggle button renders when isLocked is false', () => {
+    // Arrange + Act
+    const wrapper = mount(DailyRangeAlerts, { props: { ...defaultProps, isLocked: false } })
+
+    // Assert
+    expect(wrapper.find('[data-testid="row-click-mode-toggle"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('default mode is select (link) — button shows "select"', () => {
+    // Arrange + Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    expect(wrapper.find('[data-testid="row-click-mode-toggle"]').text()).toBe('select')
+    wrapper.unmount()
+  })
+
+  test('default mode is select when saved settings have no rowClickMode field', () => {
+    // Arrange + Act — saved settings pre-feature have no rowClickMode
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { hiddenCols: [] } },
+    })
+
+    // Assert
+    expect(wrapper.find('[data-testid="row-click-mode-toggle"]').text()).toBe('select')
+    wrapper.unmount()
+  })
+
+  test('clicking toggle switches mode to filter — button shows "filter"', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Act
+    await wrapper.find('[data-testid="row-click-mode-toggle"]').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="row-click-mode-toggle"]').text()).toBe('filter')
+    wrapper.unmount()
+  })
+
+  test('clicking toggle again switches back to select', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await wrapper.find('[data-testid="row-click-mode-toggle"]').trigger('click')
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="row-click-mode-toggle"]').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="row-click-mode-toggle"]').text()).toBe('select')
+    wrapper.unmount()
+  })
+
+  test('rowClickMode is included in emitted settings', async () => {
+    // Arrange
+    const settingsCalls = []
+    const wrapper = mount(DailyRangeAlerts, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+
+    // Act
+    await wrapper.find('[data-testid="row-click-mode-toggle"]').trigger('click')
+    await nextTick()
+
+    // Assert
+    const last = settingsCalls[settingsCalls.length - 1]
+    expect(last.rowClickMode).toBe('filter')
+    wrapper.unmount()
+  })
+
+  test('filter mode: row click sets tickerFilter', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Act
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('AAPL')
+    wrapper.unmount()
+  })
+
+  test('filter mode: row click also activates linked widgets via onRowClick', async () => {
+    // Arrange — capture the onRowClick mock for this specific wrapper instance
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const mockOnRowClick = vi.mocked(useScannerLink).mock.results[callsBefore].value.onRowClick
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Act
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(mockOnRowClick).toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('filter mode: clicking same-symbol row clears tickerFilter', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+    // Set filter by first click
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Act — click same row again
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Assert — filter cleared
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('')
+    wrapper.unmount()
+  })
+
+  test('select (link) mode: row click does not set tickerFilter', async () => {
+    // Arrange — rowClickMode: 'link' is the code value for the "select" UI label
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'link' } },
+    })
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Act
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Assert — filter remains empty
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('')
+    wrapper.unmount()
+  })
+})
+
+// ── Shared state (ticker filter + row-click mode) ─────────────────────────────
+
+describe('Shared ticker filter state', () => {
+  test('clear button removes filter set by row click', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const onData = getOnData()
+    onData([
+      makeEvent({ symbol: 'AAPL' }),
+      makeEvent({ symbol: 'TSLA' }),
+    ])
+    await nextTick()
+    await wrapper.find('tbody tr').trigger('click')  // sets filter to AAPL
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="ticker-filter-clear"]').trigger('click')
+    await nextTick()
+
+    // Assert — both rows visible again
+    expect(countDataRows(wrapper)).toBe(2)
+    wrapper.unmount()
+  })
+
+  test('row click in filter mode populates the text input', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'TSLA' })])
+    await nextTick()
+
+    // Act
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('TSLA')
     wrapper.unmount()
   })
 })
