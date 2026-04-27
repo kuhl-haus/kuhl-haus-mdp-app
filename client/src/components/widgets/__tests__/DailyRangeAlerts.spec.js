@@ -1483,3 +1483,72 @@ describe('Null symbol regression', () => {
     wrapper.unmount()
   })
 })
+
+// ── Bus sync in filter mode ───────────────────────────────────────────────────
+
+describe('Bus sync in filter mode', () => {
+  test('filter mode: activeTicker change on bus updates tickerFilter', async () => {
+    // Arrange
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'TSLA' }), makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Act — simulate another widget activating TSLA on the bus
+    activeTicker.value = 'TSLA'
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('TSLA')
+    expect(countDataRows(wrapper)).toBe(1)
+    wrapper.unmount()
+  })
+
+  test('filter mode: activeTicker cleared on bus clears tickerFilter', async () => {
+    // Arrange — establish a non-empty filter first (via typing), then check bus clear resets it
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'TSLA' })])
+    await nextTick()
+    // Set filter via typing so it is non-empty before the bus clear
+    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('TSLA')
+    await nextTick()
+
+    // Act — bus ticker cleared (e.g. user clicks same row again in another widget)
+    activeTicker.value = null
+    await nextTick()
+
+    // Assert — filter cleared; all rows visible again
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('')
+    expect(countDataRows(wrapper)).toBe(1)
+    wrapper.unmount()
+  })
+
+  test('select (link) mode: activeTicker change on bus does not update tickerFilter', async () => {
+    // Arrange
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'link' } },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'TSLA' })])
+    await nextTick()
+
+    // Act
+    activeTicker.value = 'TSLA'
+    await nextTick()
+
+    // Assert — ticker filter unchanged in select mode
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('')
+    wrapper.unmount()
+  })
+})
