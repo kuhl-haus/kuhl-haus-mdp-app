@@ -58,18 +58,20 @@
         <input type="number" v-model="pctChangeLocal" @change="emitSettings" :placeholder="feedLocal === 'hod' ? 'Min %' : 'Max %'" class="filter-input filter-input--narrow" />
       </div>
 
-      <!-- Column visibility gear -->
+      <!-- Column visibility & order -->
       <div class="col-menu-wrap">
         <div class="col-menu-title">Columns</div>
-        <label v-for="col in columns" :key="col.key" class="col-menu-item">
+        <div v-for="(key, idx) in colOrderLocal" :key="key" class="col-menu-item">
           <input
             type="checkbox"
-            :checked="!hiddenColsLocal.includes(col.key)"
-            :disabled="col.key === 'symbol'"
-            @change="toggleCol(col.key, $event.target.checked)"
+            :checked="!hiddenColsLocal.includes(key)"
+            :disabled="key === 'symbol'"
+            @change="toggleCol(key, $event.target.checked)"
           />
-          {{ col.label }}
-        </label>
+          <span class="col-menu-label">{{ columnByKey(key)?.label }}</span>
+          <button class="col-order-btn" @click="moveCol(key, -1)" :disabled="idx === 0" title="Move up">▲</button>
+          <button class="col-order-btn" @click="moveCol(key, 1)" :disabled="idx === colOrderLocal.length - 1" title="Move down">▼</button>
+        </div>
       </div>
     </div>
 
@@ -165,6 +167,7 @@ const DEFAULT_SETTINGS = {
   maxFloat:           null,
   pctChangeThreshold: null,
   hiddenCols:         [],
+  colOrder:           [],
   colWidths:          {},
 }
 
@@ -311,7 +314,7 @@ const columns = [
     cellClass: (row) => toNum(row.pct_change) >= 0 ? 'positive' : 'negative',
   },
   { key: 'accumulated_volume', label: 'Volume',   format: (val) => formatVolume(val) },
-  { key: 'relative_volume',    label: 'Rel Vol',  format: (val) => `${toNum(val).toFixed(2)}x` },
+  { key: 'relative_volume',    label: 'Rel Vol',  format: (val) => `${toNum(val).toFixed(2)}x`, cellClass: (row) => getRelVolClass(toNum(row.relative_volume)) },
   { key: 'session',            label: 'Session' },
   // Optional (hidden by default)
   { key: 'close',               label: 'Price (quote)',      decimals: 2 },
@@ -365,12 +368,42 @@ const startResize = (e, colKey) => {
 }
 onUnmounted(() => { resizeState = null })
 
-// ── Column visibility ─────────────────────────────────────────────────────────
+// ── Rel Vol class (matches GenericScannerTable) ─────────────────────────────
+const getRelVolClass = (relVol) => {
+  if (relVol >= 5) return 'extreme'
+  if (relVol >= 3) return 'high'
+  if (relVol >= 2) return 'medium'
+  return 'normal'
+}
+
+// ── Column order & visibility ─────────────────────────────────────────────────
+const columnMap = Object.fromEntries(columns.map(c => [c.key, c]))
+const columnByKey = (key) => columnMap[key]
+
+const mergeColOrder = (saved) => {
+  const allKeys = columns.map(c => c.key)
+  const s = Array.isArray(saved) ? saved : []
+  return [...s.filter(k => allKeys.includes(k)), ...allKeys.filter(k => !s.includes(k))]
+}
+
 const hiddenColsLocal = ref(config.value.hiddenCols ?? [])
+const colOrderLocal   = ref(mergeColOrder(config.value.colOrder))
 
 const visibleColumns = computed(() =>
-  columns.filter(col => !hiddenColsLocal.value.includes(col.key))
+  colOrderLocal.value
+    .map(key => columnByKey(key))
+    .filter(col => col && !hiddenColsLocal.value.includes(col.key))
 )
+
+const moveCol = (key, dir) => {
+  const idx = colOrderLocal.value.indexOf(key)
+  const newIdx = idx + dir
+  if (newIdx < 0 || newIdx >= colOrderLocal.value.length) return
+  const newOrder = [...colOrderLocal.value]
+  ;[newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]]
+  colOrderLocal.value = newOrder
+  emitSettings()
+}
 
 const toggleCol = (key, visible) => {
   if (key === 'symbol') return
@@ -438,6 +471,7 @@ watch(() => props.settings, (s) => {
   maxFloatInput.value      = merged.maxFloat !== null ? String(merged.maxFloat) : ''
   pctChangeLocal.value     = merged.pctChangeThreshold !== null ? String(merged.pctChangeThreshold) : ''
   hiddenColsLocal.value    = merged.hiddenCols ?? []
+  colOrderLocal.value      = mergeColOrder(merged.colOrder)
 })
 
 // ── Settings persistence ──────────────────────────────────────────────────────
@@ -461,6 +495,7 @@ const emitSettings = () => {
     maxFloat:           parseShareCount(maxFloatInput.value),
     pctChangeThreshold: toNullableNum(pctChangeLocal.value),
     hiddenCols:         hiddenColsLocal.value,
+    colOrder:           [...colOrderLocal.value],
     colWidths:          { ...localColWidths.value },
   })
 }
@@ -617,8 +652,29 @@ const onShareCountChange = () => emitSettings()
   cursor: pointer;
   user-select: none;
 }
-.col-menu-item input { cursor: pointer; }
+.col-menu-item input { cursor: pointer; flex-shrink: 0; }
 .col-menu-item:has(input:disabled) { opacity: 0.4; cursor: default; }
+
+.col-menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-order-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.col-order-btn:hover:not(:disabled) { color: #ccc; }
+.col-order-btn:disabled { opacity: 0.2; cursor: default; }
 
 /* ── Table ── */
 .table-container {
@@ -679,6 +735,12 @@ tr:hover {
 .pct_change.negative,
 .change.negative,
 .pct_change_since_open.negative { color: #f87171; }
+
+.relative_volume { font-weight: 600; }
+.relative_volume.extreme { color: #dc2626; }
+.relative_volume.high    { color: #f59e0b; }
+.relative_volume.medium  { color: #3b82f6; }
+.relative_volume.normal  { color: #6b7280; }
 
 .symbol { font-weight: 600; color: #fff; }
 
