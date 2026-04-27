@@ -1,8 +1,32 @@
 <template>
   <div class="range-alerts-widget">
-    <!-- Gear button toggles controls panel -->
-    <div class="controls-toggle">
-      <button class="col-menu-btn" @click="showControls = !showControls" title="Settings">⚙️</button>
+    <!-- Widget header: ticker filter (left) + mode toggle + gear (right) -->
+    <div class="widget-header">
+      <div class="ticker-filter-wrap">
+        <input
+          class="ticker-filter-input"
+          :value="tickerFilter"
+          @input="onTickerFilterInput($event.target.value)"
+          placeholder="Filter ticker…"
+          data-testid="ticker-filter-input"
+        />
+        <button
+          v-if="tickerFilter"
+          class="ticker-filter-clear"
+          @click="clearTickerFilter"
+          title="Clear ticker filter"
+          data-testid="ticker-filter-clear"
+        >✕</button>
+      </div>
+      <div class="header-actions">
+        <button
+          :class="['filter-btn', rowClickModeLocal === 'filter' ? 'filter-btn--active' : '']"
+          @click="toggleRowClickMode"
+          :title="rowClickModeLocal === 'filter' ? 'Row click: filter feed — click to switch to select mode' : 'Row click: select ticker — click to switch to filter mode'"
+          data-testid="row-click-mode-toggle"
+        >{{ rowClickModeLocal === 'filter' ? 'filter' : 'select' }}</button>
+        <button class="col-menu-btn" @click="showControls = !showControls" title="Settings">⚙️</button>
+      </div>
     </div>
 
     <!-- Collapsible controls panel (collapsed by default) -->
@@ -105,8 +129,8 @@
           <tr
             v-for="row in filteredEvents"
             :key="row._seq"
-            :class="{ 'row-active': activeTicker === row.symbol }"
-            @click="onRowClick(row)"
+            :class="{ 'row-active': isRowActive(row) }"
+            @click="handleRowClick(row)"
           >
             <td v-for="col in visibleColumns" :key="col.key" :class="getCellClass(col, row)">
               <template v-if="col.key === 'symbol'">
@@ -169,6 +193,7 @@ const DEFAULT_SETTINGS = {
   hiddenCols:         [],
   colOrder:           [],
   colWidths:          {},
+  rowClickMode:       'link',
 }
 
 const FEED_MAP = {
@@ -234,6 +259,7 @@ const filteredEvents = computed(() => {
     if (c.minPrice !== null && e.price < c.minPrice) return false
     if (c.maxPrice !== null && e.price > c.maxPrice) return false
     if (c.minVolume !== null && e.accumulated_volume < c.minVolume) return false
+    if (tickerFilter.value && e.symbol.toUpperCase() !== tickerFilter.value) return false
     if (c.minRelVol !== null && e.relative_volume < c.minRelVol) return false
     if (c.minAvgVol !== null && e.avg_volume < c.minAvgVol) return false
     if (c.minFloat !== null && e.free_float < c.minFloat) return false
@@ -248,6 +274,48 @@ const filteredEvents = computed(() => {
 
 // ── Row click / scanner link ──────────────────────────────────────────────────
 const { activeTicker, onRowClick } = useScannerLink(computed(() => props.linkColor))
+
+// ── Ticker filter (transient — not persisted) ───────────────────────────────
+const tickerFilter    = ref('')
+const filterSetByClick = ref(false)  // true only when filter set via row click; suppresses all-rows-highlighted noise when typing
+
+const onTickerFilterInput = (val) => {
+  tickerFilter.value = val.toUpperCase()
+  filterSetByClick.value = false
+}
+
+const clearTickerFilter = () => {
+  tickerFilter.value = ''
+  filterSetByClick.value = false
+}
+
+// ── Row-click mode (persisted) ──────────────────────────────────────────────
+const rowClickModeLocal = ref(config.value.rowClickMode ?? 'link')
+
+const toggleRowClickMode = () => {
+  rowClickModeLocal.value = rowClickModeLocal.value === 'link' ? 'filter' : 'link'
+  emitSettings()  // explicit — NOT added to the auto-emit watcher
+}
+
+const handleRowClick = (row) => {
+  if (rowClickModeLocal.value === 'filter') {
+    const sym = row.symbol.toUpperCase()
+    if (tickerFilter.value === sym) {
+      clearTickerFilter()
+    } else {
+      tickerFilter.value = sym
+      filterSetByClick.value = true
+    }
+  }
+  onRowClick(row)  // always activate linked widgets
+}
+
+const isRowActive = (row) => {
+  if (rowClickModeLocal.value === 'filter') {
+    return filterSetByClick.value && tickerFilter.value === row.symbol.toUpperCase()
+  }
+  return activeTicker.value === row.symbol
+}
 
 // ── Flame freshness icons ───────────────────────────────────────────────────────
 const FLAME_SRCS = {
@@ -472,6 +540,7 @@ watch(() => props.settings, (s) => {
   pctChangeLocal.value     = merged.pctChangeThreshold !== null ? String(merged.pctChangeThreshold) : ''
   hiddenColsLocal.value    = merged.hiddenCols ?? []
   colOrderLocal.value      = mergeColOrder(merged.colOrder)
+  rowClickModeLocal.value  = merged.rowClickMode ?? 'link'
 })
 
 // ── Settings persistence ──────────────────────────────────────────────────────
@@ -496,6 +565,7 @@ const emitSettings = () => {
     pctChangeThreshold: toNullableNum(pctChangeLocal.value),
     hiddenCols:         hiddenColsLocal.value,
     colOrder:           [...colOrderLocal.value],
+    rowClickMode:       rowClickModeLocal.value,
     colWidths:          { ...localColWidths.value },
   })
 }
@@ -539,12 +609,73 @@ const onShareCountChange = () => emitSettings()
   overflow: hidden;
 }
 
-.controls-toggle {
+.widget-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding: 4px 6px;
   background: #2a2a2a;
   border-bottom: 1px solid #333;
+  gap: 6px;
+}
+
+.ticker-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ticker-filter-input {
+  flex: 1;
+  min-width: 60px;
+  max-width: 120px;
+  padding: 3px 6px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #e0e0e0;
+  font-size: 12px;
+}
+.ticker-filter-input:focus { outline: none; border-color: #8b5cf6; }
+.ticker-filter-input::placeholder { color: #555; }
+
+.ticker-filter-clear {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 3px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ticker-filter-clear:hover { color: #ccc; }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.filter-btn {
+  padding: 3px 8px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #888;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.filter-btn:hover { background: #1a1a1a; color: #aaa; }
+.filter-btn--active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #a78bfa;
 }
 
 .col-menu-btn {
