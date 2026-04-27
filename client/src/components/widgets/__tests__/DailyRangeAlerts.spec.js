@@ -1509,7 +1509,7 @@ describe('Bus sync in filter mode', () => {
   })
 
   test('filter mode: activeTicker cleared on bus clears tickerFilter', async () => {
-    // Arrange — establish a non-empty filter first (via typing), then check bus clear resets it
+    // Arrange — set filter via bus first (activeTicker null→TSLA), then clear (TSLA→null)
     const callsBefore = vi.mocked(useScannerLink).mock.calls.length
     const wrapper = mount(DailyRangeAlerts, {
       props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
@@ -1518,9 +1518,10 @@ describe('Bus sync in filter mode', () => {
     const onData = getOnData()
     onData([makeEvent({ symbol: 'TSLA' })])
     await nextTick()
-    // Set filter via typing so it is non-empty before the bus clear
-    await wrapper.find('[data-testid="ticker-filter-input"]').setValue('TSLA')
+    activeTicker.value = 'TSLA'
     await nextTick()
+    // Pre-condition: filter must be set by bus before we test clearing it
+    expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('TSLA')
 
     // Act — bus ticker cleared (e.g. user clicks same row again in another widget)
     activeTicker.value = null

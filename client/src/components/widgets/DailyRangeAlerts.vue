@@ -317,6 +317,17 @@ const isRowActive = (row) => {
   return activeTicker.value === row.symbol
 }
 
+// ── Bus sync: follow activeTicker in filter mode ──────────────────────────
+watch(() => activeTicker.value, (ticker) => {
+  if (rowClickModeLocal.value !== 'filter') return
+  if (ticker) {
+    tickerFilter.value = ticker.toUpperCase()
+    filterSetByClick.value = true
+  } else {
+    clearTickerFilter()
+  }
+})
+
 // ── Flame freshness icons ───────────────────────────────────────────────────────
 const FLAME_SRCS = {
   red:    new URL('@/assets/icons/flame-red.svg',    import.meta.url).href,
