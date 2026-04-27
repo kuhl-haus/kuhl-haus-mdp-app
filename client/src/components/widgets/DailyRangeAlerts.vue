@@ -259,7 +259,7 @@ const filteredEvents = computed(() => {
     if (c.minPrice !== null && e.price < c.minPrice) return false
     if (c.maxPrice !== null && e.price > c.maxPrice) return false
     if (c.minVolume !== null && e.accumulated_volume < c.minVolume) return false
-    if (tickerFilter.value && e.symbol.toUpperCase() !== tickerFilter.value) return false
+    if (tickerFilter.value && (e.symbol ?? '').toUpperCase() !== tickerFilter.value) return false
     if (c.minRelVol !== null && e.relative_volume < c.minRelVol) return false
     if (c.minAvgVol !== null && e.avg_volume < c.minAvgVol) return false
     if (c.minFloat !== null && e.free_float < c.minFloat) return false
@@ -298,7 +298,7 @@ const toggleRowClickMode = () => {
 }
 
 const handleRowClick = (row) => {
-  if (rowClickModeLocal.value === 'filter') {
+  if (rowClickModeLocal.value === 'filter' && row.symbol) {
     const sym = row.symbol.toUpperCase()
     if (tickerFilter.value === sym) {
       clearTickerFilter()
@@ -312,10 +312,21 @@ const handleRowClick = (row) => {
 
 const isRowActive = (row) => {
   if (rowClickModeLocal.value === 'filter') {
-    return filterSetByClick.value && tickerFilter.value === row.symbol.toUpperCase()
+    return filterSetByClick.value && tickerFilter.value === (row.symbol ?? '').toUpperCase()
   }
   return activeTicker.value === row.symbol
 }
+
+// ── Bus sync: follow activeTicker in filter mode ──────────────────────────
+watch(() => activeTicker.value, (ticker) => {
+  if (rowClickModeLocal.value !== 'filter') return
+  if (ticker) {
+    tickerFilter.value = ticker.toUpperCase()
+    filterSetByClick.value = true
+  } else {
+    clearTickerFilter()
+  }
+})
 
 // ── Flame freshness icons ───────────────────────────────────────────────────────
 const FLAME_SRCS = {
