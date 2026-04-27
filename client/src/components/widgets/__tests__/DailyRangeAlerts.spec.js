@@ -42,6 +42,7 @@ vi.mock('@/composables/useWidgetBus.js', async () => {
 })
 
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useScannerLink } from '@/composables/useScannerLink.js'
 import { getFlameVariant } from '@/composables/useWidgetBus.js'
 import DailyRangeAlerts from '../DailyRangeAlerts.vue'
 
@@ -1166,13 +1167,14 @@ describe('Ticker filter input', () => {
       attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
 
-    // Act — open controls and toggle a column to trigger emitSettings
-    await wrapper.find('.col-menu-btn').trigger('click')
-    await nextTick()
+    // Act — set ticker filter, then trigger a real emitSettings via mode toggle
     await wrapper.find('[data-testid="ticker-filter-input"]').setValue('AAPL')
     await nextTick()
+    await wrapper.find('[data-testid="row-click-mode-toggle"]').trigger('click')
+    await nextTick()
 
-    // Assert — no tickerFilter key in any emitted settings object
+    // Assert — guard against vacuous truth, then verify tickerFilter absent from all payloads
+    expect(settingsCalls.length).toBeGreaterThan(0)
     expect(settingsCalls.every(s => !('tickerFilter' in s))).toBe(true)
     wrapper.unmount()
   })
@@ -1265,12 +1267,8 @@ describe('Row-click mode toggle', () => {
     wrapper.unmount()
   })
 
-  test('filter mode: row click sets tickerFilter and calls onRowClick', async () => {
+  test('filter mode: row click sets tickerFilter', async () => {
     // Arrange
-    const { onRowClick: mockOnRowClick } = vi.mocked(
-      (await import('@/composables/useScannerLink.js')).useScannerLink
-    ).mock.results[0]?.value ?? {}
-
     const wrapper = mount(DailyRangeAlerts, {
       props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
     })
@@ -1282,8 +1280,28 @@ describe('Row-click mode toggle', () => {
     await wrapper.find('tbody tr').trigger('click')
     await nextTick()
 
-    // Assert — ticker filter set to AAPL
+    // Assert
     expect(wrapper.find('[data-testid="ticker-filter-input"]').element.value).toBe('AAPL')
+    wrapper.unmount()
+  })
+
+  test('filter mode: row click also activates linked widgets via onRowClick', async () => {
+    // Arrange — capture the onRowClick mock for this specific wrapper instance
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { rowClickMode: 'filter' } },
+    })
+    const mockOnRowClick = vi.mocked(useScannerLink).mock.results[callsBefore].value.onRowClick
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL' })])
+    await nextTick()
+
+    // Act
+    await wrapper.find('tbody tr').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(mockOnRowClick).toHaveBeenCalled()
     wrapper.unmount()
   })
 
@@ -1308,8 +1326,8 @@ describe('Row-click mode toggle', () => {
     wrapper.unmount()
   })
 
-  test('select mode: row click does not set tickerFilter', async () => {
-    // Arrange
+  test('select (link) mode: row click does not set tickerFilter', async () => {
+    // Arrange — rowClickMode: 'link' is the code value for the "select" UI label
     const wrapper = mount(DailyRangeAlerts, {
       props: { ...defaultProps, settings: { rowClickMode: 'link' } },
     })
