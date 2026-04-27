@@ -36,7 +36,8 @@ const availableWidgets = [
   { type: 'quote', label: 'Mini Quote', icon: '⚡' },
   { type: 'enhanced-quote', label: 'Quote', icon: '✨' },
   { type: 'enhanced-quote-v4', label: 'Enhanced Quote', icon: '💎' },
-  { type: 'range-alerts', label: 'Range Alerts', icon: '🔔' },
+  { type: 'range-alerts',      label: 'Range Alerts',      icon: '🔔' },
+  { type: 'candlestick-chart', label: 'Candlestick Chart',  icon: '📈' },
 ]
 
 const selectWidget = (widget) => {
