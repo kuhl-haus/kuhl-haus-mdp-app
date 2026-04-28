@@ -295,6 +295,40 @@ describe('Data fetching', () => {
   })
 })
 
+// ── Average volume ────────────────────────────────────────────────────────────
+// addSeries call order in onMounted: [0]=candle, [1]=volume, [2]=avgVolume, [3]=macdLine, [4]=signal, [5]=histogram
+
+describe('Average volume', () => {
+  test('avgVolume setData called after successful fetch', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, {
+      props: { ...defaultProps, settings: { ticker: 'AAPL', volume: { enabled: true }, avgVolume: { enabled: true, period: 20 } } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act — avgVolume is the 3rd series created in onMounted (index 2)
+    const avgVolSeriesMock = vi.mocked(createChart).mock.results[0]?.value?.addSeries.mock.results[2]?.value
+
+    // Assert
+    expect(avgVolSeriesMock.setData).toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('avgVolume series created with visible: false when volume pane is disabled', () => {
+    // Arrange + Act
+    const wrapper = mount(TVLiteChart, {
+      props: { ...defaultProps, settings: { volume: { enabled: false }, avgVolume: { enabled: true, period: 20 } } },
+    })
+
+    // Assert — addSeries call [2] options should have visible: false (vol disabled AND avgVol enabled = false)
+    const avgVolAddOptions = vi.mocked(createChart).mock.results[0]?.value?.addSeries.mock.calls[2]?.[1]
+    expect(avgVolAddOptions?.visible).toBe(false)
+    wrapper.unmount()
+  })
+})
+
 // ── Ticker source (bus + header input) ────────────────────────────────────────
 
 describe('Ticker source', () => {
