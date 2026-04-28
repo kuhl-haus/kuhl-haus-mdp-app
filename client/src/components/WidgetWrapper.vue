@@ -73,6 +73,7 @@ import Quote from './widgets/Quote.vue'
 import EnhancedQuoteV3 from './widgets/EnhancedQuoteV3.vue'
 import EnhancedQuoteV4 from './widgets/EnhancedQuoteV4.vue'
 import DailyRangeAlerts from './widgets/DailyRangeAlerts.vue'
+import CandlestickChart from './widgets/CandlestickChart.vue'
 import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
 
 const props = defineProps({
@@ -97,6 +98,7 @@ const widgetComponents = {
   'enhanced-quote-v3': EnhancedQuoteV3,  // backward-compat alias
   'enhanced-quote-v4': EnhancedQuoteV4,
   'range-alerts':      DailyRangeAlerts,
+  'candlestick-chart': CandlestickChart,
 }
 
 const widgetComponent = computed(() => widgetComponents[props.widgetType])
