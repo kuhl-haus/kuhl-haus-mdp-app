@@ -365,25 +365,25 @@ describe('Ticker source', () => {
     wrapper.unmount()
   })
 
-  test('manual mode: uses settings.ticker, ignores bus', async () => {
-    // Arrange
+  test('bus always updates ticker: bus fires even when ticker was pre-configured', async () => {
+    // Arrange — bus always enabled now; manual ticker set via settings is overridable by bus
     global.fetch = mockFetch({ results: [] })
     const callsBefore = vi.mocked(useScannerLink).mock.calls.length
     const wrapper = mount(CandlestickChart, {
-      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
     })
     await nextTick()
     await nextTick()
     const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
     const fetchBefore = global.fetch.mock.calls.length
 
-    // Act
+    // Act — bus fires TSLA
     activeTicker.value = 'TSLA'
     await nextTick()
     await nextTick()
 
-    // Assert — bus change does NOT trigger additional fetch in manual mode
-    expect(global.fetch.mock.calls.length).toBe(fetchBefore)
+    // Assert — bus DOES trigger exactly one additional fetch (not two — double-fire would be a regression)
+    expect(global.fetch.mock.calls.length).toBe(fetchBefore + 1)
     wrapper.unmount()
   })
 })
@@ -409,7 +409,6 @@ describe('Settings persistence', () => {
     expect(settingsCalls.length).toBeGreaterThan(0)
     const last = settingsCalls[settingsCalls.length - 1]
     expect(last).toHaveProperty('ticker')
-    expect(last).toHaveProperty('tickerSource')
     expect(last).toHaveProperty('interval')
     expect(last).toHaveProperty('autoRefresh')
     expect(last).toHaveProperty('refreshInterval')
@@ -468,6 +467,151 @@ describe('DataZoom slider', () => {
     expect(slider.fillerColor).toBe('rgba(139,92,246,0.1)')
     expect(slider.handleStyle.color).toBe('#555')
     expect(slider.textStyle.color).toBe('#6b7280')
+    wrapper.unmount()
+  })
+})
+
+// ── Bug fixes & tweaks ────────────────────────────────────────────────────────
+
+describe('Connection indicator (Bug 1)', () => {
+  test('exposes isConnected as true (REST widget, never disconnects)', () => {
+    // Arrange + Act
+    const wrapper = mount(CandlestickChart, { props: defaultProps })
+
+    // Assert
+    expect(wrapper.vm.isConnected).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('exposes reconnecting as false', () => {
+    // Arrange + Act
+    const wrapper = mount(CandlestickChart, { props: defaultProps })
+
+    // Assert
+    expect(wrapper.vm.reconnecting).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('exposes lastDataAt as non-null after successful fetch', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act
+    const lastDataAt = wrapper.vm.lastDataAt
+
+    // Assert
+    expect(lastDataAt).not.toBeNull()
+    wrapper.unmount()
+  })
+})
+
+describe('Candle colors (Bug 2)', () => {
+  test('bullish candles (close >= open) use green color', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [{ t: 1700000000000, o: 100, h: 105, l: 95, c: 102, v: 1e6, vw: 101 }] })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+    const candleSeries = option.series?.find(s => s.type === 'candlestick')
+
+    // Assert — color (bullish/up candle) should be green, not red
+    expect(candleSeries.itemStyle.color).toBe('#26a69a')
+    expect(candleSeries.itemStyle.color0).toBe('#ef5350')
+    wrapper.unmount()
+  })
+})
+
+describe('Default indicator counts (Tweak 1)', () => {
+  test('default settings include 3 EMA entries', async () => {
+    // Arrange
+    const settingsCalls = []
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: {} },
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+    await nextTick()
+
+    // Act — trigger emit
+    await wrapper.find('[data-testid="interval-btn-5m"]').trigger('click')
+    await nextTick()
+
+    // Assert — emitted settings has 3 EMA entries
+    const last = settingsCalls[settingsCalls.length - 1]
+    expect(last.ema.length).toBe(3)
+    wrapper.unmount()
+  })
+
+  test('default settings include 2 VWMA entries', async () => {
+    // Arrange
+    const settingsCalls = []
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: {} },
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+    await nextTick()
+
+    // Act — trigger emit
+    await wrapper.find('[data-testid="interval-btn-5m"]').trigger('click')
+    await nextTick()
+
+    // Assert — emitted settings has 2 VWMA entries
+    const last = settingsCalls[settingsCalls.length - 1]
+    expect(last.vwma.length).toBe(2)
+    wrapper.unmount()
+  })
+})
+
+describe('Header ticker input (Tweak 3)', () => {
+  test('ticker input is always visible in the widget header', () => {
+    // Arrange + Act
+    const wrapper = mount(CandlestickChart, { props: defaultProps })
+
+    // Assert
+    expect(wrapper.find('[data-testid="header-ticker-input"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('pressing Enter in header ticker input triggers fetch with that ticker', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const wrapper = mount(CandlestickChart, { props: defaultProps })
+    await nextTick()
+
+    // Act
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('TSLA')
+    await wrapper.find('[data-testid="header-ticker-input"]').trigger('keydown.enter')
+    await nextTick()
+    await nextTick()
+
+    // Assert
+    expect(global.fetch.mock.calls.some(c => c[0].includes('TSLA'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('bus activeTicker updates the header ticker input', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(CandlestickChart, { props: defaultProps })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+    await nextTick()
+
+    // Act
+    activeTicker.value = 'MSFT'
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('[data-testid="header-ticker-input"]').element.value).toBe('MSFT')
     wrapper.unmount()
   })
 })
