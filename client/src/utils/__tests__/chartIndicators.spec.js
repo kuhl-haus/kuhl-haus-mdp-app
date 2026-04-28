@@ -231,6 +231,26 @@ describe('calcVWAP', () => {
     expect(result[4]).toBeCloseTo(bars[4].vw, 5)
   })
 
+  test('intraday: day boundary fires at ET midnight, not UTC midnight', () => {
+    // Arrange — bars straddle midnight ET (05:00 UTC in EST, UTC-5)
+    // Bar 0: 2026-01-10T04:59:00Z = Jan  9 23:59 ET  (same UTC date as bar 1)
+    // Bar 1: 2026-01-10T05:00:00Z = Jan 10 00:00 ET  (new ET day, same UTC date)
+    // With toDateString() (UTC): both bars are "Sat Jan 10" → no reset (wrong)
+    // With ET toLocaleDateString:  bar 0 = "1/9/2026", bar 1 = "1/10/2026" → reset (correct)
+    const etMidnight      = new Date('2026-01-10T05:00:00Z').getTime()  // Jan 10 00:00 ET
+    const beforeEtMidnight = etMidnight - 60_000                         // Jan  9 23:59 ET
+    const bars = [
+      { t: beforeEtMidnight, o: 100, h: 101, l: 99,  c: 100, v: 1_000_000, vw: 100 },
+      { t: etMidnight,       o: 110, h: 111, l: 109, c: 110, v: 2_000_000, vw: 110 },
+    ]
+
+    // Act
+    const result = calcVWAP(bars, true)
+
+    // Assert — bar 1 is the start of a new ET session; VWAP resets to bar1.vw
+    expect(result[1]).toBeCloseTo(110, 5)
+  })
+
   test('intraday: no null values (vw field always defined)', () => {
     // Arrange
     const bars = makeIntradayBars()

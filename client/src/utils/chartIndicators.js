@@ -99,7 +99,7 @@ export function calcVWAP(bars, isIntraday) {
   let lastDateStr = null
 
   for (const bar of bars) {
-    const dateStr = new Date(bar.t).toDateString()
+    const dateStr = new Date(bar.t).toLocaleDateString('en-US', { timeZone: 'America/New_York' })
     if (dateStr !== lastDateStr) {
       cumPV = 0
       cumV  = 0
