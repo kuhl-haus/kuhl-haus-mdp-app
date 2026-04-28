@@ -38,6 +38,7 @@ const availableWidgets = [
   { type: 'enhanced-quote-v4', label: 'Enhanced Quote', icon: '💎' },
   { type: 'range-alerts',      label: 'Range Alerts',      icon: '🔔' },
   { type: 'candlestick-chart', label: 'Candlestick Chart',  icon: '📈' },
+  { type: 'tv-lite-chart',     label: 'TV Lite Chart',       icon: '📊' },
 ]
 
 const selectWidget = (widget) => {

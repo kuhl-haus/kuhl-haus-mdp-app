@@ -68,7 +68,8 @@ vi.mock('@/utils/chartIndicators.js', () => ({
 
 // ── ResizeObserver mock (not in jsdom) ────────────────────────────────────────
 const resizeObserverMock = { observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() }
-vi.stubGlobal('ResizeObserver', vi.fn(() => resizeObserverMock))
+// Regular function (not arrow) so it works as a constructor with `new`
+vi.stubGlobal('ResizeObserver', function ResizeObserverMock() { return resizeObserverMock })
 
 import { createChart } from 'lightweight-charts'
 import { useScannerLink } from '@/composables/useScannerLink.js'
@@ -100,7 +101,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  vi.stubGlobal('ResizeObserver', vi.fn(() => resizeObserverMock))
+  vi.stubGlobal('ResizeObserver', function ResizeObserverMock() { return resizeObserverMock })
 })
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
