@@ -117,11 +117,11 @@ describe('Rendering', () => {
 
   test('createChart called on mount', () => {
     // Arrange + Act
-    mount(TVLiteChart, { props: defaultProps })
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
 
     // Assert
     expect(createChart).toHaveBeenCalled()
-    wrapper?.unmount()
+    wrapper.unmount()
   })
 
   test('no ticker → placeholder shown', () => {
@@ -248,7 +248,7 @@ describe('Data fetching', () => {
     await nextTick()
 
     // Assert
-    expect(global.fetch.mock.calls.length).toBeGreaterThan(before)
+    expect(global.fetch.mock.calls.length).toBe(before + 1)
     expect(global.fetch.mock.calls[global.fetch.mock.calls.length - 1][0]).toContain('TSLA')
     wrapper.unmount()
   })
@@ -269,7 +269,7 @@ describe('Data fetching', () => {
     await nextTick()
 
     // Assert
-    expect(global.fetch.mock.calls.length).toBeGreaterThan(before)
+    expect(global.fetch.mock.calls.length).toBe(before + 1)
     wrapper.unmount()
   })
 
