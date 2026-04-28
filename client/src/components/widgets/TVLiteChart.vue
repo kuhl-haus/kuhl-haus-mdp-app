@@ -77,6 +77,12 @@
         <input type="checkbox" v-model="volumeLocal.enabled" @change="emitSettings" />
         <span class="settings-label">Volume</span>
       </div>
+      <div class="settings-row" v-if="volumeLocal.enabled">
+        <input type="checkbox" v-model="avgVolumeLocal.enabled" @change="emitSettings" />
+        <span class="settings-label">Avg Vol</span>
+        <input type="number" v-model.number="avgVolumeLocal.period" @change="emitSettings" min="1" class="narrow-input" />
+        <input type="color" v-model="avgVolumeLocal.color" @change="emitSettings" class="color-picker" />
+      </div>
       <div class="settings-row">
         <input type="checkbox" v-model="macdLocal.enabled" @change="emitSettings" />
         <span class="settings-label">MACD</span>
@@ -115,7 +121,7 @@ import {
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { useConfig }      from '@/composables/useConfig.js'
 import {
-  calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD,
+  calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD, calcVolumeAvg,
 } from '@/utils/chartIndicators.js'
 
 // ── Props / emits ─────────────────────────────────────────────────────────────
@@ -166,6 +172,7 @@ const DEFAULT_SETTINGS = {
   ],
   vwap:  { enabled: true,  color: '#ff7400' },
   volume: { enabled: true },
+  avgVolume: { enabled: true, period: 20, color: '#0257ff' },
   macd:  { enabled: true, fast: 12, slow: 26, signal: 9 },
 }
 
@@ -198,6 +205,7 @@ const smaLocal            = ref(config.value.sma.map(e => ({ ...e })))
 const vwmaLocal           = ref(config.value.vwma.map(e => ({ ...e })))
 const vwapLocal           = ref({ ...config.value.vwap })
 const volumeLocal         = ref({ ...config.value.volume })
+const avgVolumeLocal      = ref({ ...config.value.avgVolume })
 const macdLocal           = ref({ ...config.value.macd })
 const showSettings        = ref(false)
 
@@ -262,12 +270,13 @@ watch(() => props.settings, (s) => {
   vwmaLocal.value            = m.vwma.map(e => ({ ...e }))
   vwapLocal.value            = { ...m.vwap }
   volumeLocal.value          = { ...m.volume }
+  avgVolumeLocal.value       = { ...m.avgVolume }
   macdLocal.value            = { ...m.macd }
 })
 
 // Re-render chart when any indicator/pane setting changes (no refetch needed)
 watch(
-  [emaLocal, smaLocal, vwmaLocal, vwapLocal, volumeLocal, macdLocal],
+  [emaLocal, smaLocal, vwmaLocal, vwapLocal, volumeLocal, avgVolumeLocal, macdLocal],
   () => { updateChart() },
   { deep: true }
 )
@@ -305,6 +314,7 @@ function emitSettings() {
     vwma:            vwmaLocal.value.map(e => ({ ...e })),
     vwap:            { ...vwapLocal.value },
     volume:          { ...volumeLocal.value },
+    avgVolume:       { ...avgVolumeLocal.value },
     macd:            { ...macdLocal.value },
   })
 }
@@ -316,6 +326,7 @@ const chartContainer = ref(null)
 let chart          = null
 let candleSeries   = null
 let volumeSeriesRef = null
+let avgVolumeSeriesRef = null
 let overlaySeries  = []
 let macdSeriesRef  = { line: null, signal: null, histogram: null }
 let resizeObserver = null
@@ -361,6 +372,16 @@ onMounted(() => {
     visible: volumeLocal.value.enabled,
   }, PANE_VOLUME)
   chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.7, bottom: 0 } })
+
+  // Avg Volume line on volume pane — always created, visibility controlled in updateChart
+  avgVolumeSeriesRef = chart.addSeries(LineSeries, {
+    color:              avgVolumeLocal.value.color ?? '#0257ff',
+    lineWidth:          1,
+    priceLineVisible:   false,
+    lastValueVisible:   false,
+    visible:            volumeLocal.value.enabled && avgVolumeLocal.value.enabled,
+    priceScaleId:       'volume',
+  }, PANE_VOLUME)
 
   // MACD (pane 2) — always created; visibility controlled in updateChart
   macdSeriesRef.line      = chart.addSeries(LineSeries,      { color: '#3b82f6', lineWidth: 1, visible: macdLocal.value.enabled }, PANE_MACD)
@@ -412,6 +433,16 @@ function updateChart() {
         value: b.v,
         color: b.c >= b.o ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)',
       })))
+    }
+  }
+
+  // Avg Volume line — visibility tied to both volume pane AND avgVolume toggle
+  if (avgVolumeSeriesRef) {
+    const showAvgVol = volumeLocal.value.enabled && avgVolumeLocal.value.enabled
+    avgVolumeSeriesRef.applyOptions({ visible: showAvgVol, color: avgVolumeLocal.value.color ?? '#0257ff' })
+    if (showAvgVol) {
+      const vals = calcVolumeAvg(bars.value, avgVolumeLocal.value.period ?? 20)
+      avgVolumeSeriesRef.setData(vals.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v }).filter(Boolean))
     }
   }
 

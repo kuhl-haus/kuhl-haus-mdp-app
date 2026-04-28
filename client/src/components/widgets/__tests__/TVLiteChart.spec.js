@@ -454,6 +454,7 @@ describe('Settings persistence', () => {
     expect(last).toHaveProperty('autoRefresh')
     expect(last).toHaveProperty('refreshInterval')
     expect(last).toHaveProperty('ema')
+    expect(last).toHaveProperty('avgVolume')
     wrapper.unmount()
   })
 })
