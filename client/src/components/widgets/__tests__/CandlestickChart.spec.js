@@ -515,7 +515,7 @@ describe('Candle colors (Bug 2)', () => {
     // Arrange
     global.fetch = mockFetch({ results: [{ t: 1700000000000, o: 100, h: 105, l: 95, c: 102, v: 1e6, vw: 101 }] })
     const wrapper = mount(CandlestickChart, {
-      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
     })
     await nextTick()
     await nextTick()
