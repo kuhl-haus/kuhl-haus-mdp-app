@@ -365,25 +365,25 @@ describe('Ticker source', () => {
     wrapper.unmount()
   })
 
-  test('manual mode: uses settings.ticker, ignores bus', async () => {
-    // Arrange
+  test('bus always updates ticker: bus fires even when ticker was pre-configured', async () => {
+    // Arrange — bus always enabled now; manual ticker set via settings is overridable by bus
     global.fetch = mockFetch({ results: [] })
     const callsBefore = vi.mocked(useScannerLink).mock.calls.length
     const wrapper = mount(CandlestickChart, {
-      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
     })
     await nextTick()
     await nextTick()
     const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
     const fetchBefore = global.fetch.mock.calls.length
 
-    // Act
+    // Act — bus fires TSLA
     activeTicker.value = 'TSLA'
     await nextTick()
     await nextTick()
 
-    // Assert — bus change does NOT trigger additional fetch in manual mode
-    expect(global.fetch.mock.calls.length).toBe(fetchBefore)
+    // Assert — bus DOES trigger additional fetch (bus always enabled)
+    expect(global.fetch.mock.calls.length).toBeGreaterThan(fetchBefore)
     wrapper.unmount()
   })
 })
@@ -409,7 +409,6 @@ describe('Settings persistence', () => {
     expect(settingsCalls.length).toBeGreaterThan(0)
     const last = settingsCalls[settingsCalls.length - 1]
     expect(last).toHaveProperty('ticker')
-    expect(last).toHaveProperty('tickerSource')
     expect(last).toHaveProperty('interval')
     expect(last).toHaveProperty('autoRefresh')
     expect(last).toHaveProperty('refreshInterval')
@@ -533,30 +532,23 @@ describe('Candle colors (Bug 2)', () => {
 })
 
 describe('Default indicator counts (Tweak 1)', () => {
-  test('default settings include 3 EMA entries', () => {
-    // Arrange + Act
-    const wrapper = mount(CandlestickChart, { props: defaultProps })
-    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
-
-    // Assert — 3 EMA series (even if some disabled)
-    // We check via the settings structure exposed through settings emit
-    wrapper.unmount()
-
-    // Direct DEFAULT_SETTINGS check via component mount with empty settings
-    const wrapper2 = mount(CandlestickChart, {
-      props: { ...defaultProps, settings: {} },
-    })
+  test('default settings include 3 EMA entries', async () => {
+    // Arrange
     const settingsCalls = []
-    // Trigger a settings emit via interval button click
-    wrapper2.find('[data-testid="interval-btn-5m"]').trigger('click')
-    // Check that the component was initialized with 3 EMAs
-    // We check the rendered settings panel for 3 EMA rows
-    wrapper2.find('.col-menu-btn').trigger('click')
-    nextTick().then(() => {
-      const emaRows = wrapper2.findAll('[data-testid^="ema-row-"]')
-      expect(emaRows.length).toBe(3)
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: {} },
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
-    wrapper2.unmount()
+    await nextTick()
+
+    // Act — trigger emit
+    await wrapper.find('[data-testid="interval-btn-5m"]').trigger('click')
+    await nextTick()
+
+    // Assert — emitted settings has 3 EMA entries
+    const last = settingsCalls[settingsCalls.length - 1]
+    expect(last.ema.length).toBe(3)
+    wrapper.unmount()
   })
 
   test('default settings include 2 VWMA entries', async () => {

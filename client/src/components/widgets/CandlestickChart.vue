@@ -2,8 +2,19 @@
   <div class="candlestick-chart-widget">
     <!-- Header -->
     <div class="chart-header">
-      <div class="ticker-display">
-        <span class="ticker-label">{{ tickerLocal || '—' }}</span>
+      <div class="ticker-input-wrap">
+        <input
+          type="text"
+          class="header-ticker-input"
+          :value="headerTickerInput"
+          @input="headerTickerInput = $event.target.value.toUpperCase()"
+          @keydown.enter="onGoTicker"
+          placeholder="Ticker…"
+          data-testid="header-ticker-input"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="go-btn" @click="onGoTicker" title="Go">Go</button>
       </div>
       <div class="interval-btns">
         <button
@@ -19,26 +30,6 @@
 
     <!-- Settings panel -->
     <div v-if="showSettings" class="settings-panel">
-      <!-- Ticker source -->
-      <div class="settings-row">
-        <span class="settings-label">Ticker</span>
-        <label class="radio-label">
-          <input type="radio" v-model="tickerSourceLocal" value="bus" @change="emitSettings" /> Bus
-        </label>
-        <label class="radio-label">
-          <input type="radio" v-model="tickerSourceLocal" value="manual" @change="emitSettings" /> Manual
-        </label>
-        <input
-          v-if="tickerSourceLocal === 'manual'"
-          type="text"
-          v-model="manualTickerLocal"
-          @change="emitSettings"
-          placeholder="Ticker…"
-          class="ticker-input"
-          data-testid="manual-ticker-input"
-        />
-      </div>
-
       <!-- Bar count -->
       <div class="settings-row">
         <span class="settings-label">Bars</span>
@@ -64,24 +55,28 @@
 
       <!-- Overlays -->
       <div class="settings-section-title">Overlays</div>
-      <div class="settings-row" v-for="(cfg, idx) in emaLocal" :key="`ema-${idx}`">
+      <div class="settings-row" v-for="(cfg, idx) in emaLocal" :key="`ema-${idx}`" :data-testid="`ema-row-${idx}`">
         <input type="checkbox" v-model="cfg.enabled" @change="emitSettings" />
         <span class="settings-label">EMA</span>
         <input type="number" v-model.number="cfg.period" @change="emitSettings" min="1" class="narrow-input" />
+        <input type="color" v-model="cfg.color" @change="emitSettings" class="color-picker" :title="`EMA${cfg.period} color`" />
       </div>
       <div class="settings-row" v-for="(cfg, idx) in smaLocal" :key="`sma-${idx}`">
         <input type="checkbox" v-model="cfg.enabled" @change="emitSettings" />
         <span class="settings-label">SMA</span>
         <input type="number" v-model.number="cfg.period" @change="emitSettings" min="1" class="narrow-input" />
+        <input type="color" v-model="cfg.color" @change="emitSettings" class="color-picker" :title="`SMA${cfg.period} color`" />
       </div>
       <div class="settings-row" v-for="(cfg, idx) in vwmaLocal" :key="`vwma-${idx}`">
         <input type="checkbox" v-model="cfg.enabled" @change="emitSettings" />
         <span class="settings-label">VWMA</span>
         <input type="number" v-model.number="cfg.period" @change="emitSettings" min="1" class="narrow-input" />
+        <input type="color" v-model="cfg.color" @change="emitSettings" class="color-picker" :title="`VWMA${cfg.period} color`" />
       </div>
       <div class="settings-row">
         <input type="checkbox" v-model="vwapLocal.enabled" @change="emitSettings" />
         <span class="settings-label">VWAP</span>
+        <input type="color" v-model="vwapLocal.color" @change="emitSettings" class="color-picker" title="VWAP color" />
       </div>
 
       <!-- Panes -->
@@ -108,7 +103,7 @@
 
     <!-- No ticker placeholder -->
     <div v-if="!tickerLocal" class="no-ticker" data-testid="no-ticker">
-      <span>No ticker selected. {{ tickerSourceLocal === 'bus' ? 'Click a row in a linked scanner.' : 'Enter a ticker in Settings.' }}</span>
+      <span>No ticker selected. Click a row in a linked scanner or enter a ticker above.</span>
     </div>
 
     <!-- Error state -->
@@ -189,12 +184,16 @@ const DEFAULT_SETTINGS = {
   ema:   [
     { period: 9,  enabled: true,  color: '#f59e0b' },
     { period: 21, enabled: true,  color: '#3b82f6' },
+    { period: 50, enabled: false, color: '#34d399' },
   ],
   sma:   [
     { period: 50,  enabled: false, color: '#a78bfa' },
     { period: 200, enabled: false, color: '#f87171' },
   ],
-  vwma:  [{ period: 20, enabled: false, color: '#34d399' }],
+  vwma:  [
+    { period: 20, enabled: false, color: '#84cc16' },
+    { period: 50, enabled: false, color: '#fb923c' },
+  ],
   vwap:  { enabled: true,  color: '#e879f9' },
   volume:    { enabled: true },
   avgVolume: { enabled: true, period: 20, color: '#6b7280' },
@@ -212,11 +211,13 @@ const { activeTicker } = useScannerLink(computed(() => props.linkColor))
 
 // ── Local state ───────────────────────────────────────────────────────────────
 const bars    = ref([])
-const loading = ref(false)
-const error   = ref(null)
+const loading    = ref(false)
+const error      = ref(null)
+const lastDataAt  = ref(null)   // set after each successful fetch; drives WidgetWrapper freshness indicator
+const isConnected  = ref(true)  // REST widget — always connected
+const reconnecting = ref(false) // REST widget — never reconnecting
 
-const tickerSourceLocal   = ref(config.value.tickerSource)
-const manualTickerLocal   = ref(config.value.ticker ?? '')
+const headerTickerInput   = ref(config.value.ticker?.trim().toUpperCase() ?? '')
 const intervalLocal       = ref(config.value.interval)
 const barCountLocal       = ref(config.value.barCount)
 const autoRefreshLocal    = ref(config.value.autoRefresh)
@@ -231,12 +232,18 @@ const macdLocal           = ref({ ...config.value.macd })
 const showSettings        = ref(false)
 
 // ── Resolved ticker ───────────────────────────────────────────────────────────
-const tickerLocal = computed(() => {
-  if (tickerSourceLocal.value === 'manual') {
-    return manualTickerLocal.value?.trim().toUpperCase() || null
-  }
-  return activeTicker.value || null
+const tickerLocal = computed(() => headerTickerInput.value?.trim().toUpperCase() || null)
+
+// Bus auto-fills the header input when it fires
+watch(activeTicker, (t) => {
+  if (t) headerTickerInput.value = t
 })
+
+const onGoTicker = () => {
+  const sym = headerTickerInput.value.trim().toUpperCase()
+  headerTickerInput.value = sym
+  emitSettings()
+}
 
 // ── Date range helper ─────────────────────────────────────────────────────────
 function buildDateRange(interval) {
@@ -262,6 +269,7 @@ async function fetchBars() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     const json = await resp.json()
     bars.value = json.results ?? []
+    lastDataAt.value = Date.now()
   } catch (e) {
     error.value = e.message
   } finally {
@@ -290,6 +298,8 @@ function clearRefresh() {
 scheduleRefresh()
 onUnmounted(() => clearRefresh())
 
+defineExpose({ lastDataAt, isConnected, reconnecting })
+
 function onAutoRefreshChange() {
   scheduleRefresh()
   emitSettings()
@@ -309,8 +319,7 @@ function selectInterval(iv) {
 // ── Settings ──────────────────────────────────────────────────────────────────
 function emitSettings() {
   emit('update-settings', {
-    ticker:          manualTickerLocal.value?.trim().toUpperCase() || null,
-    tickerSource:    tickerSourceLocal.value,
+    ticker:          headerTickerInput.value?.trim().toUpperCase() || null,
     interval:        intervalLocal.value,
     barCount:        barCountLocal.value,
     autoRefresh:     autoRefreshLocal.value,
@@ -327,8 +336,7 @@ function emitSettings() {
 
 watch(() => props.settings, (s) => {
   const m = { ...DEFAULT_SETTINGS, ...s }
-  tickerSourceLocal.value    = m.tickerSource
-  manualTickerLocal.value    = m.ticker ?? ''
+  headerTickerInput.value    = m.ticker?.trim().toUpperCase() ?? ''
   intervalLocal.value        = m.interval
   barCountLocal.value        = m.barCount
   autoRefreshLocal.value     = m.autoRefresh
@@ -412,7 +420,7 @@ const chartOption = computed(() => {
     data: candles,
     xAxisIndex: 0,
     yAxisIndex: 0,
-    itemStyle: { color: '#ef5350', color0: '#26a69a', borderColor: '#ef5350', borderColor0: '#26a69a' },
+    itemStyle: { color: '#26a69a', color0: '#ef5350', borderColor: '#26a69a', borderColor0: '#ef5350' },
   })
 
   // Overlays
@@ -501,6 +509,51 @@ const chartOption = computed(() => {
   font-size: 14px;
   color: #fff;
   min-width: 50px;
+}
+
+.ticker-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.header-ticker-input {
+  width: 72px;
+  padding: 2px 6px;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.header-ticker-input:focus { outline: none; border-color: #8b5cf6; }
+.header-ticker-input::placeholder { color: #555; font-weight: normal; }
+
+.go-btn {
+  padding: 2px 7px;
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.4);
+  border-radius: 3px;
+  color: #a78bfa;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.go-btn:hover { background: rgba(139,92,246,0.25); }
+
+.color-picker {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #444;
+  border-radius: 3px;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .interval-btns {
