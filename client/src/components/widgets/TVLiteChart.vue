@@ -114,7 +114,7 @@ import {
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { useConfig }      from '@/composables/useConfig.js'
 import {
-  calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD, calcVolumeAvg,
+  calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD,
 } from '@/utils/chartIndicators.js'
 
 // ── Props / emits ─────────────────────────────────────────────────────────────
@@ -264,6 +264,13 @@ watch(() => props.settings, (s) => {
   macdLocal.value            = { ...m.macd }
 })
 
+// Re-render chart when any indicator/pane setting changes (no refetch needed)
+watch(
+  [emaLocal, smaLocal, vwmaLocal, vwapLocal, volumeLocal, macdLocal],
+  () => { updateChart() },
+  { deep: true }
+)
+
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
 let refreshTimer = null
 
@@ -346,21 +353,18 @@ onMounted(() => {
     wickDownColor:    '#ef5350',
   }, PANE_MAIN)
 
-  // Volume (pane 1)
-  if (volumeLocal.value.enabled) {
-    volumeSeriesRef = chart.addSeries(HistogramSeries, {
-      priceFormat:  { type: 'volume' },
-      priceScaleId: 'volume',
-    }, PANE_VOLUME)
-    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.7, bottom: 0 } })
-  }
+  // Volume (pane 1) — always created; visibility controlled in updateChart
+  volumeSeriesRef = chart.addSeries(HistogramSeries, {
+    priceFormat:  { type: 'volume' },
+    priceScaleId: 'volume',
+    visible: volumeLocal.value.enabled,
+  }, PANE_VOLUME)
+  chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.7, bottom: 0 } })
 
-  // MACD (pane 2)
-  if (macdLocal.value.enabled) {
-    macdSeriesRef.line      = chart.addSeries(LineSeries,      { color: '#3b82f6', lineWidth: 1 }, PANE_MACD)
-    macdSeriesRef.signal    = chart.addSeries(LineSeries,      { color: '#f59e0b', lineWidth: 1 }, PANE_MACD)
-    macdSeriesRef.histogram = chart.addSeries(HistogramSeries, {}, PANE_MACD)
-  }
+  // MACD (pane 2) — always created; visibility controlled in updateChart
+  macdSeriesRef.line      = chart.addSeries(LineSeries,      { color: '#3b82f6', lineWidth: 1, visible: macdLocal.value.enabled }, PANE_MACD)
+  macdSeriesRef.signal    = chart.addSeries(LineSeries,      { color: '#f59e0b', lineWidth: 1, visible: macdLocal.value.enabled }, PANE_MACD)
+  macdSeriesRef.histogram = chart.addSeries(HistogramSeries, { visible: macdLocal.value.enabled }, PANE_MACD)
 
   // Autoresize
   resizeObserver = new ResizeObserver(() => {
@@ -397,13 +401,17 @@ function updateChart() {
   }))
   candleSeries.setData(mapped)
 
-  // Volume
+  // Volume — update visibility and data
   if (volumeSeriesRef) {
-    volumeSeriesRef.setData(bars.value.map(b => ({
-      time:      b.t / 1000,
-      value:     b.v,
-      color:     b.c >= b.o ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)',
-    })))
+    const showVol = volumeLocal.value.enabled
+    volumeSeriesRef.applyOptions({ visible: showVol })
+    if (showVol) {
+      volumeSeriesRef.setData(bars.value.map(b => ({
+        time:  b.t / 1000,
+        value: b.v,
+        color: b.c >= b.o ? 'rgba(38,166,154,0.5)' : 'rgba(239,83,80,0.5)',
+      })))
+    }
   }
 
   // Overlays — remove stale series then rebuild
@@ -434,16 +442,22 @@ function updateChart() {
   if (vwapLocal.value.enabled) {
     const s = chart.addSeries(LineSeries, { color: vwapLocal.value.color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, PANE_MAIN)
     const vals = calcVWAP(bars.value, isIntraday.value)
-    s.setData(vals.map((v, i) => ({ time: bars.value[i].t / 1000, value: v })))
+    s.setData(vals.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v }).filter(Boolean))
     overlaySeries.push(s)
   }
 
-  // MACD
+  // MACD — update visibility and data
   if (macdSeriesRef.line) {
-    const { macdLine, signalLine, histogram } = calcMACD(bars.value, macdLocal.value.fast, macdLocal.value.slow, macdLocal.value.signal)
-    macdSeriesRef.line.setData(macdLine.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v }).filter(Boolean))
-    macdSeriesRef.signal.setData(signalLine.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v }).filter(Boolean))
-    macdSeriesRef.histogram.setData(histogram.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v, color: v >= 0 ? '#26a69a' : '#ef5350' }).filter(Boolean))
+    const showMACD = macdLocal.value.enabled
+    macdSeriesRef.line.applyOptions({ visible: showMACD })
+    macdSeriesRef.signal.applyOptions({ visible: showMACD })
+    macdSeriesRef.histogram.applyOptions({ visible: showMACD })
+    if (showMACD) {
+      const { macdLine, signalLine, histogram } = calcMACD(bars.value, macdLocal.value.fast, macdLocal.value.slow, macdLocal.value.signal)
+      macdSeriesRef.line.setData(macdLine.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v }).filter(Boolean))
+      macdSeriesRef.signal.setData(signalLine.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v }).filter(Boolean))
+      macdSeriesRef.histogram.setData(histogram.map((v, i) => v === null ? null : { time: bars.value[i].t / 1000, value: v, color: v >= 0 ? '#26a69a' : '#ef5350' }).filter(Boolean))
+    }
   }
 }
 
