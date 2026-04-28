@@ -382,8 +382,8 @@ describe('Ticker source', () => {
     await nextTick()
     await nextTick()
 
-    // Assert — bus DOES trigger additional fetch (bus always enabled)
-    expect(global.fetch.mock.calls.length).toBeGreaterThan(fetchBefore)
+    // Assert — bus DOES trigger exactly one additional fetch (not two — double-fire would be a regression)
+    expect(global.fetch.mock.calls.length).toBe(fetchBefore + 1)
     wrapper.unmount()
   })
 })
@@ -496,7 +496,7 @@ describe('Connection indicator (Bug 1)', () => {
     // Arrange
     global.fetch = mockFetch({ results: [] })
     const wrapper = mount(CandlestickChart, {
-      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
     })
     await nextTick()
     await nextTick()
