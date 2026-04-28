@@ -235,88 +235,98 @@ describe('Data fetching', () => {
 })
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
+// After fixing the setInterval naming collision (Issue 1), the global
+// window.setInterval is correctly called. Fake-timer tests now work.
 
 describe('Auto-refresh', () => {
-  afterEach(() => { vi.unstubAllGlobals() })
-
-  test('autoRefresh true persisted in emitted settings', async () => {
+  test('advancing time by refreshInterval triggers additional fetch', async () => {
     // Arrange
+    vi.useFakeTimers()
     global.fetch = mockFetch({ results: [] })
-    const settingsCalls = []
     const wrapper = mount(CandlestickChart, {
       props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL', autoRefresh: true, refreshInterval: '1m' } },
-      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
     await nextTick()
+    await nextTick()
+    const before = global.fetch.mock.calls.length
 
-    // Act — trigger an interval button click to emit settings
-    await wrapper.find('[data-testid="interval-btn-5m"]').trigger('click')
+    // Act
+    vi.advanceTimersByTime(60_000)
+    await nextTick()
     await nextTick()
 
     // Assert
-    const last = settingsCalls[settingsCalls.length - 1]
-    expect(last.autoRefresh).toBe(true)
-    expect(last.refreshInterval).toBe('1m')
+    expect(global.fetch.mock.calls.length).toBeGreaterThan(before)
     wrapper.unmount()
+    vi.useRealTimers()
   })
 
-  test('autoRefresh false persisted in emitted settings', async () => {
+  test('autoRefresh false: advancing time does not trigger additional fetch', async () => {
     // Arrange
+    vi.useFakeTimers()
     global.fetch = mockFetch({ results: [] })
-    const settingsCalls = []
     const wrapper = mount(CandlestickChart, {
       props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL', autoRefresh: false } },
-      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
     })
     await nextTick()
+    await nextTick()
+    const before = global.fetch.mock.calls.length
 
     // Act
-    await wrapper.find('[data-testid="interval-btn-1d"]').trigger('click')
+    vi.advanceTimersByTime(120_000)
     await nextTick()
 
     // Assert
-    const last = settingsCalls[settingsCalls.length - 1]
-    expect(last.autoRefresh).toBe(false)
+    expect(global.fetch.mock.calls.length).toBe(before)
     wrapper.unmount()
+    vi.useRealTimers()
   })
 
-  test('refreshInterval 5m persisted in emitted settings', async () => {
+  test('auto-refresh stops after unmount', async () => {
     // Arrange
-    global.fetch = mockFetch({ results: [] })
-    const settingsCalls = []
-    const wrapper = mount(CandlestickChart, {
-      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL', autoRefresh: true, refreshInterval: '5m' } },
-      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
-    })
-    await nextTick()
-
-    // Act
-    await wrapper.find('[data-testid="interval-btn-1m"]').trigger('click')
-    await nextTick()
-
-    // Assert — refreshInterval unchanged (interval btn changes chart interval, not refresh interval)
-    const last = settingsCalls[settingsCalls.length - 1]
-    expect(last.refreshInterval).toBe('5m')
-    wrapper.unmount()
-  })
-
-  test('clearInterval called on unmount (Node timer)', async () => {
-    // This verifies the component properly cleans up on unmount.
-    // Since Node.js timers and jsdom timers are separate in vitest, we verify
-    // that mounting with autoRefresh=true + unmounting does not throw and
-    // leaves no observable side effects (i.e., no fetch is triggered after unmount).
+    vi.useFakeTimers()
     global.fetch = mockFetch({ results: [] })
     const wrapper = mount(CandlestickChart, {
       props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL', autoRefresh: true, refreshInterval: '1m' } },
     })
     await nextTick()
-    const countBeforeUnmount = global.fetch.mock.calls.length
+    await nextTick()
 
     // Act
     wrapper.unmount()
+    const countAfterUnmount = global.fetch.mock.calls.length
+    vi.advanceTimersByTime(120_000)
+    await nextTick()
 
-    // Assert — no synchronous fetch triggered by unmount
-    expect(global.fetch.mock.calls.length).toBe(countBeforeUnmount)
+    // Assert — no fetches fired after unmount
+    expect(global.fetch.mock.calls.length).toBe(countAfterUnmount)
+    vi.useRealTimers()
+  })
+
+  test('refreshInterval 5m: no extra fetch before 5m, fires after', async () => {
+    // Arrange
+    vi.useFakeTimers()
+    global.fetch = mockFetch({ results: [] })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL', autoRefresh: true, refreshInterval: '5m' } },
+    })
+    await nextTick()
+    await nextTick()
+    const before = global.fetch.mock.calls.length
+
+    // Assert — no extra fetch before 5m
+    vi.advanceTimersByTime(60_000)
+    await nextTick()
+    expect(global.fetch.mock.calls.length).toBe(before)
+
+    // Act — advance past 5m
+    vi.advanceTimersByTime(240_001)
+    await nextTick()
+
+    // Assert — refresh fired
+    expect(global.fetch.mock.calls.length).toBeGreaterThan(before)
+    wrapper.unmount()
+    vi.useRealTimers()
   })
 })
 

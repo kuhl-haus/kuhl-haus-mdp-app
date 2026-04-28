@@ -11,7 +11,7 @@
           :key="iv"
           :class="['interval-btn', intervalLocal === iv ? 'interval-btn--active' : '']"
           :data-testid="`interval-btn-${iv}`"
-          @click="setInterval(iv)"
+          @click="selectInterval(iv)"
         >{{ iv }}</button>
       </div>
       <button class="col-menu-btn" @click="showSettings = !showSettings" title="Settings">⚙️</button>
@@ -74,6 +74,11 @@
         <span class="settings-label">SMA</span>
         <input type="number" v-model.number="cfg.period" @change="emitSettings" min="1" class="narrow-input" />
       </div>
+      <div class="settings-row" v-for="(cfg, idx) in vwmaLocal" :key="`vwma-${idx}`">
+        <input type="checkbox" v-model="cfg.enabled" @change="emitSettings" />
+        <span class="settings-label">VWMA</span>
+        <input type="number" v-model.number="cfg.period" @change="emitSettings" min="1" class="narrow-input" />
+      </div>
       <div class="settings-row">
         <input type="checkbox" v-model="vwapLocal.enabled" @change="emitSettings" />
         <span class="settings-label">VWAP</span>
@@ -84,6 +89,11 @@
       <div class="settings-row">
         <input type="checkbox" v-model="volumeLocal.enabled" @change="emitSettings" />
         <span class="settings-label">Volume</span>
+      </div>
+      <div class="settings-row" v-if="volumeLocal.enabled">
+        <input type="checkbox" v-model="avgVolumeLocal.enabled" @change="emitSettings" />
+        <span class="settings-label">Avg Vol</span>
+        <input type="number" v-model.number="avgVolumeLocal.period" @change="emitSettings" min="1" class="narrow-input" />
       </div>
       <div class="settings-row">
         <input type="checkbox" v-model="macdLocal.enabled" @change="emitSettings" />
@@ -209,6 +219,8 @@ const autoRefreshLocal    = ref(config.value.autoRefresh)
 const refreshIntervalLocal = ref(config.value.refreshInterval)
 const emaLocal            = ref(config.value.ema.map(e => ({ ...e })))
 const smaLocal            = ref(config.value.sma.map(e => ({ ...e })))
+const vwmaLocal           = ref(config.value.vwma.map(e => ({ ...e })))
+const avgVolumeLocal      = ref({ ...config.value.avgVolume })
 const vwapLocal           = ref({ ...config.value.vwap })
 const volumeLocal         = ref({ ...config.value.volume })
 const macdLocal           = ref({ ...config.value.macd })
@@ -220,11 +232,6 @@ const tickerLocal = computed(() => {
     return manualTickerLocal.value?.trim().toUpperCase() || null
   }
   return activeTicker.value || null
-})
-
-// Follow bus only in bus mode
-watch(activeTicker, () => {
-  // tickerLocal automatically reflects activeTicker.value in bus mode via computed
 })
 
 // ── Date range helper ─────────────────────────────────────────────────────────
@@ -291,7 +298,7 @@ function onRefreshIntervalChange() {
 }
 
 // ── Interval button ───────────────────────────────────────────────────────────
-function setInterval(iv) {
+function selectInterval(iv) {
   intervalLocal.value = iv
   emitSettings()
 }
@@ -307,10 +314,10 @@ function emitSettings() {
     refreshInterval: refreshIntervalLocal.value,
     ema:             emaLocal.value.map(e => ({ ...e })),
     sma:             smaLocal.value.map(e => ({ ...e })),
-    vwma:            [],  // reserved for future
+    vwma:            vwmaLocal.value.map(e => ({ ...e })),
     vwap:            { ...vwapLocal.value },
     volume:          { ...volumeLocal.value },
-    avgVolume:       { enabled: true, period: 20 },
+    avgVolume:       { ...avgVolumeLocal.value },
     macd:            { ...macdLocal.value },
   })
 }
@@ -325,6 +332,8 @@ watch(() => props.settings, (s) => {
   refreshIntervalLocal.value = m.refreshInterval
   emaLocal.value             = m.ema.map(e => ({ ...e }))
   smaLocal.value             = m.sma.map(e => ({ ...e }))
+  vwmaLocal.value            = m.vwma.map(e => ({ ...e }))
+  avgVolumeLocal.value       = { ...m.avgVolume }
   vwapLocal.value            = { ...m.vwap }
   volumeLocal.value          = { ...m.volume }
   macdLocal.value            = { ...m.macd }
@@ -362,6 +371,9 @@ const chartOption = computed(() => {
     xAxes.push({ type: 'category', data: times, scale: true, boundaryGap: false, splitLine: { show: false }, axisLabel: { show: false }, gridIndex: xAxisCount })
     yAxes.push({ scale: true, gridIndex: xAxisCount, splitNumber: 2, axisLabel: { formatter: v => v >= 1e6 ? `${(v/1e6).toFixed(0)}M` : v } })
     series.push({ type: 'bar', data: volumes, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount, barMaxWidth: 10 })
+    if (avgVolumeLocal.value.enabled) {
+      series.push({ name: 'Avg Vol', type: 'line', data: calcVolumeAvg(bars.value, avgVolumeLocal.value.period ?? 20), smooth: false, symbol: 'none', lineStyle: { color: avgVolumeLocal.value.color ?? '#6b7280', width: 1 }, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount })
+    }
     xAxisCount++
   }
 
@@ -375,6 +387,7 @@ const chartOption = computed(() => {
       { name: 'Signal', type: 'line', data: signalLine, smooth: false, symbol: 'none', lineStyle: { color: '#f59e0b' }, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount },
       { name: 'Hist',   type: 'bar',  data: histogram,  xAxisIndex: xAxisCount, yAxisIndex: xAxisCount, itemStyle: { color: (p) => p.data >= 0 ? '#26a69a' : '#ef5350' } },
     )
+    xAxisCount++
   }
 
   // Candlestick
@@ -395,11 +408,15 @@ const chartOption = computed(() => {
     if (!cfg.enabled) continue
     series.push({ name: `SMA${cfg.period}`, type: 'line', data: calcSMA(bars.value, cfg.period), smooth: false, symbol: 'none', lineStyle: { color: cfg.color, width: 1 }, xAxisIndex: 0, yAxisIndex: 0 })
   }
+  for (const cfg of vwmaLocal.value) {
+    if (!cfg.enabled) continue
+    series.push({ name: `VWMA${cfg.period}`, type: 'line', data: calcVWMA(bars.value, cfg.period), smooth: false, symbol: 'none', lineStyle: { color: cfg.color, width: 1 }, xAxisIndex: 0, yAxisIndex: 0 })
+  }
   if (vwapLocal.value.enabled) {
     series.push({ name: 'VWAP', type: 'line', data: calcVWAP(bars.value, isIntraday.value), smooth: false, symbol: 'none', lineStyle: { color: vwapLocal.value.color ?? '#e879f9', width: 1 }, xAxisIndex: 0, yAxisIndex: 0 })
   }
 
-  const dataZoomXIdx = Array.from({ length: xAxisCount + (showMACD ? 1 : 0) }, (_, i) => i)
+  const dataZoomXIdx = Array.from({ length: xAxisCount }, (_, i) => i)
 
   return {
     animation: false,
