@@ -176,7 +176,6 @@ const INTERVAL_MS = {
 
 const DEFAULT_SETTINGS = {
   ticker:          null,
-  tickerSource:    'bus',
   interval:        '5m',
   barCount:        1000,
   autoRefresh:     true,
