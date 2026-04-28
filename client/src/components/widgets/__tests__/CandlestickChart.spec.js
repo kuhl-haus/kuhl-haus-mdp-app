@@ -416,3 +416,54 @@ describe('Settings persistence', () => {
     wrapper.unmount()
   })
 })
+
+// ── DataZoom slider ───────────────────────────────────────────────────────────
+
+describe('DataZoom slider', () => {
+  test('chartOption includes a slider-type DataZoom for tablet/touch navigation', async () => {
+    // Arrange
+    global.fetch = mockFetch({
+      results: Array.from({ length: 5 }, (_, i) => ({
+        t: (1_700_000_000 + i * 60) * 1000,
+        o: 100, h: 105, l: 95, c: 102, v: 1_000_000, vw: 101,
+      })),
+    })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+
+    // Assert — dataZoom contains a slider entry
+    expect(option.dataZoom).toBeDefined()
+    expect(option.dataZoom.some(dz => dz.type === 'slider')).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('slider DataZoom is styled for dark theme', async () => {
+    // Arrange
+    global.fetch = mockFetch({
+      results: Array.from({ length: 5 }, (_, i) => ({
+        t: (1_700_000_000 + i * 60) * 1000,
+        o: 100, h: 105, l: 95, c: 102, v: 1_000_000, vw: 101,
+      })),
+    })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+    const slider = option.dataZoom.find(dz => dz.type === 'slider')
+
+    // Assert — slider has dark background (not default white)
+    expect(slider).toBeDefined()
+    expect(slider.backgroundColor).toBeDefined()
+    wrapper.unmount()
+  })
+})
