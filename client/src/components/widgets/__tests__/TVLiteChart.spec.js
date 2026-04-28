@@ -354,7 +354,7 @@ describe('Auto-refresh', () => {
     await nextTick()
 
     // Assert
-    expect(global.fetch.mock.calls.length).toBeGreaterThan(before)
+    expect(global.fetch.mock.calls.length).toBe(before + 1)
     wrapper.unmount()
     vi.useRealTimers()
   })
