@@ -451,8 +451,25 @@ const chartOption = computed(() => {
     xAxis: xAxes,
     yAxis: yAxes,
     dataZoom: [
-      // Inside zoom only — no slider bar cluttering the bottom
+      // Inside (scroll/pinch) zoom
       { type: 'inside', xAxisIndex: dataZoomXIdx, start: 70, end: 100, zoomLock: false },
+      // Slider for tablet/touch navigation — dark-themed to match chart
+      {
+        type: 'slider',
+        xAxisIndex: dataZoomXIdx,
+        start: 70,
+        end: 100,
+        height: 18,
+        bottom: 4,
+        backgroundColor: '#111',
+        borderColor: '#333',
+        fillerColor: 'rgba(139,92,246,0.1)',
+        handleStyle: { color: '#555', borderColor: '#555' },
+        moveHandleStyle: { color: '#555' },
+        textStyle: { color: '#6b7280', fontSize: 10 },
+        dataBackground: { lineStyle: { color: '#333' }, areaStyle: { color: '#1a1a1a' } },
+        selectedDataBackground: { lineStyle: { color: '#555' }, areaStyle: { color: '#222' } },
+      },
     ],
     series,
   }

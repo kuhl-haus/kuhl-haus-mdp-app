@@ -416,3 +416,58 @@ describe('Settings persistence', () => {
     wrapper.unmount()
   })
 })
+
+// ── DataZoom slider ───────────────────────────────────────────────────────────
+
+describe('DataZoom slider', () => {
+  test('chartOption includes a slider-type DataZoom for tablet/touch navigation', async () => {
+    // Arrange
+    global.fetch = mockFetch({
+      results: Array.from({ length: 5 }, (_, i) => ({
+        t: (1_700_000_000 + i * 60) * 1000,
+        o: 100, h: 105, l: 95, c: 102, v: 1_000_000, vw: 101,
+      })),
+    })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+
+    // Assert — dataZoom contains a slider entry
+    expect(option.dataZoom).toBeDefined()
+    expect(option.dataZoom.some(dz => dz.type === 'slider')).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('slider DataZoom is styled for dark theme', async () => {
+    // Arrange
+    global.fetch = mockFetch({
+      results: Array.from({ length: 5 }, (_, i) => ({
+        t: (1_700_000_000 + i * 60) * 1000,
+        o: 100, h: 105, l: 95, c: 102, v: 1_000_000, vw: 101,
+      })),
+    })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { tickerSource: 'manual', ticker: 'AAPL' } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Act
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+    const slider = option.dataZoom.find(dz => dz.type === 'slider')
+
+    // Assert — concrete dark theme values; prevents regression to default white/light style
+    expect(slider).toBeDefined()
+    expect(slider.backgroundColor).toBe('#111')
+    expect(slider.borderColor).toBe('#333')
+    expect(slider.fillerColor).toBe('rgba(139,92,246,0.1)')
+    expect(slider.handleStyle.color).toBe('#555')
+    expect(slider.textStyle.color).toBe('#6b7280')
+    wrapper.unmount()
+  })
+})
