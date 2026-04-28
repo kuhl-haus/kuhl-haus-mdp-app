@@ -88,19 +88,20 @@
       </div>
     </div>
 
-    <!-- Chart container — always in DOM so onMounted can init the chart -->
-    <div ref="chartContainer" class="chart-container" data-testid="chart-container"></div>
-
-    <!-- Overlay states rendered on top of chart container -->
-    <div v-if="!tickerLocal" class="overlay" data-testid="no-ticker">
-      <span>No ticker selected. Click a row in a linked scanner or enter a ticker above.</span>
-    </div>
-    <div v-else-if="error" class="overlay" data-testid="error-state">
-      <span>⚠ {{ error }}</span>
-      <button class="retry-btn" data-testid="retry-btn" @click="fetchBars">↻ Retry</button>
-    </div>
-    <div v-else-if="loading && !bars.length" class="overlay" data-testid="loading-state">
-      <span>Loading…</span>
+    <!-- Chart container — always in DOM so onMounted can init the chart.
+         Overlay states live inside so position:absolute is scoped here,
+         not to WidgetWrapper (which would cover its title bar). -->
+    <div ref="chartContainer" class="chart-container" data-testid="chart-container">
+      <div v-if="!tickerLocal" class="overlay" data-testid="no-ticker">
+        <span>No ticker selected. Click a row in a linked scanner or enter a ticker above.</span>
+      </div>
+      <div v-else-if="error" class="overlay" data-testid="error-state">
+        <span>⚠ {{ error }}</span>
+        <button class="retry-btn" data-testid="retry-btn" @click="fetchBars">↻ Retry</button>
+      </div>
+      <div v-else-if="loading && !bars.length" class="overlay" data-testid="loading-state">
+        <span>Loading…</span>
+      </div>
     </div>
   </div>
 </template>
