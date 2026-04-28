@@ -27,6 +27,18 @@ vi.mock('echarts/components', () => ({
   TitleComponent: {},
 }))
 
+// ── Mock useConfig ───────────────────────────────────────────────────────
+vi.mock('@/composables/useConfig.js', async () => {
+  const { ref } = await import('vue')
+  return {
+    useConfig: vi.fn(() => ({
+      config: ref({ massiveApiKey: 'test-key' }),
+      loading: ref(false),
+      error: ref(null),
+    })),
+  }
+})
+
 // ── Mock useScannerLink ───────────────────────────────────────────────────────
 vi.mock('@/composables/useScannerLink.js', async () => {
   const { ref } = await import('vue')
@@ -69,7 +81,6 @@ function mockFetch(data = { results: [], status: 'OK' }, ok = true) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  global.__APP_CONFIG__ = { massiveApiKey: 'test-key' }
 })
 
 // ── Rendering ─────────────────────────────────────────────────────────────────

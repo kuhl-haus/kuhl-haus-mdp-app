@@ -141,6 +141,7 @@ import {
 } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { useScannerLink } from '@/composables/useScannerLink.js'
+import { useConfig } from '@/composables/useConfig.js'
 import {
   calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD, calcVolumeAvg,
 } from '@/utils/chartIndicators.js'
@@ -202,6 +203,9 @@ const DEFAULT_SETTINGS = {
 
 const config = computed(() => ({ ...DEFAULT_SETTINGS, ...props.settings }))
 
+// ── Config (massiveApiKey) ───────────────────────────────────────────────────
+const { config: appConfig } = useConfig()
+
 // ── Scanner bus ───────────────────────────────────────────────────────────────
 // CandlestickChart is read-only from the bus — no onRowClick needed
 const { activeTicker } = useScannerLink(computed(() => props.linkColor))
@@ -246,8 +250,7 @@ function buildDateRange(interval) {
 // ── Fetch ─────────────────────────────────────────────────────────────────────
 async function fetchBars() {
   if (!tickerLocal.value) return
-  const appConfig = window.__APP_CONFIG__ || {}
-  const key = appConfig.massiveApiKey
+  const key = appConfig.value?.massiveApiKey
   const { multiplier, timespan, from, to } = buildDateRange(intervalLocal.value)
   const limit = barCountLocal.value
   const url = `https://api.massive.com/v2/aggs/ticker/${tickerLocal.value}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=${limit}&apiKey=${key}`
