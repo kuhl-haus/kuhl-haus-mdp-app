@@ -461,9 +461,13 @@ describe('DataZoom slider', () => {
     const option = wrapper.findComponent({ name: 'VChart' }).props('option')
     const slider = option.dataZoom.find(dz => dz.type === 'slider')
 
-    // Assert — slider has dark background (not default white)
+    // Assert — concrete dark theme values; prevents regression to default white/light style
     expect(slider).toBeDefined()
-    expect(slider.backgroundColor).toBeDefined()
+    expect(slider.backgroundColor).toBe('#111')
+    expect(slider.borderColor).toBe('#333')
+    expect(slider.fillerColor).toBe('rgba(139,92,246,0.1)')
+    expect(slider.handleStyle.color).toBe('#555')
+    expect(slider.textStyle.color).toBe('#6b7280')
     wrapper.unmount()
   })
 })
