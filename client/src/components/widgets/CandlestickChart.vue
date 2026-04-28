@@ -177,27 +177,27 @@ const INTERVAL_MS = {
 const DEFAULT_SETTINGS = {
   ticker:          null,
   tickerSource:    'bus',
-  interval:        '15m',
-  barCount:        200,
+  interval:        '5m',
+  barCount:        1000,
   autoRefresh:     true,
   refreshInterval: '1m',
   ema:   [
-    { period: 9,  enabled: true,  color: '#f59e0b' },
-    { period: 21, enabled: true,  color: '#3b82f6' },
-    { period: 50, enabled: false, color: '#34d399' },
+    { period: 9,  enabled: true,  color: '#9c9c9c' },
+    { period: 21, enabled: true,  color: '#27a158' },
+    { period: 200, enabled: true, color: '#7a00a3' },
   ],
   sma:   [
-    { period: 50,  enabled: false, color: '#a78bfa' },
-    { period: 200, enabled: false, color: '#f87171' },
+    { period: 50,  enabled: false, color: '#8bc476' },
+    { period: 200, enabled: true, color: '#0034b3' },
   ],
   vwma:  [
-    { period: 20, enabled: false, color: '#84cc16' },
-    { period: 50, enabled: false, color: '#fb923c' },
+    { period: 9, enabled: false, color: '#fdfdfc' },
+    { period: 50, enabled: true, color: '#02e7fd' },
   ],
-  vwap:  { enabled: true,  color: '#e879f9' },
+  vwap:  { enabled: true,  color: '#ff7400' },
   volume:    { enabled: true },
-  avgVolume: { enabled: true, period: 20, color: '#6b7280' },
-  macd:      { enabled: false, fast: 12, slow: 26, signal: 9 },
+  avgVolume: { enabled: true, period: 20, color: '#0257ff' },
+  macd:      { enabled: true, fast: 12, slow: 26, signal: 9 },
 }
 
 const config = computed(() => ({ ...DEFAULT_SETTINGS, ...props.settings }))
