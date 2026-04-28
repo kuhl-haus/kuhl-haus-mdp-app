@@ -166,7 +166,7 @@ const DEFAULT_SETTINGS = {
   ],
   vwap:  { enabled: true,  color: '#ff7400' },
   volume: { enabled: true },
-  macd:  { enabled: false, fast: 12, slow: 26, signal: 9 },
+  macd:  { enabled: true, fast: 12, slow: 26, signal: 9 },
 }
 
 const config = computed(() => ({ ...DEFAULT_SETTINGS, ...props.settings }))
