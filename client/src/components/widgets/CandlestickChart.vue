@@ -363,16 +363,29 @@ const chartOption = computed(() => {
   const volTop  = showVolume ? (showMACD ? '55%' : '65%') : null
   const macdTop = showMACD  ? '78%' : null
 
-  const grids = [{ left: '8%', right: '4%', top: '8%', height: mainH }]
-  const xAxes = [{ type: 'category', data: times, scale: true, boundaryGap: false, splitLine: { show: false }, axisLine: { onZero: false }, gridIndex: 0 }]
-  const yAxes = [{ scale: true, splitArea: { show: true }, gridIndex: 0 }]
+  // ── Dark theme axis defaults ─────────────────────────────────────────────
+  const LABEL_STYLE = { color: '#9ca3af', fontSize: 11 }
+  const GRID_LINE   = { lineStyle: { color: '#2a2a2a' } }
+  const AXIS_LINE   = { lineStyle: { color: '#333' } }
+
+  const grids = [{ left: '7%', right: '3%', top: '6%', bottom: '2%', height: mainH, backgroundColor: 'transparent' }]
+  const xAxes = [{
+    type: 'category', data: times, scale: true, boundaryGap: false,
+    splitLine: { show: false }, axisLine: { onZero: false, ...AXIS_LINE },
+    axisTick: { lineStyle: { color: '#333' } }, axisLabel: LABEL_STYLE, gridIndex: 0,
+  }]
+  const yAxes = [{
+    scale: true, splitArea: { show: false }, splitLine: GRID_LINE,
+    axisLine: AXIS_LINE, axisTick: { show: false }, axisLabel: { ...LABEL_STYLE, formatter: v => v.toFixed(2) },
+    gridIndex: 0,
+  }]
   const series = []
   let xAxisCount = 1
 
   if (showVolume) {
     grids.push({ left: '8%', right: '4%', top: volTop, height: '18%' })
-    xAxes.push({ type: 'category', data: times, scale: true, boundaryGap: false, splitLine: { show: false }, axisLabel: { show: false }, gridIndex: xAxisCount })
-    yAxes.push({ scale: true, gridIndex: xAxisCount, splitNumber: 2, axisLabel: { formatter: v => v >= 1e6 ? `${(v/1e6).toFixed(0)}M` : v } })
+    xAxes.push({ type: 'category', data: times, scale: true, boundaryGap: false, splitLine: { show: false }, axisLine: AXIS_LINE, axisLabel: { show: false }, gridIndex: xAxisCount })
+    yAxes.push({ scale: true, splitArea: { show: false }, splitLine: GRID_LINE, axisLine: AXIS_LINE, axisTick: { show: false }, gridIndex: xAxisCount, splitNumber: 2, axisLabel: { ...LABEL_STYLE, formatter: v => v >= 1e6 ? `${(v/1e6).toFixed(0)}M` : v } })
     series.push({ type: 'bar', data: volumes, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount, barMaxWidth: 10 })
     if (avgVolumeLocal.value.enabled) {
       series.push({ name: 'Avg Vol', type: 'line', data: calcVolumeAvg(bars.value, avgVolumeLocal.value.period ?? 20), smooth: false, symbol: 'none', lineStyle: { color: avgVolumeLocal.value.color ?? '#6b7280', width: 1 }, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount })
@@ -383,8 +396,8 @@ const chartOption = computed(() => {
   if (showMACD) {
     const { macdLine, signalLine, histogram } = calcMACD(bars.value, macdLocal.value.fast, macdLocal.value.slow, macdLocal.value.signal)
     grids.push({ left: '8%', right: '4%', top: macdTop, height: '18%' })
-    xAxes.push({ type: 'category', data: times, scale: true, boundaryGap: false, splitLine: { show: false }, axisLabel: { show: false }, gridIndex: xAxisCount })
-    yAxes.push({ scale: true, gridIndex: xAxisCount, splitNumber: 2 })
+    xAxes.push({ type: 'category', data: times, scale: true, boundaryGap: false, splitLine: { show: false }, axisLine: AXIS_LINE, axisLabel: { show: false }, gridIndex: xAxisCount })
+    yAxes.push({ scale: true, splitArea: { show: false }, splitLine: GRID_LINE, axisLine: AXIS_LINE, axisTick: { show: false }, gridIndex: xAxisCount, splitNumber: 2, axisLabel: LABEL_STYLE })
     series.push(
       { name: 'MACD',   type: 'line', data: macdLine,   smooth: false, symbol: 'none', lineStyle: { color: '#3b82f6' }, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount },
       { name: 'Signal', type: 'line', data: signalLine, smooth: false, symbol: 'none', lineStyle: { color: '#f59e0b' }, xAxisIndex: xAxisCount, yAxisIndex: xAxisCount },
@@ -423,14 +436,23 @@ const chartOption = computed(() => {
 
   return {
     animation: false,
-    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross', crossStyle: { color: '#555' }, label: { backgroundColor: '#2a2a2a' } },
+      backgroundColor: '#1e1e1e',
+      borderColor: '#333',
+      textStyle: { color: '#e0e0e0', fontSize: 12 },
+      padding: [6, 10],
+    },
+    legend: { show: false },
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
     grid: grids,
     xAxis: xAxes,
     yAxis: yAxes,
     dataZoom: [
-      { type: 'inside', xAxisIndex: dataZoomXIdx, start: 70, end: 100 },
-      { show: true, xAxisIndex: dataZoomXIdx, type: 'slider', bottom: '2%', start: 70, end: 100 },
+      // Inside zoom only — no slider bar cluttering the bottom
+      { type: 'inside', xAxisIndex: dataZoomXIdx, start: 70, end: 100, zoomLock: false },
     ],
     series,
   }
