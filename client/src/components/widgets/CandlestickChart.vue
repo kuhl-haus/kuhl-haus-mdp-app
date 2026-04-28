@@ -177,7 +177,7 @@ const INTERVAL_MS = {
 const DEFAULT_SETTINGS = {
   ticker:          null,
   interval:        '5m',
-  barCount:        1000,
+  barCount:        5000,
   autoRefresh:     true,
   refreshInterval: '1m',
   ema:   [
