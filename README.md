@@ -4,6 +4,8 @@
 [![CodeQL Advanced](https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/codeql.yml/badge.svg)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/actions/workflows/codeql.yml)
 [![GitHub issues](https://img.shields.io/github/issues/kuhl-haus/kuhl-haus-mdp-app)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/kuhl-haus/kuhl-haus-mdp-app)](https://github.com/kuhl-haus/kuhl-haus-mdp-app/pulls)
+[![Frontend Coverage](https://codecov.io/gh/kuhl-haus/kuhl-haus-mdp-app/branch/mainline/graph/badge.svg?flag=frontend)](https://codecov.io/gh/kuhl-haus/kuhl-haus-mdp-app)
+[![Backend Coverage](https://codecov.io/gh/kuhl-haus/kuhl-haus-mdp-app/branch/mainline/graph/badge.svg?flag=backend)](https://codecov.io/gh/kuhl-haus/kuhl-haus-mdp-app)
 
 # kuhl-haus-mdp-app
 

@@ -25,5 +25,19 @@ jobs:
       - name: Install dependencies
         run: pip install --no-cache-dir -e ".[testing]"
 
-      - name: Run tests
+      - name: Run tests (pull request — no coverage)
+        if: github.event_name == 'pull_request'
+        run: pytest tests/ -v
+
+      - name: Run tests with coverage (mainline push)
+        if: github.event_name == 'push'
         run: pytest --cov=apps --cov-report=xml tests/ -v
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: backend
+          fail_ci_if_error: true
