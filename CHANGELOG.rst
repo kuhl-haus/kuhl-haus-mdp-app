@@ -1,9 +1,847 @@
 =========
 Changelog
 =========
+Version 0.3.0 (2026-04-29)
+==========================
+
+- `37e79a5 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/37e79a5>`_ Update widget icons in WidgetMenu.vue
+
+  Adjust emoji icons for several widgets in client/src/components/WidgetMenu.vue to improve visual consistency. Changes: top-gainers 📈 → 🔝, top-volume 📊 → 🔝, tv-lite-chart 📊 → 📈. No functional behavior changed.
+
+- `ec7453a <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ec7453a>`_ Fix inverted branding toggle labels
+
+  Correct the ternary labels for the branding toggle buttons in EQV4HeroCard.vue and EnhancedQuoteV3.vue. The text/emoji were previously inverted (showing the opposite mode), causing a mismatch with the button title/tooltip; now the displayed label matches the current brandingMode. This is a UI text fix only.
+
+- `9e40470 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/9e40470>`_ Add 20k and 25k max-articles options
+
+  Expand the MAX_ARTICLES_OPTIONS arrays in NewsFeed and NewsFeedV2 components to include larger choices (20000 and 25000). This adds higher-capacity selections for the newsfeed max articles dropdown while keeping the existing localStorage key and default behavior intact.
+
+- `f4ca3fb <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f4ca3fb>`_ Set default bar count to 5000
+
+  5k is the default for the API and 1k often results in too few bars to draw meaningful 200 moving averages.
+
+  https://massive.com/docs/rest/stocks/aggregates/custom-bars
+
+- `d00cfe9 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/d00cfe9>`_ feat(TVLiteChart): new TV Lite Chart widget using TradingView Lightweight Charts v5 (#240)
+
+  * test(TVLiteChart): failing tests for TV Lite Chart widget (refs #239)
+
+  * chore(TVLiteChart): add stub component so tests produce assertion failures not import errors (refs #239)
+
+  * test(TVLiteChart): fix undeclared wrapper variable; exact fetch-count assertions (refs #239)
+
+  * test(TVLiteChart): exact fetch-count on auto-refresh timer test (refs #239)
+
+  * feat(TVLiteChart): implement TV Lite Chart widget using lightweight-charts v5 (refs #239)
+
+  * fix(TVLiteChart): remove dead calcVolumeAvg import; VWAP null guard; volume/MACD toggle via applyOptions visibility (refs #239)
+
+  * fix(TVLiteChart): scope overlay position to chart-container to prevent covering WidgetWrapper title bar (refs #239)
+
+  * fix(TVLiteChart): enable MACD by default to match CandlestickChart defaults (refs #239)
+
+  * feat(TVLiteChart): add avgVolume line on volume pane (refs #239)
+
+  * test(TVLiteChart): add avgVolume setData and visibility behavioral tests (refs #239)
+
+- `a7cd27e <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/a7cd27e>`_ fix(CandlestickChart): remove orphaned tickerSource from DEFAULT_SETTINGS (#238)
+- `b50ff59 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/b50ff59>`_ Update default chart indicator settings
+
+  Adjust default indicators for CandlestickChart: modify EMA entries (9, 21, add/enable 200 with new colors), update SMA defaults (enable 200, change colors), change VWMA periods and enable the 50-period VWMA, update vwap and avgVolume colors, and enable MACD (12/26/9) by default. These changes update the chart's default visualization and styling for indicators.
+
+- `922dc7f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/922dc7f>`_ fix+feat(CandlestickChart): candle colors, connection indicator, indicator counts, color pickers, header ticker input (#237)
+
+  * test(CandlestickChart): failing tests for bug fixes and tweaks (refs #234)
+
+  * fix+feat(CandlestickChart): candle colors, connection indicator, 3 EMAs/2 VWMAs, color pickers, header ticker input (refs #234)
+
+  * test(CandlestickChart): remove dead tickerSource from lastDataAt test; exact fetch-count assertion on bus update
+
+  * test(CandlestickChart): remove dead tickerSource from candle colors test
+
+- `23d4e12 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/23d4e12>`_ fix(CandlestickChart): restore dark-themed DataZoom slider for tablet navigation (#236)
+- `267e63a <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/267e63a>`_ feat(CandlestickChart): new candlestick chart widget with technical indicators and auto-refresh (#235)
+
+  * test(CandlestickChart): failing tests for chart indicators and widget component (refs #234)
+
+  * feat(CandlestickChart): new candlestick chart widget with technical indicators and auto-refresh (refs #234)
+
+  * chore: regenerate package-lock.json after adding echarts + vue-echarts
+
+  * fix(CandlestickChart): rename setInterval->selectInterval (shadow bug), add VWMA+avgVolume, fix xAxisCount, VWAP ET timezone, remove dead watcher, add fake-timer tests (refs #234)
+
+  * fix(CandlestickChart): use useConfig() for massiveApiKey instead of window.__APP_CONFIG__ (refs #234)
+
+  * style(CandlestickChart): dark theme — remove split areas, tooltip dark bg, inside-only zoom, muted axis colors (refs #234)
+
+  * fix(chartIndicators): VWAP ET timezone in calcVWAP + add ET midnight boundary test (refs #234)
+
+- `c8a7080 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/c8a7080>`_ fix(DailyRangeAlerts): null symbol guard + bus sync in filter mode (#233)
+
+  * test(DailyRangeAlerts): failing regression tests for null-symbol TypeError (refs #230)
+
+  * fix(DailyRangeAlerts): guard toUpperCase against undefined/null symbol in filteredEvents, isRowActive, handleRowClick (refs #230)
+
+  * test(DailyRangeAlerts): failing tests for bus-sync ticker filter in filter mode (refs #230)
+
+  * fix(DailyRangeAlerts): sync tickerFilter with bus activeTicker in filter mode (refs #230)
+
+- `3001d10 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/3001d10>`_ feat(DailyRangeAlerts): ticker filter input + row-click filter mode (#231)
+
+  * test(DailyRangeAlerts): failing tests for ticker filter + row-click filter mode (refs #230)
+
+  * feat(DailyRangeAlerts): ticker filter input + row-click filter mode (refs #230)
+
+  * test(DailyRangeAlerts): fix vacuous truth in settings test, assert onRowClick in filter mode, fix naming drift
+
+- `4299eae <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/4299eae>`_ feat(DailyRangeAlerts): rel vol color styling + user-configurable column order (#229)
+
+  * feat(DailyRangeAlerts): rel vol color styling + user-configurable column order (refs #224)
+
+  * test(DailyRangeAlerts): AAA structure, DEFAULT_COL_ORDER constant, boundary coverage; fix columnByKey O(1)
+
+- `204b670 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/204b670>`_ fix(DailyRangeAlerts): use browser local timezone for Time column instead of hardcoded ET (refs #224) (#228)
+- `fcc49f2 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/fcc49f2>`_ feat(DailyRangeAlerts): show news flame icons next to ticker symbol (refs #224) (#227)
+- `f77d5d2 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f77d5d2>`_ fix(DailyRangeAlerts): remove array spread in hiddenColsLocal to break reactive loop (refs #224) (#226)
+- `a5500f1 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/a5500f1>`_ feat(DailyRangeAlerts): new Range Alerts widget for HOD/LOD alert feed (refs #224) (#225)
+- `ecf678e <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ecf678e>`_ Update impact badge tests to expect high severity
+
+  Modify EQV4SecEdgarCard.spec.js tests to reflect badge severity changes: rename S-3 and S-1/A test names to indicate 'high' and update expectations from 'eqv4-impact-badge--medium' to 'eqv4-impact-badge--high' (Shelf registration and Dilution risk cases). Keeps tests aligned with the component's updated badge severity logic.
+
+- `feeecc7 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/feeecc7>`_ Reclassify SEC form impact levels
+
+  Update FORM_IMPACT in EQV4SecEdgarCard.vue: elevate S-1/A, S-3, S-3/A, S-3ASR, F-1, and F-3 to 'high' (dilution/shelf registration category), and change 6-K and 20-F/A to 'high' (foreign filing impact).
+
+- `a4277a4 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/a4277a4>`_ feat(EQV4SecEdgarCard): add price impact badge column (refs #222) (#223)
+- `96002a1 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/96002a1>`_ fix(EQv4): bump active card body font from 11px to 13px (#221)
+
+  All four active cards (Company News, SEC EDGAR, Stock Splits, Ticker
+
+  Events) used 11px for body text — data rows, empty/error states, search
+
+  input, selects, links. Bumped to 13px for readability.
+
+  The raw .txt backup link in EQV4SecEdgarCard bumped from 10px to 11px
+
+  per Tom's direction. Column headers, article/filing counts, source
+
+  attributions, and retry buttons remain at 10px intentionally.
+
+- `266a274 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/266a274>`_ fix(EQV4SecEdgarCard): link to EDGAR index page; add raw .txt backup link (#220)
+
+  Primary link (form type label) → EDGAR index page (text/html): properly
+
+  rendered filing index with links to all documents.
+
+  Secondary link ('txt') → raw filing_url (.txt): backup for users who
+
+  want the original source directly.
+
+  SEC serves filing_url with Content-Type: text/plain; browsers render it
+
+  as raw text. The index page is text/html and renders correctly.
+
+  Adds edgarIndexUrl() helper (cik + accession_number → index.htm URL).
+
+  Updates test fixtures with cik/accession_number fields; asserts both
+
+  primary and secondary link hrefs.
+
+- `8502b55 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/8502b55>`_ feat(EQv4): add Stock Splits, SEC EDGAR, and Ticker Events cards (refs #219) (#219)
+- `d26db53 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/d26db53>`_ Expand volume and price filter options
+
+  Add additional volume and max-price options to the filter selects in TopGainers.vue, TopGappers.vue and TopVolume.vue. This introduces finer-grained volume thresholds (e.g. 50K, 250K, 500K, 750K, 2M, 25M) and more price breakpoints (e.g. $25, $50, $75, $125, $150, $200, $250, $300, $400, $500, $1K+) for the volumeThreshold and maxPriceThreshold selects to allow more precise filtering.
+
+- `0dd0352 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/0dd0352>`_ fix(WidgetMenu): set friendly userLabel on widget creation (refs #217) (#218)
+
+  - WidgetMenu.vue: emit { type, label } instead of plain type string
+
+  - DashboardGrid.vue: addWidget destructures { type, label }, sets userLabel on push
+
+  - DashboardGrid.vue: canvas previews use item.userLabel || item.type || 'widget'
+
+  - WidgetMenuAndWrapper.spec.js: update emit test + add per-widget emit coverage (8 widgets)
+
+  - DashboardGridColNum.spec.js: update addWidget call sites to pass { type, label };
+
+  add userLabel behavior tests (3) and exposed-interface assertion
+
+- `7d59cc4 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/7d59cc4>`_ test(EQv3): add onColReorder, onDragEnd, layoutMode, col3Cards to exposed-interface assertions (refs #172) (#216)
+- `67f292a <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/67f292a>`_ fix(DashboardGrid): key GridLayout on selectedLayoutName to force remount on layout switch (refs #209) (#215)
+- `f9417af <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f9417af>`_ fix(DashboardGrid): set dashboardColNum before layout in loadLayout to prevent col-mismatch mangle (refs #209) (#214)
+- `73a8737 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/73a8737>`_ fix(DashboardGrid): autosave on dashboardColNum change (refs #209) (#213)
+- `e98f5e5 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/e98f5e5>`_ feat(WidgetMenu): rename widgets — Quote→Mini Quote, Enhanced Quote→Quote, Enhanced Quote V4→Enhanced Quote (#212)
+- `58db0f8 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/58db0f8>`_ feat(DashboardGrid): move Cols input to far right of edit bar (#211)
+
+  * feat(DashboardGrid): move Cols input to far right of edit bar (refs #209)
+
+  * feat(DashboardGrid): Cols input rightmost in layout-controls via margin-left:auto (refs #209)
+
+- `f76c15b <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f76c15b>`_ feat(DashboardGrid): user-configurable column count (#210)
+
+  * feat(DashboardGrid): user-configurable column count via dashboardColNum (refs #209)
+
+  * fix(DashboardGrid): add saveLayout persistence test; expose saveLayout + saveLayoutName (refs #209)
+
+  * fix(DashboardGrid): expand column range to 2–48 for 4K display support (refs #209)
+
+- `b0d2709 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/b0d2709>`_ fix(EQv4): remove ticker tag rendering from news card row — Finlight REST doesn't populate companies (refs #204) (#208)
+- `8577099 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/8577099>`_ fix(EQv4): two-column table layout matching NewsFeed; extract NewsArticleModal SFC (#207)
+
+  * fix(EQv4): two-column table matching NewsFeed, extract NewsArticleModal SFC (refs #204)
+
+  * fix(EQv4): NewsArticleModal — Escape key, spec, CSS vars, source link v-if (refs #204)
+
+  * fix: set --text-muted: #afafaf in :root to match --pd-text-muted (refs #204)
+
+  * fix: replace all hardcoded hex colors in NewsArticleModal with CSS custom properties (refs #204)
+
+  * fix: replace last hardcoded #fff in modal-title:hover with var(--pd-text) (refs #204)
+
+- `ce695cd <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ce695cd>`_ fix(EQv4): use X-API-KEY header for Finlight auth, not Bearer token (refs #204) (#206)
+- `be06939 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/be06939>`_ feat(EQv4): add EQV4CompanyNewsCard — REST-based company news card (#205)
+
+  * feat(EQv4): add EQV4CompanyNewsCard — REST-based company news card (refs #204)
+
+  * fix(EQv4): replace false-positive null key test with real guard assertion using exported _configRef (refs #204)
+
+- `ec322fe <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ec322fe>`_ Adjust .eqv4-overlay inset/padding
+
+  Increase the overlay top offset to 80px and add 8px horizontal padding while keeping a 40px bottom inset. This shifts the .eqv4-overlay further below the controls bar and provides horizontal spacing from the edges (client/src/components/widgets/EnhancedQuoteV4.vue).
+
+- `fa6970b <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/fa6970b>`_ feat(EQv4): chips fill card width, centered, with increased padding (refs #188) (#203)
+- `42f5230 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/42f5230>`_ fix(EQv4): increase chip font sizes — label 9px→11px, value 12px→14px (refs #188) (#202)
+- `f647258 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f647258>`_ fix(EQv4): hero narrow mode — column stack mirroring EQv3 full-mode hero (#201)
+
+  * fix(EQv4): narrow mode vertically stacks hero content via flex-direction: column override (refs #188)
+
+  * fix(EQv4): narrow hero shows all data in column stack — mirrors EQv3 full-mode hero exactly (refs #188)
+
+- `00794fa <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/00794fa>`_ fix(EQv4): rewrite HeroCard — port EQv3 hero CSS directly, single template, heroMode controls identity block visibility (refs #188) (#200)
+- `c39bcb3 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/c39bcb3>`_ fix(EQv4): correct heroMode layout inversion (#199)
+
+  * fix(EQv4): correct heroMode layout inversion — wide=two-column, narrow=vertical-stack (refs #188)
+
+  * fix(EQv4): swap flex-direction on hero mode classes to match swapped template content (refs #188)
+
+- `ee08d7f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ee08d7f>`_ fix(EQv4): resolve flame icon srcs via Vite asset import, not raw variant string (refs #188) (#198)
+- `0515dce <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/0515dce>`_ Lighten muted text color in EnhancedQuoteV4
+
+  Update the CSS variable --text-muted in client/src/components/widgets/EnhancedQuoteV4.vue from #64748b to #afafaf to improve contrast and readability of muted text in the component's dark theme.
+
+- `48c8f37 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/48c8f37>`_ feat(EQv4): always render grid; hero wide/narrow toggle; chips toggle in card header (#197)
+
+  * feat(EQv4): always render grid; hero wide/narrow toggle; chips toggle in card header (refs #188)
+
+  * fix(EQv4): pass heroMode only to hero card to avoid attribute inheritance warnings (refs #188)
+
+- `3d07661 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/3d07661>`_ fix(EQv4): move edit bar outside data guard; fix layout-update feedback loop (#196)
+
+  * fix(EQv4): move edit bar outside data guard; add layout-update feedback-loop guard (refs #192)
+
+  * fix(EQv4): add regression test for layout-update feedback loop (refs #188)
+
+- `dd86bdb <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/dd86bdb>`_ feat(EQv4): register enhanced-quote-v4 in WidgetMenu and WidgetWrapper (#195)
+
+  * feat(EQv4): register enhanced-quote-v4 in WidgetMenu and WidgetWrapper (refs #192)
+
+  * fix(EQv4): remove dead code from WidgetMenu test (refs #192)
+
+  * fix(EQv4): use 💎 icon for enhanced-quote-v4 to avoid collision with quote widget (refs #192)
+
+- `056232a <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/056232a>`_ feat(EQv4): add EnhancedQuoteV4 root widget and EQV4CardPicker (#194)
+
+  * feat(EQv4): add EnhancedQuoteV4 root widget and EQV4CardPicker with spec (refs #190)
+
+  * fix(EQv4): address Bishop review — add onLayoutUpdated tests, CardPicker unit tests, fix fallback addCard test (refs #190)
+
+  * fix(EQv4): fix addCard fallback test to exercise actual fallback code path (refs #190)
+
+- `83c8593 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/83c8593>`_ feat(EQv4): add 7 card SFCs with spec (#193)
+
+  * feat(EQv4): add 7 card SFCs with spec (refs #189)
+
+  * fix(EQv4): address Bishop review — export fmt from eqv3Utils, fix CompanyCard prop name and allNull, add null safety to HeroCard template (refs #189)
+
+- `d2e5127 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/d2e5127>`_ Increase FULL breakpoint to 1600px
+
+  Raise the FULL layout breakpoint from 1024 to 1600px. This updates the JS BREAKPOINTS constant, the explanatory template/CSS comments, and the @container (min-width) rule so the 'full' layout (hero left, single horizontal card row right) now activates at 1600px+. No other logic or card ordering changes were made.
+
+- `05e4685 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/05e4685>`_ Revert "feat(EQv3): three-column medium layout and sticky per-column card order (#184)" (#187)
+
+  This reverts commit 43aa146a5ae4742d0752b337042b619a5e1e88f6.
+
+- `d4b9a4e <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/d4b9a4e>`_ fix(EQv3): fix cross-column drag by emitting from onColReorder not onDragEnd (#186)
+
+  vuedraggable fires @end BEFORE @update:model-value. The previous impl
+
+  relied on @end (onDragEnd) to emit, but _col1/2/3 were always null at
+
+  that point because onColReorder (@update:model-value) hadn't fired yet.
+
+  Cross-column drags therefore always fell back to stale props.settings.
+
+  Fix: move the emit into onColReorder (@update:model-value), same pattern
+
+  already used by onFullRowReorder. For cross-column drags vuedraggable
+
+  fires @update:model-value twice (once per affected column); a nextTick
+
+  debounce coalesces both into a single emit with the final state of all
+
+  columns.
+
+  onDragEnd is now a single-line isDragging=false setter.
+
+  refs #183
+
+- `84500fc <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/84500fc>`_ fix(EQv3): add min-height to columns so empty col3 has a drop target (#185)
+
+  vuedraggable cannot accept drops into a zero-height empty list. Adding
+
+  min-height: 48px to .eqv3-col ensures all columns always have a drop
+
+  zone, including col3 when it starts empty.
+
+  refs #183
+
+- `43aa146 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/43aa146>`_ feat(EQv3): three-column medium layout and sticky per-column card order (#184)
+
+  - Add MEDIUM breakpoint (720px) to BREAKPOINTS constant and CSS
+
+  - Replace flat `cardOrder` with nested `columns` settings shape:
+
+  columns: [[col1 ids], [col2 ids], [col3 ids]]
+
+  - Migration shim (watch immediate) converts legacy cardOrder on first
+
+  load; idempotent if columns already present
+
+  - col3Cards computed: live at medium layoutMode, empty otherwise
+
+  - col1Cards: flattens all columns at narrow so no cards disappear
+
+  - Unassigned registry cards silently append to col1
+
+  - onDragEnd extended to three columns; emits columns shape
+
+  - onFullRowReorder collapses to col1 (intentional — user controls save)
+
+  - col3 draggable template block (identical card rendering to col1/col2)
+
+  - CSS: @container (min-width: 720px) shows eqv3-col-3
+
+  - defineExpose: col1Cards and col2Cards added
+
+  - 8 new tests covering migration shim, col3, narrow flatten, cross-col
+
+  drag (col2 preserved), hidden card in col3 absent from flatten,
+
+  unassigned card falls to col1
+
+  120/120 tests passing.
+
+  refs #183
+
+- `bd49590 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/bd49590>`_ Adjust breakpoints and hero width in EnhancedQuoteV3
+
+  Update responsive breakpoints and layout sizing in EnhancedQuoteV3.vue: change WIDE breakpoint from 480→360 and FULL from 960→1024 (update JS BREAKPOINTS and matching CSS/comments/container queries), update template comment for FULL mode, and reduce the full-mode hero column width from 360px to 200px. These changes align the JS constants with the CSS container thresholds and tighten the full-mode layout.
+
+- `64a6ef3 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/64a6ef3>`_ Set company card max-width to 250px
+
+  Replace the .eqv3-company-card max-width from 50% to a fixed 250px in EnhancedQuoteV3.vue. This prevents company cards from becoming overly wide in the .eqv3-full-row-draggable layout while keeping the existing 200px min-width.
+
+- `4473d89 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/4473d89>`_ fix(EQv3): cap company card width to 50% in full mode only (#181)
+
+  Move max-width constraint to the 960px+ container query so it only
+
+  applies in full mode (horizontal card row). Narrow and wide modes
+
+  are unaffected.
+
+  refs #175
+
+- `0feb546 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/0feb546>`_ fix(EQv3): cap company card width to 50% in wide mode (#179)
+
+  Company card in wide mode was stretching to full column width (~half the
+
+  widget), making it wider than the hero. Cap it at 50% of the column.
+
+  refs #175
+
+- `ba34492 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ba34492>`_ fix(EQv3): align card-toggle active state fallback with --pd-accent token (#178)
+
+  Fallback color in .eqv3-card-toggle--active was #60a5fa (blue) but the
+
+  actual --pd-accent token is #7c3aed (violet). Align fallback and hover
+
+  background rgba to match.
+
+  refs #177
+
+- `84f4d8d <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/84f4d8d>`_ fix(EQv3): replace emoji toggles with filter-btn pills; fix RVol chip color (#176)
+
+  - Card toggle buttons now use text labels ('hide'/'show', 'list'/'chips')
+
+  styled as filter-btn pills (dark bg, border, border-radius) matching
+
+  the NewsFeed filter-btn pattern; active state highlighted with
+
+  --pd-accent border + text color
+
+  - RVol chip value now inherits the same extreme/high/medium color rules
+
+  as the kv-list RVol value via .eqv3-chip-val.extreme/high/medium rules
+
+  refs #175
+
+- `9644b7f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/9644b7f>`_ feat(EQv3): per-card show/hide and normal/chips toggles (#174)
+
+  Adds two user-configurable toggles to each draggable card (except
+
+  EQV3CompanyCard) when in edit mode:
+
+  1. 👁 Show/Hide  — removes the card from the visible layout; hidden
+
+  cards appear in a tray below the columns so they can be re-shown
+
+  without entering/leaving edit mode.
+
+  2. ◧/▦ Normal/Chips — switches the card between kv-list (normal)
+
+  and a compact chip layout. Applies in all layout modes.
+
+  ## Data model
+
+  Two new arrays in settings (backward-compatible; absent = defaults):
+
+  - hiddenCards: string[] — card IDs hidden by the user
+
+  - chipCards:   string[] — card IDs rendered in chip mode
+
+  ## CARD_REGISTRY
+
+  Added chipsCapable flag. company card: false (excluded from chips
+
+  toggle). All other cards: true.
+
+  ## Computeds
+
+  - hiddenCardIds / chipCardIds — Set<string> for O(1) lookup
+
+  - visibleCards — activeCards minus hidden; drives col1/col2/fullRow
+
+  - hiddenCards — active cards that are hidden; drives tray
+
+  ## CSS
+
+  - .eqv3-card-label: now flex so controls align to the right
+
+  - .eqv3-card-controls / .eqv3-card-toggle: toggle button row
+
+  - .eqv3-chip-row: generic chip container (today/volume/short/prev)
+
+  - .eqv3-hidden-tray: edit-mode tray for re-showing hidden cards
+
+  ## Tests
+
+  13 new tests covering:
+
+  - hiddenCardIds / chipCardIds / visibleCards / hiddenCards computeds
+
+  - toggleCardVisibility add/remove
+
+  - toggleCardChips add/remove
+
+  - hidden tray visibility (edit mode vs locked)
+
+  - hidden card absent from layout and present in tray
+
+  - chips rendering when chipCards setting is set
+
+  - kv-list default (chips are opt-in)
+
+  112/112 tests passing.
+
+  refs #175
+
+- `59dcf4f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/59dcf4f>`_ feat(EQv3): make Previous Day a uniform draggable card in all layouts (#171)
+
+  Previous Day was special-cased:
+
+  - Narrow/wide: pinned as a full-width row outside the draggable lists,
+
+  using chip layout; excluded from col1Cards/col2Cards; appended to the
+
+  saved cardOrder on every drag end
+
+  - Full mode: regular draggable card using kv-list layout
+
+  Now it is just another card in all layouts:
+
+  - Removed pinned eqv3-prev-row div and eqv3-prev-chips chip layout
+
+  - Added prev card kv-list rendering to col1 and col2 draggable item
+
+  templates (matching full-mode rendering)
+
+  - Removed filter(c => c.id !== 'prev') from col1Cards/col2Cards
+
+  - Simplified onDragEnd: no more orderedNonPrev + appended 'prev'
+
+  - Removed eqv3-prev-row CSS (width, flex-basis, display:none override)
+
+  refs #133
+
+- `f77f407 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f77f407>`_ Show branding toggle when EQv3 widget is unlocked
+
+  Remove requirement for both logoUrl and iconUrl in EnhancedQuoteV3 so the branding toggle is rendered whenever the widget is unlocked. Update unit tests to match the new behavior: rename tests, adjust expectations for toggle visibility when only one URL is present, and add a props update for brandingMode in the relevant test.
+
+- `997d90f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/997d90f>`_ fix(useWebSocketClient): arm auto-reconnect in connect() for deferred-connect pattern (#170)
+
+  * feat: restore enhanced-quote type alias for backward compat with saved layouts
+
+  Saved layouts using 'enhanced-quote' (the original V1 type string) would
+
+  render nothing after EQV1/EQV2 were decommissioned. Register
+
+  'enhanced-quote' in WidgetWrapper pointing to EnhancedQuoteV3 so
+
+  existing layouts load correctly without reconfiguration.
+
+  WidgetMenu now emits 'enhanced-quote' for new widget additions.
+
+  'enhanced-quote-v3' kept as a backward-compat alias.
+
+  refs #133
+
+  * fix(useWebSocketClient): arm auto-reconnect in connect() for deferred-connect pattern
+
+  Widgets that pass autoConnect: false and call connect() manually (EQv3)
+
+  never had autoConnect flipped to true, so onclose() skipped
+
+  scheduleReconnect(). Every other widget passes autoConnect: true so they
+
+  were unaffected.
+
+  Fix: set autoConnect = true at the top of connect(). disconnect() still
+
+  sets it back to false to suppress reconnects on intentional closes.
+
+  Two new tests:
+
+  - connect() arms reconnect so onclose schedules a retry
+
+  - disconnect() suppresses reconnect on intentional close
+
+  refs #133
+
+- `046efa6 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/046efa6>`_ feat: restore enhanced-quote type alias for backward compat with saved layouts (#169)
+
+  Saved layouts using 'enhanced-quote' (the original V1 type string) would
+
+  render nothing after EQV1/EQV2 were decommissioned. Register
+
+  'enhanced-quote' in WidgetWrapper pointing to EnhancedQuoteV3 so
+
+  existing layouts load correctly without reconfiguration.
+
+  WidgetMenu now emits 'enhanced-quote' for new widget additions.
+
+  'enhanced-quote-v3' kept as a backward-compat alias.
+
+  refs #133
+
+- `fee3c90 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/fee3c90>`_ feat(eqv3): logo/icon toggle in edit mode (#168)
+
+  * feat(eqv3): logo/icon toggle in edit mode
+
+  Store icon_url from Massive branding alongside logo_url. Add
+
+  brandingMode computed (default 'logo') reading from settings. Add
+
+  activeBrandingUrl computed that returns the preferred URL with fallback
+
+  to the other if unavailable.
+
+  Show a toggle button in the controls bar when isLocked=false and both
+
+  URLs are available. Clicking cycles logo <-> icon and emits
+
+  update-settings with the new brandingMode — persisted per-widget.
+
+  Five new tests: default logo mode, icon mode, toggle emits, visibility
+
+  guards (locked/unlocked, one-url-only).
+
+  refs #133
+
+  * test(eqv3): fix two Bishop review blockers on branding toggle tests
+
+  1. Add iconUrl/brandingMode/activeBrandingUrl/toggleBranding assertions
+
+  to the Exposed interface describe block — these are public API and
+
+  must be guarded against accidental removal or rename.
+
+  2. Remove per-test global.stubs: { draggable } overrides from the four
+
+  new branding tests. The module-level vi.mock('vuedraggable') is
+
+  already in place and applies automatically. Per-mount stubs take
+
+  precedence over the module mock, so those tests were running with a
+
+  different stub (list prop vs modelValue) than the rest of the file.
+
+  refs #133
+
+- `bf466b7 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/bf466b7>`_ fix(eqv3): map missing company fields in fetchCompany (#167)
+
+  exchange, market_cap, total_employees, and list_date were omitted from
+
+  the companyData assignment in fetchCompany — the Massive API returns
+
+  them but they were never stored, leaving those rows blank in the company
+
+  card. homepage_url and description worked because they were included.
+
+  Add the four missing fields to the companyData mapping. Add test mock
+
+  data and a regression test to prevent recurrence.
+
+  refs #133
+
+- `3d49553 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/3d49553>`_ feat: apply Phantom Dark theme tokens to app chrome (#166)
+
+  Define --pd-* CSS custom properties in base.css (bg, surface,
+
+  surface-2, border, border-hover, text, text-muted, accent, positive,
+
+  negative). Map Vue scaffold --color-* vars to them so the whole app
+
+  inherits the palette.
+
+  Apply tokens to:
+
+  - App.vue: body bg/text
+
+  - WidgetWrapper: widget shell, header bar, title, close btn, color swatch
+
+  - DashboardGrid: toolbar, select trigger/dropdown/options, btn-icon, auto-save indicator
+
+  - WidgetMenu: toggle button, panel, widget buttons
+
+  Accent shifts from green (#4ade80) to violet (#7c3aed) to match EQV3.
+
+  Selected state shifts from green-tinted to violet-tinted. Other widgets
+
+  (GenericScannerTable, Quote, news widgets) are all dark and blend fine;
+
+  comprehensive widget theming is a separate effort.
+
+  refs #133
+
+- `fdfaa3d <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/fdfaa3d>`_ fix(eqv3): move freshness timestamp into hero price block (#165)
+
+  'As of <datetime>' was floating at the bottom of the card in all modes,
+
+  visually disconnected from the price data it describes. Move it directly
+
+  under the 'since open' line in the hero price block where it belongs.
+
+  Remove the standalone .eqv3-freshness div and CSS. Add .eqv3-as-of
+
+  styled at 10px/muted/right-aligned with slight opacity reduction.
+
+  refs #133
+
+- `9161e81 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/9161e81>`_ fix(eqv3): render session H/L and prev day as kv-list in full mode (#164)
+
+  * feat: decommission EnhancedQuote and EnhancedQuoteV2 — EQV3 is the sole widget
+
+  Remove EQV1/EQV2 components, specs, and registry entries.
+
+  Rename EQV2CompanyCard → EQV3CompanyCard and eqv2Utils → eqv3Utils.
+
+  Update all eqv2-* CSS classes to eqv3-* in the renamed component.
+
+  Update EnhancedQuoteV3.vue imports and template references.
+
+  refs #133
+
+  * fix(eqv3): render session H/L and prev day as kv-list in full mode
+
+  Chips layout squishes at ≥960px full mode where cards render
+
+  horizontally. Switch to eqv3-kv-list rows (same as all other cards)
+
+  in the full-row draggable section only. Narrow/wide still use chips
+
+  (they look fine stacked vertically).
+
+  Session H/L: PRE/REG/AH × H/L → 6 kv rows (Pre High, Pre Low, etc.)
+
+  Previous Day: O/H/L/C/Vol/VWAP → 6 kv rows
+
+  refs #133
+
+  * test(eqv3): add full-mode kv-list rendering tests for session H/L and prev day
+
+  Three new tests covering the chip-to-kv-list change at full mode:
+
+  - session card renders kv rows (Pre High/Low, Reg High/Low, AH High/Low) not chips
+
+  - prev card renders kv rows (Open/High/Low/Close/Volume/VWAP) not chips
+
+  - narrow mode still renders chips (regression guard)
+
+  refs #133
+
+- `5181747 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/5181747>`_ feat: decommission EnhancedQuote and EnhancedQuoteV2 — EQV3 is the sole widget (#163)
+
+  Remove EQV1/EQV2 components, specs, and registry entries.
+
+  Rename EQV2CompanyCard → EQV3CompanyCard and eqv2Utils → eqv3Utils.
+
+  Update all eqv2-* CSS classes to eqv3-* in the renamed component.
+
+  Update EnhancedQuoteV3.vue imports and template references.
+
+  refs #133
+
+- `f93d4e7 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f93d4e7>`_ fix(eqv2,eqv3): full-row drag snap-back — emit from @update:model-value not @end (#161)
+
+  vuedraggable fires @end before @update:model-value, so reading _fullRow
+
+  in onFullRowDragEnd always saw null (the stale pre-drag value). Cards
+
+  appeared to move during drag but snapped back on drop because the emitted
+
+  cardOrder was the original order.
+
+  Fix: drive the emit from a new onFullRowReorder handler bound to
+
+  @update:model-value, which receives the already-updated list directly.
+
+  onFullRowDragEnd is retained (only resets isDragging) for API compat.
+
+  Same root cause fixed in both EQV2 and EQV3. Tests updated to call
+
+  onFullRowReorder directly rather than setting _fullRow + awaiting @end.
+
+  refs #133
+
+- `96ac337 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/96ac337>`_ Consolidate Enhanced Quote widget and adjust V3 UI
+
+  Remove legacy enhanced-quote and enhanced-quote-v2 entries from the widget menu and rename the enhanced-quote-v3 entry to "Enhanced Quote" with a new icon, unifying available widgets. Update EnhancedQuoteV3.vue markup to change how since-open values are displayed: move parentheses from the dollar change to the percent change and adjust sign/formatting so the absolute change shows with a +/- before the dollar amount and the percent is shown (with sign) in parentheses. Files changed: WidgetMenu.vue, EnhancedQuoteV3.vue.
+
+- `f04bfcb <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/f04bfcb>`_ feat(eqv3): backport full-mode horizontal layout from EQV2 (#160)
+- `137a48f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/137a48f>`_ Increase font sizes in EnhancedQuoteV3
+
+  Bump font-size for .eqv3-change-badge from 13px to 15px and .eqv3-since-open from 11px to 13px in client/src/components/widgets/EnhancedQuoteV3.vue to improve readability and visual prominence of quote metrics.
+
+- `c3c1c19 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/c3c1c19>`_ fix(eqv2): company desc wrapping, hero width 360px, hero field order at full mode (#159)
+- `e10dada <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/e10dada>`_ feat(eqv2): full-mode horizontal layout — hero left, all cards in single row (#158)
+- `fa92384 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/fa92384>`_ Add EnhancedQuoteV3 widget component
+
+  Import EnhancedQuoteV3 in WidgetWrapper.vue and register it in the widgetComponents map under the 'enhanced-quote-v3' key so the wrapper can render the new enhanced quote variant.
+
+- `1a511f8 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/1a511f8>`_ Swap percent/absolute display and bump font sizes
+
+  In EnhancedQuoteV2.vue, the 'since open' display order was changed so the absolute dollar change is shown before the percentage, and the parentheses were moved to wrap the percentage instead of the dollar value. Also increased typography for readability: .eqv2-change-badge font-size from 13px to 15px and .eqv2-since-open from 11px to 13px.
+
+- `ab9d5f6 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ab9d5f6>`_ Update muted text color in EnhancedQuoteV2 and EnhancedQuoteV3
+
+  Adjust --text-muted in client/src/components/widgets/EnhancedQuoteV2.vue and EnhancedQuoteV3.vue from #5a5a7a to #afafaf to lighten the muted text tone, improving readability/contrast.
+
+- `61f01c3 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/61f01c3>`_ feat(eqv3): add EnhancedQuoteV3 widget with client-side Massive API (#157)
+- `18bc28e <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/18bc28e>`_ feat(eqv2): remove logo, set FULL breakpoint to 960px (#156)
+
+  * feat(eqv2): remove logo, set FULL breakpoint to 960px
+
+  Remove logo:
+
+  - Remove <img> tag from eqv2-hero-identity
+
+  - Remove logoError ref and reset on ticker change
+
+  - Remove logoError from defineExpose
+
+  - Remove .eqv2-hero-logo CSS
+
+  - Remove 4 logo tests
+
+  FULL breakpoint: 680 → 960px
+
+  - BREAKPOINTS.FULL in JS
+
+  - @container (min-width: 960px) in CSS
+
+  refs #133
+
+  * fix(eqv2): update all comments referencing FULL breakpoint from 680 to 960
+
+- `e4cf8d7 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/e4cf8d7>`_ fix(eqv2): await two nextTick cycles in onDragEnd for cross-column card drag (#155)
+
+  * fix(eqv2): await two nextTick cycles in onDragEnd for cross-column drag
+
+  vuedraggable wraps each update:modelValue emission in nextTick().
+
+  A cross-column drag fires two separate emissions in succession:
+
+  one from the source column (remove) and one from the destination
+
+  (add). A single nextTick was only catching one of the two, leaving
+
+  one column's _col override null and causing the card to snap back.
+
+  refs #133
+
+  * test(eqv2): reproduce actual nextTick race in cross-column drag test
+
+  Previous test pre-set both col overrides before calling onDragEnd,
+
+  so it passed even with the original single-tick code — not a real
+
+  regression test.
+
+  New approach: set col1 override synchronously, start onDragEnd(),
+
+  then deliver col2 override after the first nextTick (simulating
+
+  vuedraggable's async emission sequence for cross-column drags).
+
+  Verified: test fails with single await nextTick(), passes with two.
+
+  refs #133
+
+- `0a4948f <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/0a4948f>`_ fix(eqv2): add scoped styles to EQV2CompanyCard — fixes unstyled company card (#154)
+
+  EQV2CompanyCard.vue had no <style> block. EnhancedQuoteV2.vue uses
+
+  <style scoped>, so its eqv2-k/v/kv/link/desc CSS did not apply to
+
+  child component elements (scoped styles only affect elements rendered
+
+  by the component that defines them).
+
+  Fix: add <style scoped> to EQV2CompanyCard.vue with all classes used
+
+  in its template: eqv2-kv-list, eqv2-kv, eqv2-k, eqv2-v, eqv2-link,
+
+  eqv2-company-desc-wrap/text/ellipsis, eqv2-see-more, eqv2-muted-msg.
+
+  Also set display:contents on the wrapper div (transparent to layout).
+
+  refs #133
+
+
 Version 0.2.2 (2026-04-13)
 ==========================
 
+- `14e0aec <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/14e0aec>`_ Version 0.2.2 (2026-04-13)
 - `b305adb <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/b305adb>`_ feat: add GitHub release step to build-images.yml + releases badge to README (#153)
 
   build-images.yml:
