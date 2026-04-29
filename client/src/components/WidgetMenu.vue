@@ -28,9 +28,9 @@ const emit = defineEmits(['add-widget'])
 const isOpen = ref(false)
 
 const availableWidgets = [
-  { type: 'top-gainers', label: 'Top Gainers', icon: '📈' },
+  { type: 'top-gainers', label: 'Top Gainers', icon: '🔝' },
   { type: 'top-gappers', label: 'Top Gappers', icon: '🔝' },
-  { type: 'top-volume', label: 'Top Volume', icon: '📊' },
+  { type: 'top-volume', label: 'Top Volume', icon: '🔝' },
   { type: 'news-feed', label: 'News Feed', icon: '📰' },
   { type: 'company-news', label: 'Company News', icon: '🗞️' },
   { type: 'quote', label: 'Mini Quote', icon: '⚡' },
@@ -38,7 +38,7 @@ const availableWidgets = [
   { type: 'enhanced-quote-v4', label: 'Enhanced Quote', icon: '💎' },
   { type: 'range-alerts',      label: 'Range Alerts',      icon: '🔔' },
   { type: 'candlestick-chart', label: 'Candlestick Chart',  icon: '📈' },
-  { type: 'tv-lite-chart',     label: 'TV Lite Chart',       icon: '📊' },
+  { type: 'tv-lite-chart',     label: 'TV Lite Chart',       icon: '📈' },
 ]
 
 const selectWidget = (widget) => {
