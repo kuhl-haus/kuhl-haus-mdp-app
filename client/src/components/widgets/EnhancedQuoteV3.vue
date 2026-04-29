@@ -18,7 +18,7 @@
         class="eqv3-branding-toggle"
         :title="brandingMode === 'logo' ? 'Switch to icon' : 'Switch to logo'"
         @click="toggleBranding"
-      >{{ brandingMode === 'logo' ? '🔲 icon' : '🖼 logo' }}</button>
+      >{{ brandingMode === 'logo' ? '🖼 logo' : '🔲 icon' }}</button>
     </div>
 
     <!-- No ticker yet -->

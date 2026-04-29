@@ -18,7 +18,7 @@
         class="eqv4-branding-toggle filter-btn"
         :title="brandingMode === 'logo' ? 'Switch to icon' : 'Switch to logo'"
         @click="emit('toggle-branding')"
-      >{{ brandingMode === 'logo' ? 'icon' : 'logo' }}</button>
+      >{{ brandingMode === 'logo' ? 'logo' : 'icon' }}</button>
     </div>
 
     <!-- Price block: price + change + since-open + as-of — right side -->
