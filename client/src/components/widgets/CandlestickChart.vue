@@ -355,7 +355,9 @@ const isIntraday = computed(() => ['1m', '5m', '15m', '1h'].includes(intervalLoc
 const chartOption = computed(() => {
   if (!bars.value.length) return {}
 
-  const times    = bars.value.map(b => new Date(b.t).toISOString())
+  const times    = bars.value.map(b =>
+    new Date(b.t).toLocaleString('sv-SE', { timeZone: 'America/New_York' }).replace('T', ' ')
+  )
   const candles  = bars.value.map(b => [b.o, b.c, b.l, b.h])
   const volumes  = bars.value.map((b, i) => ({
     value: b.v,

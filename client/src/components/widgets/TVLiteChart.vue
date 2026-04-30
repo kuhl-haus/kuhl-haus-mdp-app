@@ -350,6 +350,17 @@ onMounted(() => {
     },
     crosshair:       { mode: CrosshairMode.Magnet },
     rightPriceScale: { borderColor: '#333' },
+    localization: {
+      timeFormatter: (timestamp) =>
+        new Date(timestamp * 1000).toLocaleString('en-US', {
+          timeZone: 'America/New_York',
+          month:    '2-digit',
+          day:      '2-digit',
+          hour:     '2-digit',
+          minute:   '2-digit',
+          hour12:   false,
+        }),
+    },
     timeScale:       { borderColor: '#333', timeVisible: true, secondsVisible: false },
     width:  chartContainer.value.clientWidth,
     height: chartContainer.value.clientHeight,
