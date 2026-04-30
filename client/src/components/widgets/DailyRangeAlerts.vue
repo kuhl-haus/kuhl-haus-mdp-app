@@ -190,7 +190,7 @@ const DEFAULT_SETTINGS = {
   minFloat:           null,
   maxFloat:           null,
   pctChangeThreshold: null,
-  hiddenCols:         [],
+  hiddenCols:         ['pct_change_since_open', 'change', 'session', 'prev_day_close', 'direction', 'note'],
   colOrder:           [],
   colWidths:          {},
   rowClickMode:       'link',
@@ -382,38 +382,39 @@ const columns = [
       second:  '2-digit',
     }),
   },
-  { key: 'symbol', label: 'Symbol' },
+  { key: 'symbol',   label: 'Symbol' },
   { key: 'price',    label: 'Alert $', decimals: 2 },
   { key: 'previous', label: 'Prev $',  decimals: 2 },
-  { key: 'note',     label: 'Note' },
+  { key: 'vwap',     label: 'VWAP',     decimals: 2 },
+  { key: 'close',    label: 'Price', decimals: 2 },
   {
     key: 'pct_change',
     label: 'Change %',
     format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` },
     cellClass: (row) => toNum(row.pct_change) >= 0 ? 'positive' : 'negative',
   },
+  { key: 'free_float',     label: 'Float',    format: (val) => formatVolume(val) },
   { key: 'accumulated_volume', label: 'Volume',   format: (val) => formatVolume(val) },
+  { key: 'avg_volume',     label: 'Avg Vol',  format: (val) => formatVolume(val) },
   { key: 'relative_volume',    label: 'Rel Vol',  format: (val) => `${toNum(val).toFixed(2)}x`, cellClass: (row) => getRelVolClass(toNum(row.relative_volume)) },
-  { key: 'session',            label: 'Session' },
-  // Optional (hidden by default)
-  { key: 'close',               label: 'Price (quote)',      decimals: 2 },
-  {
-    key: 'change',
-    label: 'Change $',
-    format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}` },
-    cellClass: (row) => toNum(row.change) >= 0 ? 'positive' : 'negative',
-  },
+
+  // Hidden by default:
   {
     key: 'pct_change_since_open',
     label: 'Change % (Open)',
     format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` },
     cellClass: (row) => toNum(row.pct_change_since_open) >= 0 ? 'positive' : 'negative',
   },
-  { key: 'free_float',    label: 'Float',    format: (val) => formatVolume(val) },
-  { key: 'avg_volume',    label: 'Avg Vol',  format: (val) => formatVolume(val) },
-  { key: 'vwap',          label: 'VWAP',     decimals: 2 },
+  {
+    key: 'change',
+    label: 'Change $',
+    format: (val) => { const v = toNum(val); return `${v >= 0 ? '+' : ''}${v.toFixed(2)}` },
+    cellClass: (row) => toNum(row.change) >= 0 ? 'positive' : 'negative',
+  },
+  { key: 'session',        label: 'Session' },
   { key: 'prev_day_close', label: 'PD Close', decimals: 2 },
-  { key: 'direction',     label: 'Direction' },
+  { key: 'direction',      label: 'Direction' },
+  { key: 'note',     label: 'Note' },
 ]
 
 // ── Column widths & resize ────────────────────────────────────────────────────

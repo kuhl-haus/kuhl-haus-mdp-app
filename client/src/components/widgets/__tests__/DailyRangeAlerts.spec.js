@@ -982,8 +982,8 @@ describe('Column order', () => {
     // Act
     const ths = wrapper.findAll('th')
 
-    // Assert — first visible column should be direction (idx 0 in reversed order)
-    expect(ths[0].text()).toContain('Direction')
+    // Assert — first visible column should be VWAP (idx 0 in reversed order)
+    expect(ths[0].text()).toContain('VWAP')
     wrapper.unmount()
   })
 
