@@ -492,3 +492,83 @@ describe('Settings persistence', () => {
     wrapper.unmount()
   })
 })
+
+// ── ET timezone in chart localization ───────────────────────────────────────────────────
+// Bug: createChart is called without a localization.timeFormatter, so
+// lightweight-charts displays timestamps in UTC instead of ET (America/New_York).
+//
+// Winter fixture: 1705329000 = 2024-01-15T14:30:00Z = 09:30 EST (UTC-5)
+// Summer fixture: 1721050200 = 2024-07-15T13:30:00Z = 09:30 EDT (UTC-4)
+// A naive UTC-5 offset passes winter but returns 08:30 for the summer fixture.
+
+describe('ET timezone in chart localization', () => {
+  const WINTER_UTC_UNIX = 1705329000   // 2024-01-15T14:30:00Z = 09:30 EST
+  const WINTER_UTC_HOUR = '14'
+  const SUMMER_UTC_UNIX = 1721050200   // 2024-07-15T13:30:00Z = 09:30 EDT
+  const SUMMER_UTC_HOUR = '13'
+
+  test('createChart options include localization.timeFormatter', () => {
+    // Arrange + Act
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+
+    const callOpts = vi.mocked(createChart).mock.calls[0]?.[1]
+
+    // Assert — localization block with timeFormatter must be present
+    expect(callOpts).toHaveProperty('localization')
+    expect(typeof callOpts.localization.timeFormatter).toBe('function')
+    wrapper.unmount()
+  })
+
+  test('winter (EST): timeFormatter returns 09:30, not UTC 14:30', () => {
+    // Arrange + Act
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const formatter = vi.mocked(createChart).mock.calls[0]?.[1]?.localization?.timeFormatter
+
+    expect(typeof formatter).toBe('function')
+    const result = formatter(WINTER_UTC_UNIX)
+
+    // Assert — 09:30 ET; not UTC 14:xx
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain(WINTER_UTC_HOUR)
+    wrapper.unmount()
+  })
+
+  test('summer (EDT): timeFormatter returns 09:30, not UTC 13:30', () => {
+    // Arrange + Act
+    // A naive UTC-5 fix would produce 08:30 here — wrong for EDT (UTC-4)
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const formatter = vi.mocked(createChart).mock.calls[0]?.[1]?.localization?.timeFormatter
+
+    expect(typeof formatter).toBe('function')
+    const result = formatter(SUMMER_UTC_UNIX)
+
+    // Assert — 09:30 ET; not UTC 13:xx
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain(SUMMER_UTC_HOUR)
+    wrapper.unmount()
+  })
+
+  test('timeScale.tickMarkFormatter renders ET time for intraday ticks (markType 3)', () => {
+    // markType 3 = Time tick (intraday). Winter: 1705329000 = 09:30 EST.
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+
+    expect(typeof timeScale?.tickMarkFormatter).toBe('function')
+    const result = timeScale.tickMarkFormatter(1705329000, 3)
+
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain('14')  // not UTC hour
+    wrapper.unmount()
+  })
+
+  test('timeScale.tickMarkFormatter renders ET time for summer EDT ticks (markType 3)', () => {
+    // Summer: 1721050200 = 09:30 EDT (UTC-4). Naive UTC-5 would give 08:30.
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+
+    const result = timeScale.tickMarkFormatter(1721050200, 3)
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain('13')  // not UTC hour
+    wrapper.unmount()
+  })
+})
