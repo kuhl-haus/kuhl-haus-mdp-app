@@ -493,15 +493,19 @@ describe('Settings persistence', () => {
   })
 })
 
-// ── ET timezone in chart localization ─────────────────────────────────────────
+// ── ET timezone in chart localization ───────────────────────────────────────────────────
 // Bug: createChart is called without a localization.timeFormatter, so
-// lightweight-charts displays timestamps in UTC instead of ET.
-// Fixture: 2024-01-15T14:30:00Z (Unix: 1705329000) = 09:30 EST (UTC-5, winter)
+// lightweight-charts displays timestamps in UTC instead of ET (America/New_York).
+//
+// Winter fixture: 1705329000 = 2024-01-15T14:30:00Z = 09:30 EST (UTC-5)
+// Summer fixture: 1721050200 = 2024-07-15T13:30:00Z = 09:30 EDT (UTC-4)
+// A naive UTC-5 offset passes winter but returns 08:30 for the summer fixture.
 
 describe('ET timezone in chart localization', () => {
-  const UTC_UNIX  = 1705329000          // 2024-01-15T14:30:00Z
-  const ET_HOUR   = '09'                // expected hour in ET for this fixture
-  const UTC_HOUR  = '14'               // broken: what UTC would show
+  const WINTER_UTC_UNIX = 1705329000   // 2024-01-15T14:30:00Z = 09:30 EST
+  const WINTER_UTC_HOUR = '14'
+  const SUMMER_UTC_UNIX = 1721050200   // 2024-07-15T13:30:00Z = 09:30 EDT
+  const SUMMER_UTC_HOUR = '13'
 
   test('createChart options include localization.timeFormatter', () => {
     // Arrange + Act
@@ -515,18 +519,32 @@ describe('ET timezone in chart localization', () => {
     wrapper.unmount()
   })
 
-  test('timeFormatter converts UTC unix timestamp to ET hour', () => {
+  test('winter (EST): timeFormatter returns 09:30, not UTC 14:30', () => {
     // Arrange + Act
     const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const formatter = vi.mocked(createChart).mock.calls[0]?.[1]?.localization?.timeFormatter
 
-    const callOpts = vi.mocked(createChart).mock.calls[0]?.[1]
-    const formatter = callOpts?.localization?.timeFormatter
-
-    // Assert — formatter must exist and return ET time string
     expect(typeof formatter).toBe('function')
-    const result = formatter(UTC_UNIX)
-    expect(result).toContain(ET_HOUR)
-    expect(result).not.toContain(UTC_HOUR)
+    const result = formatter(WINTER_UTC_UNIX)
+
+    // Assert — 09:30 ET; not UTC 14:xx
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain(WINTER_UTC_HOUR)
+    wrapper.unmount()
+  })
+
+  test('summer (EDT): timeFormatter returns 09:30, not UTC 13:30', () => {
+    // Arrange + Act
+    // A naive UTC-5 fix would produce 08:30 here — wrong for EDT (UTC-4)
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const formatter = vi.mocked(createChart).mock.calls[0]?.[1]?.localization?.timeFormatter
+
+    expect(typeof formatter).toBe('function')
+    const result = formatter(SUMMER_UTC_UNIX)
+
+    // Assert — 09:30 ET; not UTC 13:xx
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain(SUMMER_UTC_HOUR)
     wrapper.unmount()
   })
 })

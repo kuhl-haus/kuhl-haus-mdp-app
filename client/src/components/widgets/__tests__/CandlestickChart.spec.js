@@ -618,42 +618,63 @@ describe('Header ticker input (Tweak 3)', () => {
 
 // ── ET timezone on x-axis labels ──────────────────────────────────────────────
 // Bug: times array uses toISOString() which produces UTC strings (e.g. "14:30Z")
-// instead of ET (e.g. "09:30" for EST / "10:30" for EDT).
-// Fixture: 2024-01-15T14:30:00Z = 09:30 EST (UTC-5, winter — no DST)
+// instead of ET (America/New_York) which handles both EST (UTC-5) and EDT (UTC-4).
+//
+// Winter fixture: 2024-01-15T14:30:00Z = 09:30 EST (UTC-5)
+// Summer fixture: 2024-07-15T13:30:00Z = 09:30 EDT (UTC-4)
+// A naive UTC-5 offset passes winter but returns 08:30 for the summer fixture.
 
 describe('ET timezone on x-axis time labels', () => {
-  const UTC_TS   = new Date('2024-01-15T14:30:00Z').getTime()  // 14:30 UTC = 09:30 ET
-  const ET_HOUR  = '09'  // expected hour in ET for this fixture
-  const UTC_HOUR = '14'  // current broken hour (UTC)
+  // Winter (EST, UTC-5)
+  const WINTER_UTC_TS   = new Date('2024-01-15T14:30:00Z').getTime()
+  const WINTER_UTC_HOUR = '14'
+  // Summer (EDT, UTC-4)
+  const SUMMER_UTC_TS   = new Date('2024-07-15T13:30:00Z').getTime()
+  const SUMMER_UTC_HOUR = '13'
 
-  function mountWithBar() {
+  function mountWithBar(t) {
     global.fetch = mockFetch({
-      results: [{ t: UTC_TS, o: 150, h: 155, l: 148, c: 152, v: 1_000_000, vw: 151 }],
+      results: [{ t, o: 150, h: 155, l: 148, c: 152, v: 1_000_000, vw: 151 }],
     })
-    const wrapper = mount(CandlestickChart, {
+    return mount(CandlestickChart, {
       props: { ...defaultProps, settings: { ticker: 'AAPL' } },
     })
-    return wrapper
   }
 
-  test('x-axis time label shows ET hour, not UTC hour', async () => {
+  test('winter (EST): x-axis label shows 09:30, not UTC 14:30', async () => {
     // Arrange + Act
-    const wrapper = mountWithBar()
+    const wrapper = mountWithBar(WINTER_UTC_TS)
     await nextTick()
     await nextTick()
 
     const option = wrapper.findComponent({ name: 'VChart' }).props('option')
-    const timeLabel = option.xAxis[0].data[0]  // first (only) bar label
+    const timeLabel = option.xAxis[0].data[0]
 
-    // Assert — label contains ET hour (09) not UTC hour (14)
-    expect(timeLabel).toContain(ET_HOUR)
-    expect(timeLabel).not.toContain(UTC_HOUR)
+    // Assert — 09:30 ET; not UTC 14:xx
+    expect(timeLabel).toMatch(/09:30/)
+    expect(timeLabel).not.toContain(WINTER_UTC_HOUR)
+    wrapper.unmount()
+  })
+
+  test('summer (EDT): x-axis label shows 09:30, not UTC 13:30', async () => {
+    // Arrange + Act
+    // A naive UTC-5 fix would produce 08:30 here — wrong for EDT (UTC-4)
+    const wrapper = mountWithBar(SUMMER_UTC_TS)
+    await nextTick()
+    await nextTick()
+
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+    const timeLabel = option.xAxis[0].data[0]
+
+    // Assert — 09:30 ET; not UTC 13:xx
+    expect(timeLabel).toMatch(/09:30/)
+    expect(timeLabel).not.toContain(SUMMER_UTC_HOUR)
     wrapper.unmount()
   })
 
   test('x-axis time label does not end with Z (not a UTC ISO string)', async () => {
     // Arrange + Act
-    const wrapper = mountWithBar()
+    const wrapper = mountWithBar(WINTER_UTC_TS)
     await nextTick()
     await nextTick()
 
