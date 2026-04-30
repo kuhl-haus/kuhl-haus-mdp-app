@@ -3,6 +3,14 @@
 
     <!-- Controls -->
     <div class="news-controls">
+      <!-- Ticker click mode toggle -->
+      <button
+        :class="['filter-btn', tickerClickMode === 'filter' ? 'filter-btn--active' : '']"
+        :title="tickerClickMode === 'filter' ? 'Ticker click: filter feed — click to switch to select mode' : 'Ticker click: select ticker only — click to switch to filter mode'"
+        @click="toggleTickerClickMode"
+        data-testid="ticker-mode-toggle"
+      >{{ tickerClickMode === 'filter' ? 'filter' : 'select' }}</button>
+
       <!-- R1: has-tickers toggle -->
       <button
         :class="['filter-btn', hasTickersOnly ? 'filter-btn--active' : '']"
@@ -200,6 +208,14 @@ const emit = defineEmits(['ticker-click', 'update-col-widths', 'update-settings'
 
 const { setActiveTicker, activeTickers } = useWidgetBus()
 
+// ── Ticker click mode ─────────────────────────────────────────────────────────
+const tickerClickMode = ref(props.settings.tickerClickMode ?? 'filter')
+
+const toggleTickerClickMode = () => {
+  tickerClickMode.value = tickerClickMode.value === 'filter' ? 'select' : 'filter'
+  emit('update-settings', { ...props.settings, tickerClickMode: tickerClickMode.value })
+}
+
 const appConfig   = window.__APP_CONFIG__ || {}
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
@@ -249,10 +265,11 @@ watch(hasTickersOnly, (val) => {
 })
 
 // Receive ticker from bus when another linked widget broadcasts
+// Only update local filter in filter mode; in select mode, feed stays unchanged
 watch(
   () => props.linkColor ? activeTickers[props.linkColor] : undefined,
   (incoming) => {
-    if (props.linkColor && incoming !== undefined) {
+    if (props.linkColor && incoming !== undefined && tickerClickMode.value === 'filter') {
       activeTicker.value = incoming
     }
   }
@@ -352,8 +369,11 @@ const openDetail = (item) => { selected.value = item }
 
 const toggleTickerFilter = (ticker) => {
   const next = activeTicker.value === ticker ? null : ticker
-  activeTicker.value = next
-  // Broadcast to linked widgets if this widget has a link color
+  if (tickerClickMode.value === 'filter') {
+    // Filter mode: update local feed filter AND broadcast
+    activeTicker.value = next
+  }
+  // Select mode: broadcast only — local feed unchanged
   if (props.linkColor) {
     setActiveTicker(props.linkColor, next)
   }
