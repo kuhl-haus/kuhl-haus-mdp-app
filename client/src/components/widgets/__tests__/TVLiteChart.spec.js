@@ -547,4 +547,28 @@ describe('ET timezone in chart localization', () => {
     expect(result).not.toContain(SUMMER_UTC_HOUR)
     wrapper.unmount()
   })
+
+  test('timeScale.tickMarkFormatter renders ET time for intraday ticks (markType 3)', () => {
+    // markType 3 = Time tick (intraday). Winter: 1705329000 = 09:30 EST.
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+
+    expect(typeof timeScale?.tickMarkFormatter).toBe('function')
+    const result = timeScale.tickMarkFormatter(1705329000, 3)
+
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain('14')  // not UTC hour
+    wrapper.unmount()
+  })
+
+  test('timeScale.tickMarkFormatter renders ET time for summer EDT ticks (markType 3)', () => {
+    // Summer: 1721050200 = 09:30 EDT (UTC-4). Naive UTC-5 would give 08:30.
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+
+    const result = timeScale.tickMarkFormatter(1721050200, 3)
+    expect(result).toMatch(/09:30/)
+    expect(result).not.toContain('13')  // not UTC hour
+    wrapper.unmount()
+  })
 })

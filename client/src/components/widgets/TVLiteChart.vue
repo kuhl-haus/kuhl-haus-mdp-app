@@ -361,7 +361,20 @@ onMounted(() => {
           hour12:   false,
         }),
     },
-    timeScale:       { borderColor: '#333', timeVisible: true, secondsVisible: false },
+    timeScale: {
+      borderColor:       '#333',
+      timeVisible:       true,
+      secondsVisible:    false,
+      tickMarkFormatter: (timestamp, markType) => {
+        const d    = new Date(timestamp * 1000)
+        const opts = { timeZone: 'America/New_York' }
+        // markType: 0=Year, 1=Month, 2=DayOfMonth, 3=Time, 4=TimeWithSeconds
+        if (markType >= 3) return d.toLocaleString('en-US', { ...opts, hour: '2-digit', minute: '2-digit', hour12: false })
+        if (markType === 2) return d.toLocaleString('en-US', { ...opts, month: '2-digit', day: '2-digit' })
+        if (markType === 1) return d.toLocaleString('en-US', { ...opts, month: 'short' })
+        return d.toLocaleString('en-US', { ...opts, year: 'numeric' })
+      },
+    },
     width:  chartContainer.value.clientWidth,
     height: chartContainer.value.clientHeight,
   })
