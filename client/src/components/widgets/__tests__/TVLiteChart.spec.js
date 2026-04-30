@@ -492,3 +492,41 @@ describe('Settings persistence', () => {
     wrapper.unmount()
   })
 })
+
+// ── ET timezone in chart localization ─────────────────────────────────────────
+// Bug: createChart is called without a localization.timeFormatter, so
+// lightweight-charts displays timestamps in UTC instead of ET.
+// Fixture: 2024-01-15T14:30:00Z (Unix: 1705329000) = 09:30 EST (UTC-5, winter)
+
+describe('ET timezone in chart localization', () => {
+  const UTC_UNIX  = 1705329000          // 2024-01-15T14:30:00Z
+  const ET_HOUR   = '09'                // expected hour in ET for this fixture
+  const UTC_HOUR  = '14'               // broken: what UTC would show
+
+  test('createChart options include localization.timeFormatter', () => {
+    // Arrange + Act
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+
+    const callOpts = vi.mocked(createChart).mock.calls[0]?.[1]
+
+    // Assert — localization block with timeFormatter must be present
+    expect(callOpts).toHaveProperty('localization')
+    expect(typeof callOpts.localization.timeFormatter).toBe('function')
+    wrapper.unmount()
+  })
+
+  test('timeFormatter converts UTC unix timestamp to ET hour', () => {
+    // Arrange + Act
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+
+    const callOpts = vi.mocked(createChart).mock.calls[0]?.[1]
+    const formatter = callOpts?.localization?.timeFormatter
+
+    // Assert — formatter must exist and return ET time string
+    expect(typeof formatter).toBe('function')
+    const result = formatter(UTC_UNIX)
+    expect(result).toContain(ET_HOUR)
+    expect(result).not.toContain(UTC_HOUR)
+    wrapper.unmount()
+  })
+})

@@ -615,3 +615,53 @@ describe('Header ticker input (Tweak 3)', () => {
     wrapper.unmount()
   })
 })
+
+// ── ET timezone on x-axis labels ──────────────────────────────────────────────
+// Bug: times array uses toISOString() which produces UTC strings (e.g. "14:30Z")
+// instead of ET (e.g. "09:30" for EST / "10:30" for EDT).
+// Fixture: 2024-01-15T14:30:00Z = 09:30 EST (UTC-5, winter — no DST)
+
+describe('ET timezone on x-axis time labels', () => {
+  const UTC_TS   = new Date('2024-01-15T14:30:00Z').getTime()  // 14:30 UTC = 09:30 ET
+  const ET_HOUR  = '09'  // expected hour in ET for this fixture
+  const UTC_HOUR = '14'  // current broken hour (UTC)
+
+  function mountWithBar() {
+    global.fetch = mockFetch({
+      results: [{ t: UTC_TS, o: 150, h: 155, l: 148, c: 152, v: 1_000_000, vw: 151 }],
+    })
+    const wrapper = mount(CandlestickChart, {
+      props: { ...defaultProps, settings: { ticker: 'AAPL' } },
+    })
+    return wrapper
+  }
+
+  test('x-axis time label shows ET hour, not UTC hour', async () => {
+    // Arrange + Act
+    const wrapper = mountWithBar()
+    await nextTick()
+    await nextTick()
+
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+    const timeLabel = option.xAxis[0].data[0]  // first (only) bar label
+
+    // Assert — label contains ET hour (09) not UTC hour (14)
+    expect(timeLabel).toContain(ET_HOUR)
+    expect(timeLabel).not.toContain(UTC_HOUR)
+    wrapper.unmount()
+  })
+
+  test('x-axis time label does not end with Z (not a UTC ISO string)', async () => {
+    // Arrange + Act
+    const wrapper = mountWithBar()
+    await nextTick()
+    await nextTick()
+
+    const option = wrapper.findComponent({ name: 'VChart' }).props('option')
+    const timeLabel = option.xAxis[0].data[0]
+
+    // Assert — toISOString() always ends with "Z"; ET strings don't
+    expect(timeLabel).not.toMatch(/Z$/)
+    wrapper.unmount()
+  })
+})
