@@ -48,6 +48,11 @@ const triggerData = (data) => {
   lastCall[0].onData(data)
 }
 
+// Reset shared activeTickers reactive object between tests to prevent state leakage
+beforeEach(() => {
+  Object.keys(activeTickers).forEach(k => delete activeTickers[k])
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const defaultProps = {
   feedName:  'news:feed:latest',
@@ -124,7 +129,8 @@ describe('Ticker mode toggle', () => {
 // ── Ticker mode toggle — settings persistence ─────────────────────────────────
 
 // Note: VTU 2.4.x + <script setup> emit bug — wrapper.emitted() doesn't capture
-// Vue emissions. Use attrs: { 'onUpdate-settings': handler } pattern instead.
+// Vue emissions from defineEmits. Use attrs: { 'onUpdate-settings': handler } instead.
+// TODO: revisit after @vue/test-utils > 2.4.6 (upstream: github.com/vuejs/test-utils/issues/2014)
 describe('Ticker mode toggle — settings persistence', () => {
   test('toggling to select emits update-settings with tickerClickMode select', async () => {
     const calls = []
@@ -148,6 +154,20 @@ describe('Ticker mode toggle — settings persistence', () => {
     await wrapper.find('[data-testid="ticker-mode-toggle"]').trigger('click')
     expect(calls.length).toBeGreaterThan(0)
     expect(calls[calls.length - 1].tickerClickMode).toBe('filter')
+  })
+
+  test('toggling preserves other existing settings', async () => {
+    const calls = []
+    const wrapper = mount(NewsFeed, {
+      props: { ...defaultProps, settings: { hasTickersOnly: true, tickerClickMode: 'filter' } },
+      attrs: { 'onUpdate-settings': (s) => calls.push(s) },
+      global: { stubs: { Teleport: true } },
+    })
+    await wrapper.find('[data-testid="ticker-mode-toggle"]').trigger('click')
+    expect(calls.length).toBeGreaterThan(0)
+    const last = calls[calls.length - 1]
+    expect(last.tickerClickMode).toBe('select')
+    expect(last.hasTickersOnly).toBe(true)
   })
 })
 
@@ -225,6 +245,39 @@ describe('Select mode — ticker tag click', () => {
     await nextTick()
 
     expect(wrapper.findAll('.vs-row').length).toBe(2)
+  })
+
+  test('select mode: clicking same ticker twice broadcasts null to clear linked widgets', async () => {
+    const { useWidgetBus: busMock } = await import('@/composables/useWidgetBus.js')
+    const mockSet = vi.fn()
+    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: mockSet, activeTickers: {} })
+
+    const wrapper = mountFeed({ linkColor: 'blue', settings: { tickerClickMode: 'select' } })
+    triggerData([makeArticle()])
+    await nextTick()
+
+    const tag = wrapper.findAll('.ticker-tag')[0]
+    await tag.trigger('click')  // first click → broadcasts 'AAPL'
+    await tag.trigger('click')  // second click → broadcasts null (deselect)
+    await nextTick()
+
+    expect(mockSet).toHaveBeenLastCalledWith('blue', null)
+  })
+
+  test('select mode: no linkColor — ticker tag click has no observable effect', async () => {
+    const { useWidgetBus: busMock } = await import('@/composables/useWidgetBus.js')
+    const mockSet = vi.fn()
+    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: mockSet, activeTickers: {} })
+
+    const wrapper = mountFeed({ linkColor: null, settings: { tickerClickMode: 'select' } })
+    triggerData([makeArticle()])
+    await nextTick()
+
+    await wrapper.findAll('.ticker-tag')[0].trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.active-ticker-pill').exists()).toBe(false)
+    expect(mockSet).not.toHaveBeenCalled()
   })
 })
 

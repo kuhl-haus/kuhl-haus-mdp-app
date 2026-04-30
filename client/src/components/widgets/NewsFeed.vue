@@ -367,15 +367,27 @@ const formatDateTime = (ts) => {
 
 const openDetail = (item) => { selected.value = item }
 
+// Tracks the last ticker broadcast in select mode so double-click can clear
+// linked widgets (deselect). Cannot reuse activeTicker for this because
+// activeTicker drives the feed filter pill and must stay null in select mode.
+const lastBroadcastTicker = ref(null)
+
+// Reset bookkeeping ref when mode changes
+watch(tickerClickMode, () => { lastBroadcastTicker.value = null })
+
 const toggleTickerFilter = (ticker) => {
-  const next = activeTicker.value === ticker ? null : ticker
   if (tickerClickMode.value === 'filter') {
-    // Filter mode: update local feed filter AND broadcast
+    // Filter mode: toggle local feed filter AND broadcast
+    const next = activeTicker.value === ticker ? null : ticker
     activeTicker.value = next
-  }
-  // Select mode: broadcast only — local feed unchanged
-  if (props.linkColor) {
-    setActiveTicker(props.linkColor, next)
+    if (props.linkColor) setActiveTicker(props.linkColor, next)
+  } else {
+    // Select mode: broadcast only — feed unchanged.
+    // Use lastBroadcastTicker for toggle bookkeeping so double-clicking the
+    // same ticker sends null and clears linked widgets (Option B).
+    const next = lastBroadcastTicker.value === ticker ? null : ticker
+    lastBroadcastTicker.value = next
+    if (props.linkColor) setActiveTicker(props.linkColor, next)
   }
 }
 
