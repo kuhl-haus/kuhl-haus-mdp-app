@@ -12,6 +12,8 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
       reconnecting: ref(false),
       feedName:     ref(config?.feedName ?? ''),
       cacheKey:     ref(config?.cacheKey ?? ''),
+      wsUrl:        ref(config?.wsUrl ?? 'ws://localhost:4202/ws'),
+      authKey:      ref(config?.authKey ?? 'secret'),
       connect:      vi.fn(),
       disconnect:   vi.fn(),
       subscribe:    vi.fn(),
