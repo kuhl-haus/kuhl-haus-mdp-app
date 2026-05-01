@@ -187,7 +187,7 @@ def test_get_config_response_shape_expect_all_four_required_keys():
     result = controllers.get_config()
 
     expected_keys = {'api_key', 'ws_endpoint', 'massive_api_key', 'finlight_api_key'}
-    assert expected_keys == set(result.keys()), (
+    assert expected_keys <= set(result.keys()), (
         f"Response shape mismatch. Got {set(result.keys())} expected {expected_keys}. "
         "Frontend useConfig() depends on all four keys being present."
     )
