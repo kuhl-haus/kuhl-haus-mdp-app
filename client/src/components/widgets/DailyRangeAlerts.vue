@@ -470,7 +470,14 @@ const startResize = (e, colKey) => {
   document.addEventListener('mousemove', onMove)
   document.addEventListener('mouseup', onUp)
 }
-onUnmounted(() => { resizeState = null })
+onUnmounted(() => {
+  // Cancel any pending RAF flush to avoid writing to dead reactive state
+  if (_rafId) {
+    cancelAnimationFrame(_rafId)
+    _rafId = null
+  }
+  resizeState = null
+})
 
 // ── Rel Vol class (matches GenericScannerTable) ─────────────────────────────
 const getRelVolClass = (relVol) => {
