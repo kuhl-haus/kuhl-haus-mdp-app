@@ -350,22 +350,25 @@ describe('Data flow', () => {
     wrapper.unmount()
   })
 
-  test('live event prepend: new event appears at index 0', async () => {
+  test('live event prepend: new event appears at index 0 after RAF flush', async () => {
+    vi.useFakeTimers()
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
     const onData = getOnData()
 
-    // Hydrate with one event
+    // Hydrate with one event (synchronous — array payload)
     onData([makeEvent({ symbol: 'OLD', timestamp: 1000 })])
     await nextTick()
 
-    // Live event arrives
+    // Live event arrives — buffered until RAF fires
     onData(makeEvent({ symbol: 'NEW', timestamp: 2000 }))
+    vi.advanceTimersByTime(20)
     await nextTick()
 
     const rows = wrapper.findAll('tbody tr')
     expect(rows[0].text()).toContain('NEW')
     expect(rows[1].text()).toContain('OLD')
     wrapper.unmount()
+    vi.useRealTimers()
   })
 
   test('maxEvents cap value 3: when 4th event arrives oldest is dropped', async () => {
@@ -383,8 +386,10 @@ describe('Data flow', () => {
     await nextTick()
     expect(countDataRows(wrapper)).toBe(3)
 
-    // 4th live event arrives — oldest (E1) should be dropped
+    // 4th live event arrives — buffered until RAF fires
+    vi.useFakeTimers()
     onData(makeEvent({ symbol: 'E4', timestamp: 4000 }))
+    vi.advanceTimersByTime(20)
     await nextTick()
 
     expect(countDataRows(wrapper)).toBe(3)
@@ -393,6 +398,7 @@ describe('Data flow', () => {
     expect(wrapper.text()).toContain('E2')
     expect(wrapper.text()).not.toContain('E1')
     wrapper.unmount()
+    vi.useRealTimers()
   })
 
   test('maxEvents === 0 is unlimited: events accumulate without cap', async () => {
@@ -1564,13 +1570,30 @@ describe('Bus sync in filter mode', () => {
 // load and does not need batching.
 
 describe('RAF batching of live events', () => {
+  // Use vi.stubGlobal to guarantee RAF control independent of fake-timer interop
+  // with jsdom's native requestAnimationFrame implementation.
+  let pendingRafCallbacks = []
+
+  const flushRaf = async () => {
+    const cbs = [...pendingRafCallbacks]
+    pendingRafCallbacks = []
+    cbs.forEach(cb => cb(performance.now()))
+    await nextTick()
+  }
+
   beforeEach(() => {
-    vi.useFakeTimers()
+    pendingRafCallbacks = []
+    vi.stubGlobal('requestAnimationFrame', (cb) => {
+      pendingRafCallbacks.push(cb)
+      return pendingRafCallbacks.length
+    })
+    vi.stubGlobal('cancelAnimationFrame', () => {})
+    vi.mocked(useWebSocketClient).mockClear()  // reset call tracking so getOnData(0) = THIS mount
     global.fetch = vi.fn()
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   test('live event is not immediately added to events — remains buffered until RAF fires', async () => {
@@ -1584,8 +1607,7 @@ describe('RAF batching of live events', () => {
     await nextTick()
 
     // Assert — event is still buffered; events.value not yet updated
-    const rows = wrapper.findAll('tbody tr')
-    expect(rows.length).toBe(0)
+    expect(countDataRows(wrapper)).toBe(0)
 
     wrapper.unmount()
   })
@@ -1596,22 +1618,20 @@ describe('RAF batching of live events', () => {
     await nextTick()
     const onData = getOnData()
 
-    // Act — send 3 rapid live events without advancing timers
+    // Act — send 3 rapid live events without flushing RAF
     onData(makeEvent({ symbol: 'AAPL', price: 10 }))
     onData(makeEvent({ symbol: 'TSLA', price: 20 }))
     onData(makeEvent({ symbol: 'NVDA', price: 30 }))
     await nextTick()
 
     // Assert — still buffered; no rows visible before RAF fires
-    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(0)
+    expect(countDataRows(wrapper)).toBe(0)
 
-    // Advance into next animation frame
-    vi.advanceTimersByTime(20)
-    await nextTick()
+    // Flush RAF — one reactive assignment for all 3
+    await flushRaf()
 
     // Assert — all 3 events delivered in one flush
-    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
-    expect(rows.length).toBe(3)
+    expect(countDataRows(wrapper)).toBe(3)
 
     wrapper.unmount()
   })
@@ -1628,15 +1648,14 @@ describe('RAF batching of live events', () => {
     onData(makeEvent({ symbol: 'THIRD',  price: 3, timestamp: 3000 }))
 
     // Assert — still buffered before RAF fires
-    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(0)
+    expect(countDataRows(wrapper)).toBe(0)
 
-    vi.advanceTimersByTime(20)
-    await nextTick()
+    await flushRaf()
 
-    // Assert — DailyRangeAlerts prepends new events; newest (THIRD) should be first row
-    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
-    expect(rows.length).toBe(3)
-    expect(rows[0].text()).toContain('THIRD')
+    // Assert — DailyRangeAlerts prepends new events; newest (THIRD) should be first row.
+    // v-if empty-state tr is not rendered when filteredEvents has items, so [0] = first data row.
+    expect(countDataRows(wrapper)).toBe(3)
+    expect(wrapper.findAll('tbody tr')[0].text()).toContain('THIRD')
 
     wrapper.unmount()
   })
@@ -1656,14 +1675,12 @@ describe('RAF batching of live events', () => {
     onData(makeEvent({ symbol: 'D', price: 4, timestamp: 4000 }))
 
     // Assert — still buffered before RAF fires
-    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(0)
+    expect(countDataRows(wrapper)).toBe(0)
 
-    vi.advanceTimersByTime(20)
-    await nextTick()
+    await flushRaf()
 
     // Assert — only 2 rows (maxEvents applied at flush)
-    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
-    expect(rows.length).toBe(2)
+    expect(countDataRows(wrapper)).toBe(2)
 
     wrapper.unmount()
   })
@@ -1676,10 +1693,9 @@ describe('RAF batching of live events', () => {
 
     // First burst + flush
     onData(makeEvent({ symbol: 'AAPL', price: 10 }))
-    vi.advanceTimersByTime(20)
-    await nextTick()
+    await flushRaf()
 
-    const countAfterFirst = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length
+    const countAfterFirst = countDataRows(wrapper)
     expect(countAfterFirst).toBe(1)
 
     // Second burst — must remain buffered until RAF fires again
@@ -1688,20 +1704,19 @@ describe('RAF batching of live events', () => {
     await nextTick()
 
     // Still only 1 row (second burst buffered)
-    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(1)
+    expect(countDataRows(wrapper)).toBe(1)
 
     // Flush second burst
-    vi.advanceTimersByTime(20)
-    await nextTick()
+    await flushRaf()
 
     // Now 3 rows total
-    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(3)
+    expect(countDataRows(wrapper)).toBe(3)
 
     wrapper.unmount()
   })
 
   test('cache hydration (Array payload) remains synchronous — not affected by RAF', async () => {
-    // Cache hydration is a one-time load; it must appear immediately without RAF
+    // Cache hydration is a one-time load; it must appear immediately without RAF flush
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
     await nextTick()
     const onData = getOnData()
@@ -1710,9 +1725,8 @@ describe('RAF batching of live events', () => {
     onData([makeEvent({ symbol: 'AAPL' }), makeEvent({ symbol: 'TSLA' })])
     await nextTick()
 
-    // Assert — available without advancing timers (synchronous)
-    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
-    expect(rows.length).toBe(2)
+    // Assert — available without flushing RAF (synchronous)
+    expect(countDataRows(wrapper)).toBe(2)
 
     wrapper.unmount()
   })

@@ -208,6 +208,29 @@ const config = computed(() => ({ ...DEFAULT_SETTINGS, ...props.settings }))
 let _seq = 0
 const events = ref([])
 
+// ── RAF batch buffer (Rec 3 — Option A) ──────────────────────────────────────
+// Live events accumulate in a plain non-reactive array. requestAnimationFrame
+// fires once at the frame boundary and does a single events.value assignment:
+// one reactive cycle, one VDOM diff, one paint — regardless of burst size.
+//
+// Background tab: RAF pauses when the tab is hidden; the buffer accumulates
+// and flushes in one shot on focus. This is accepted behavior.
+//
+// Cache hydration (Array payload) remains synchronous — one-time load, no batching.
+let _rafPending = []    // plain array — non-reactive, no Vue tracking overhead
+let _rafId = null
+
+const flushLiveEvents = () => {
+  if (_rafPending.length === 0) { _rafId = null; return }
+  const maxEv = config.value.maxEvents
+  const incoming = _rafPending.map(e => ({ ...e, _seq: _seq++ }))
+  _rafPending = []
+  _rafId = null
+  // Single reactive assignment: prepend batch to existing events, then cap
+  const next = [...incoming.reverse(), ...events.value]
+  events.value = maxEv > 0 ? next.slice(0, maxEv) : next
+}
+
 const enforceMaxEvents = () => {
   const maxEv = config.value.maxEvents
   if (maxEv > 0 && events.value.length > maxEv) {
@@ -226,14 +249,15 @@ const { lastDataAt, isConnected, reconnecting, feedName, cacheKey, connect, disc
     cacheKey: initFeed.cacheKey,
     onData: (data) => {
       if (Array.isArray(data)) {
-        // Cache hydration — sort timestamp DESC, then assign _seq
+        // Cache hydration — synchronous, one-time load, no RAF batching
         const sorted = [...data].sort((a, b) => b.timestamp - a.timestamp)
         events.value = sorted.map(e => ({ ...e, _seq: _seq++ }))
+        enforceMaxEvents()
       } else {
-        // Live event — prepend
-        events.value.unshift({ ...data, _seq: _seq++ })
+        // Live event — buffer and schedule RAF flush
+        _rafPending.push(data)
+        if (!_rafId) _rafId = requestAnimationFrame(flushLiveEvents)
       }
-      enforceMaxEvents()
     },
     autoConnect: true,
   })
