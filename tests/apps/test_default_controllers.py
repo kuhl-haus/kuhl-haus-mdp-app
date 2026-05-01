@@ -154,3 +154,49 @@ def test_get_config_with_authenticated_user_expect_api_key_and_endpoint():
     assert result['ws_endpoint'] == 'ws://config:4202/ws'
     assert result['massive_api_key'] == 'massive-key'
     assert result['finlight_api_key'] == 'finlight-key'
+
+
+def test_get_config_with_none_optional_keys_expect_none_in_response():
+    """get_config() returns None for massive_api_key and finlight_api_key when not configured."""
+    controllers = _import_controllers(
+        wds_api_key='test-key',
+        wds_endpoint='ws://localhost:4202/ws',
+    )
+    controllers.MASSIVE_API_KEY = None
+    controllers.FINLIGHT_API_KEY = None
+
+    result = controllers.get_config()
+
+    assert result['massive_api_key'] is None
+    assert result['finlight_api_key'] is None
+
+
+def test_get_config_response_shape_expect_all_four_required_keys():
+    """get_config() response contains all four keys required by useConfig() composable.
+
+    useConfig() in the frontend maps:
+      api_key          → config.apiKey
+      ws_endpoint      → config.wsEndpoint
+      massive_api_key  → config.massiveApiKey
+      finlight_api_key → config.finlightApiKey
+
+    All four must be present for the composable to function correctly.
+    """
+    controllers = _import_controllers()
+
+    result = controllers.get_config()
+
+    expected_keys = {'api_key', 'ws_endpoint', 'massive_api_key', 'finlight_api_key'}
+    assert expected_keys == set(result.keys()), (
+        f"Response shape mismatch. Got {set(result.keys())} expected {expected_keys}. "
+        "Frontend useConfig() depends on all four keys being present."
+    )
+
+
+def test_get_config_with_empty_wds_api_key_expect_empty_string_in_response():
+    """get_config() passes through empty string api_key without modification."""
+    controllers = _import_controllers(wds_api_key='', wds_endpoint='ws://localhost:4202/ws')
+
+    result = controllers.get_config()
+
+    assert result['api_key'] == ''
