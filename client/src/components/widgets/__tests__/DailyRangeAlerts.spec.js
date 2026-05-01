@@ -1553,3 +1553,167 @@ describe('Bus sync in filter mode', () => {
     wrapper.unmount()
   })
 })
+
+// ── Rec 3 — RAF batching (Option A: batching in widget, not in useWebSocketClient) ──
+// Bug: each live WebSocket message immediately mutates events.value, triggering
+// a reactive cycle, VDOM diff, and paint per message. A burst of 50 alerts in
+// 2 seconds = 50 reactive updates. The fix is to buffer incoming live events in
+// a non-reactive array and assign them to events.value in one RAF callback.
+//
+// Cache hydration (Array payload) must remain synchronous — it is a one-time
+// load and does not need batching.
+
+describe('RAF batching of live events', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    global.fetch = vi.fn()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  test('live event is not immediately added to events — remains buffered until RAF fires', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await nextTick()
+    const onData = getOnData()
+
+    // Act — send a live event (non-array = single live alert)
+    onData(makeEvent({ symbol: 'AAPL', price: 10 }))
+    await nextTick()
+
+    // Assert — event is still buffered; events.value not yet updated
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows.length).toBe(0)
+
+    wrapper.unmount()
+  })
+
+  test('RAF flush delivers all buffered events in one reactive update', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await nextTick()
+    const onData = getOnData()
+
+    // Act — send 3 rapid live events without advancing timers
+    onData(makeEvent({ symbol: 'AAPL', price: 10 }))
+    onData(makeEvent({ symbol: 'TSLA', price: 20 }))
+    onData(makeEvent({ symbol: 'NVDA', price: 30 }))
+    await nextTick()
+
+    // Assert — still buffered; no rows visible before RAF fires
+    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(0)
+
+    // Advance into next animation frame
+    vi.advanceTimersByTime(20)
+    await nextTick()
+
+    // Assert — all 3 events delivered in one flush
+    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
+    expect(rows.length).toBe(3)
+
+    wrapper.unmount()
+  })
+
+  test('burst order is preserved after RAF flush (newest first)', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await nextTick()
+    const onData = getOnData()
+
+    // Act — simulate 3 live events in arrival order
+    onData(makeEvent({ symbol: 'FIRST',  price: 1, timestamp: 1000 }))
+    onData(makeEvent({ symbol: 'SECOND', price: 2, timestamp: 2000 }))
+    onData(makeEvent({ symbol: 'THIRD',  price: 3, timestamp: 3000 }))
+
+    // Assert — still buffered before RAF fires
+    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(0)
+
+    vi.advanceTimersByTime(20)
+    await nextTick()
+
+    // Assert — DailyRangeAlerts prepends new events; newest (THIRD) should be first row
+    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
+    expect(rows.length).toBe(3)
+    expect(rows[0].text()).toContain('THIRD')
+
+    wrapper.unmount()
+  })
+
+  test('maxEvents limit is enforced at RAF flush, not per-event', async () => {
+    // Arrange — maxEvents: 2
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { maxEvents: 2 } },
+    })
+    await nextTick()
+    const onData = getOnData()
+
+    // Act — send 4 events in one burst
+    onData(makeEvent({ symbol: 'A', price: 1, timestamp: 1000 }))
+    onData(makeEvent({ symbol: 'B', price: 2, timestamp: 2000 }))
+    onData(makeEvent({ symbol: 'C', price: 3, timestamp: 3000 }))
+    onData(makeEvent({ symbol: 'D', price: 4, timestamp: 4000 }))
+
+    // Assert — still buffered before RAF fires
+    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(0)
+
+    vi.advanceTimersByTime(20)
+    await nextTick()
+
+    // Assert — only 2 rows (maxEvents applied at flush)
+    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
+    expect(rows.length).toBe(2)
+
+    wrapper.unmount()
+  })
+
+  test('second burst after first flush is also batched', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await nextTick()
+    const onData = getOnData()
+
+    // First burst + flush
+    onData(makeEvent({ symbol: 'AAPL', price: 10 }))
+    vi.advanceTimersByTime(20)
+    await nextTick()
+
+    const countAfterFirst = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length
+    expect(countAfterFirst).toBe(1)
+
+    // Second burst — must remain buffered until RAF fires again
+    onData(makeEvent({ symbol: 'TSLA', price: 20 }))
+    onData(makeEvent({ symbol: 'NVDA', price: 30 }))
+    await nextTick()
+
+    // Still only 1 row (second burst buffered)
+    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(1)
+
+    // Flush second burst
+    vi.advanceTimersByTime(20)
+    await nextTick()
+
+    // Now 3 rows total
+    expect(wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state')).length).toBe(3)
+
+    wrapper.unmount()
+  })
+
+  test('cache hydration (Array payload) remains synchronous — not affected by RAF', async () => {
+    // Cache hydration is a one-time load; it must appear immediately without RAF
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await nextTick()
+    const onData = getOnData()
+
+    // Act — hydrate with array (cache load path)
+    onData([makeEvent({ symbol: 'AAPL' }), makeEvent({ symbol: 'TSLA' })])
+    await nextTick()
+
+    // Assert — available without advancing timers (synchronous)
+    const rows = wrapper.findAll('tbody tr').filter(r => !r.classes('empty-state'))
+    expect(rows.length).toBe(2)
+
+    wrapper.unmount()
+  })
+})
