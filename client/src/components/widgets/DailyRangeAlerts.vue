@@ -261,7 +261,7 @@ const { lastDataAt, isConnected, reconnecting, feedName, cacheKey, connect, disc
         if (!_rafId) _rafId = requestAnimationFrame(flushLiveEvents)
       }
     },
-    autoConnect: true,
+    autoConnect: false,  // deferred — connect() called by config watch below
   })
 
 // Update WS connection params when config loads asynchronously.
