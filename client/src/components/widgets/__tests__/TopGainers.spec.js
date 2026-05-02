@@ -4,7 +4,21 @@ import { ref } from 'vue'
 
 vi.mock('@/composables/useWebSocketClient.js', async () => {
   const { ref } = await import('vue')
-  return { useWebSocketClient: vi.fn((c) => ({ lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false), wsUrl: ref(c?.wsUrl ?? 'ws://localhost:4202/ws'), authKey: ref(c?.authKey ?? 'secret'), connect: vi.fn(), disconnect: vi.fn() })) }
+  return { useWebSocketClient: vi.fn((c) => ({
+      lastDataAt:   ref(null),
+      isConnected:  ref(true),
+      reconnecting: ref(false),
+      feedName:     ref(c?.feedName ?? ''),
+      cacheKey:     ref(c?.cacheKey ?? ''),
+      wsUrl:        ref(c?.wsUrl    ?? 'ws://localhost:4202/ws'),
+      authKey:      ref(c?.authKey  ?? 'secret'),
+      connect:      vi.fn(),
+      disconnect:   vi.fn(),
+      subscribe:    vi.fn(),
+      unsubscribe:  vi.fn(),
+      getCache:     vi.fn(),
+      cacheLimit:   ref(c?.cacheLimit ?? 1000),
+    })) }
 })
 vi.mock('@/composables/useScannerLink.js', async () => {
   const { ref } = await import('vue')
