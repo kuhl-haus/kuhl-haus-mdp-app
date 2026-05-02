@@ -108,6 +108,7 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import GenericScannerTable from './GenericScannerTable.vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useConfig }          from '@/composables/useConfig.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 
 const emit = defineEmits(['update-settings', 'update-col-widths'])
@@ -119,7 +120,7 @@ const props = defineProps({
   settings:  { type: Object,  default: () => ({}) },
 })
 
-const appConfig = window.__APP_CONFIG__ || {}
+const { config: appConfig } = useConfig()
 const marketData = reactive([])
 const { activeTicker, onRowClick } = useScannerLink(computed(() => props.linkColor))
 
@@ -182,8 +183,8 @@ watch(
   }
 )
 const { lastDataAt, isConnected, reconnecting } = useWebSocketClient({
-  wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
-  authKey: appConfig.apiKey || 'secret',
+  wsUrl: appConfig.value?.wsEndpoint || 'ws://localhost:4202/ws',
+  authKey: appConfig.value?.apiKey || 'secret',
   feedName: 'scanners:top_gainers',
   cacheKey: 'scanners:top_gainers',
   onData: (data) => Object.assign(marketData, data),
