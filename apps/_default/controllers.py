@@ -111,5 +111,4 @@ def get_config():
         ws_endpoint=WDS_ENDPOINT,
         massive_api_key=MASSIVE_API_KEY,
         finlight_api_key=FINLIGHT_API_KEY,
-        # app_version intentionally omitted — injected via window.__APP_VERSION__ in app.html
     )
