@@ -197,6 +197,7 @@ def test_get_config_response_shape_expect_all_four_required_keys():
       massive_api_key  → config.massiveApiKey
       finlight_api_key → config.finlightApiKey
 
+    All four must be present for the composable to function correctly.
     """
     controllers = _import_controllers()
 
