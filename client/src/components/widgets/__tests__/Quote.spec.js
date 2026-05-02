@@ -6,14 +6,20 @@ import { ref } from 'vue'
 vi.mock('@/composables/useWebSocketClient.js', async () => {
   const { ref } = await import('vue')
   return {
-    useWebSocketClient: vi.fn((config) => ({
+    useWebSocketClient: vi.fn((c) => ({
       lastDataAt:   ref(null),
       isConnected:  ref(true),
       reconnecting: ref(false),
-      wsUrl:        ref(config?.wsUrl   ?? 'ws://localhost:4202/ws'),
-      authKey:      ref(config?.authKey ?? 'secret'),
+      feedName:     ref(c?.feedName ?? ''),
+      cacheKey:     ref(c?.cacheKey ?? ''),
+      wsUrl:        ref(c?.wsUrl    ?? 'ws://localhost:4202/ws'),
+      authKey:      ref(c?.authKey  ?? 'secret'),
       connect:      vi.fn(),
       disconnect:   vi.fn(),
+      subscribe:    vi.fn(),
+      unsubscribe:  vi.fn(),
+      getCache:     vi.fn(),
+      cacheLimit:   ref(c?.cacheLimit ?? 1000),
     })),
   }
 })
