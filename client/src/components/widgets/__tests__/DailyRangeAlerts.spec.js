@@ -12,6 +12,8 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
       reconnecting: ref(false),
       feedName:    ref(config.feedName || ''),
       cacheKey:    ref(config.cacheKey || ''),
+      wsUrl:       ref(config.wsUrl   || 'ws://localhost:4202/ws'),
+      authKey:     ref(config.authKey || 'secret'),
       connect:     vi.fn(),
       disconnect:  vi.fn(),
     })),
@@ -41,9 +43,22 @@ vi.mock('@/composables/useWidgetBus.js', async () => {
   }
 })
 
+// ── Mock useConfig ───────────────────────────────────────────────────────────
+vi.mock('@/composables/useConfig.js', async () => {
+  const { ref } = await import('vue')
+  return {
+    useConfig: vi.fn(() => ({
+      config:  ref({ apiKey: 'mock-api-key', wsEndpoint: 'ws://mock:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })),
+  }
+})
+
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { getFlameVariant } from '@/composables/useWidgetBus.js'
+import { useConfig } from '@/composables/useConfig.js'
 import DailyRangeAlerts from '../DailyRangeAlerts.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1728,6 +1743,70 @@ describe('RAF batching of live events', () => {
     // Assert — available without flushing RAF (synchronous)
     expect(countDataRows(wrapper)).toBe(2)
 
+    wrapper.unmount()
+  })
+})
+
+
+// ── useConfig integration ─────────────────────────────────────────────────────
+// DashboardGrid now gates widget rendering on config being ready (PR #254).
+// DailyRangeAlerts mounts with config.value guaranteed non-null, so autoConnect:
+// true fires immediately with the real WDS endpoint — no race, no watch needed.
+
+describe('useConfig integration', () => {
+  beforeEach(() => {
+    vi.mocked(useWebSocketClient).mockClear()
+    vi.mocked(useConfig).mockClear()
+  })
+
+  test('useWebSocketClient receives wsUrl from config.value.wsEndpoint', () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'test-key', wsEndpoint: 'ws://test-server:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.wsUrl).toBe('ws://test-server:4202/ws')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient receives authKey from config.value.apiKey', () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'real-api-key', wsEndpoint: 'ws://localhost:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.authKey).toBe('real-api-key')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient falls back to default wsUrl when config is null', () => {
+    // Arrange — defensive baseline; should not occur in prod with DashboardGrid gating
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.wsUrl).toBe('ws://localhost:4202/ws')
     wrapper.unmount()
   })
 })
