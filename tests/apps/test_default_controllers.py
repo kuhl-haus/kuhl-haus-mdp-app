@@ -217,4 +217,3 @@ def test_get_config_with_empty_wds_api_key_expect_empty_string_in_response():
     result = controllers.get_config()
 
     assert result['api_key'] == ''
-
