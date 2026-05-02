@@ -12,6 +12,8 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
       reconnecting: ref(false),
       feedName:    ref(config.feedName || ''),
       cacheKey:    ref(config.cacheKey || ''),
+      wsUrl:       ref(config.wsUrl   || 'ws://localhost:4202/ws'),
+      authKey:     ref(config.authKey || 'secret'),
       connect:     vi.fn(),
       disconnect:  vi.fn(),
     })),
@@ -1728,6 +1730,134 @@ describe('RAF batching of live events', () => {
     // Assert — available without flushing RAF (synchronous)
     expect(countDataRows(wrapper)).toBe(2)
 
+    wrapper.unmount()
+  })
+})
+
+
+// ── useConfig integration ─────────────────────────────────────────────────────
+// Design: useWebSocketClient is called at setup with autoConnect: true.
+// wsUrl and authKey are refs inside the composable. A watcher on config
+// updates them when config loads, so the real WDS endpoint is used even
+// if config wasn't ready at mount time (see AppConfig-Migration-Design.md Gotchas).
+
+describe('useConfig integration', () => {
+  beforeEach(() => {
+    vi.mocked(useWebSocketClient).mockClear()
+    vi.mocked(useConfig).mockClear()
+  })
+
+  test('useWebSocketClient receives wsUrl from config.value.wsEndpoint', () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'test-key', wsEndpoint: 'ws://test-server:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.wsUrl).toBe('ws://test-server:4202/ws')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient receives authKey from config.value.apiKey', () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'secret-api-key', wsEndpoint: 'ws://localhost:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.authKey).toBe('secret-api-key')
+    wrapper.unmount()
+  })
+
+  test('wsUrl ref is updated when config loads after null initial state', async () => {
+    // Arrange — config starts null (pre-fetch), then loads
+    const configRef = ref(null)
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  configRef,
+      loading: ref(true),
+      error:   ref(null),
+    })
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const wsUrlRef = vi.mocked(useWebSocketClient).mock.results[0].value.wsUrl
+
+    // Assert pre-load: wsUrl holds fallback
+    expect(wsUrlRef.value).toBe('ws://localhost:4202/ws')
+
+    // Act — config arrives asynchronously
+    configRef.value = { apiKey: 'loaded-key', wsEndpoint: 'ws://real-server:4202/ws', massiveApiKey: null, finlightApiKey: null }
+    await nextTick()
+
+    // Assert post-load: wsUrl ref updated to real endpoint
+    expect(wsUrlRef.value).toBe('ws://real-server:4202/ws')
+    wrapper.unmount()
+  })
+
+  test('authKey ref is updated when config loads after null initial state', async () => {
+    // Arrange — config starts null (pre-fetch), then loads
+    const configRef = ref(null)
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  configRef,
+      loading: ref(true),
+      error:   ref(null),
+    })
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    const authKeyRef = vi.mocked(useWebSocketClient).mock.results[0].value.authKey
+
+    // Assert pre-load: authKey holds fallback
+    expect(authKeyRef.value).toBe('secret')
+
+    // Act — config arrives asynchronously
+    configRef.value = { apiKey: 'loaded-key', wsEndpoint: 'ws://localhost:4202/ws', massiveApiKey: null, finlightApiKey: null }
+    await nextTick()
+
+    // Assert post-load: authKey ref updated
+    expect(authKeyRef.value).toBe('loaded-key')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient uses fallback wsUrl when config is null', () => {
+    // Arrange — simulates pre-fetch state
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert — fallback URL used at construction time
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.wsUrl).toBe('ws://localhost:4202/ws')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient uses fallback authKey when config is null', () => {
+    // Arrange — simulates pre-fetch state
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert — fallback authKey used at construction time
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.authKey).toBe('secret')
     wrapper.unmount()
   })
 })
