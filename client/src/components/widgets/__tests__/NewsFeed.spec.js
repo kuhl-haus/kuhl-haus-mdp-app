@@ -10,8 +10,22 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
       lastDataAt:   ref(null),
       isConnected:  ref(true),
       reconnecting: ref(false),
+      wsUrl:        ref(config?.wsUrl   ?? 'ws://localhost:4202/ws'),
+      authKey:      ref(config?.authKey ?? 'secret'),
       getCache:     vi.fn(),
       cacheLimit:   ref(config?.cacheLimit ?? 1000),
+    })),
+  }
+})
+
+// ── Mock useConfig ───────────────────────────────────────────────────────────
+vi.mock('@/composables/useConfig.js', async () => {
+  const { ref } = await import('vue')
+  return {
+    useConfig: vi.fn(() => ({
+      config:  ref({ apiKey: 'mock-api-key', wsEndpoint: 'ws://mock:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
     })),
   }
 })
@@ -39,6 +53,7 @@ vi.mock('vue-virtual-scroller', () => ({
 
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useWidgetBus, setActiveTicker, activeTickers } from '@/composables/useWidgetBus.js'
+import { useConfig } from '@/composables/useConfig.js'
 import NewsFeed from '../NewsFeed.vue'
 
 // Helper: call onData from the most recent useWebSocketClient mount
@@ -310,5 +325,65 @@ describe('Bus sync', () => {
     await nextTick()
 
     expect(wrapper.find('.active-ticker-pill').exists()).toBe(false)
+  })
+})
+
+
+// ── useConfig integration ─────────────────────────────────────────────────────
+describe('useConfig integration', () => {
+  beforeEach(() => {
+    vi.mocked(useWebSocketClient).mockClear()
+    vi.mocked(useConfig).mockClear()
+  })
+
+  test('useWebSocketClient receives wsUrl from config.value.wsEndpoint', () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'test-key', wsEndpoint: 'ws://test-server:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountFeed()
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.wsUrl).toBe('ws://test-server:4202/ws')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient receives authKey from config.value.apiKey', () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'real-api-key', wsEndpoint: 'ws://localhost:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountFeed()
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.authKey).toBe('real-api-key')
+    wrapper.unmount()
+  })
+
+  test('useWebSocketClient falls back to default wsUrl when config is null', () => {
+    // Arrange — defensive baseline
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountFeed()
+
+    // Assert
+    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
+    expect(callArgs.wsUrl).toBe('ws://localhost:4202/ws')
+    wrapper.unmount()
   })
 })
