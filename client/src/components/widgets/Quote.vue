@@ -96,6 +96,7 @@
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useConfig }          from '@/composables/useConfig.js'
 
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
@@ -106,7 +107,7 @@ const props = defineProps({
 
 defineEmits(['update-settings'])
 
-const appConfig = window.__APP_CONFIG__ || {}
+const { config: appConfig } = useConfig()
 const { activeTickers, setActiveTicker } = useWidgetBus()
 
 // ── Flame freshness icon ──────────────────────────────────────────────────────
@@ -160,8 +161,8 @@ const lastDataAt = ref(null)
 const currentFeed = ref('')
 
 const { feedName, cacheKey, isConnected, reconnecting, getCache, subscribe, unsubscribe } = useWebSocketClient({
-  wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
-  authKey: appConfig.apiKey || 'secret',
+  wsUrl: appConfig.value?.wsEndpoint || 'ws://localhost:4202/ws',
+  authKey: appConfig.value?.apiKey || 'secret',
   feedName: '',
   cacheKey: '',
   onData: (data) => {
