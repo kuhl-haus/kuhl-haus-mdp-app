@@ -150,6 +150,8 @@
     <div v-if="!appConfig" class="auth-required">
       <p>Please log in to access the dashboard</p>
     </div>
+
+    <div v-if="appConfig" class="app-version">v{{ appConfig.appVersion }}</div>
   </header>
 
   <!-- Hover Preview Tooltip -->
@@ -888,6 +890,13 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
   font-size: 20px;
   font-weight: 600;
   color: var(--pd-text);
+}
+
+.app-version {
+  font-size: 11px;
+  color: var(--pd-text-muted, #888);
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 .layout-controls {

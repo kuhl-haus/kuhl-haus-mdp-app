@@ -223,3 +223,41 @@ describe('DashboardGrid useConfig integration', () => {
     wrapper.unmount()
   })
 })
+
+// ── App version display ────────────────────────────────────────────────────────
+describe('DashboardGrid app version badge', () => {
+  test('renders app version in header when config includes appVersion', async () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'k', wsEndpoint: 'ws://x', massiveApiKey: null, finlightApiKey: null, appVersion: '1.2.3' }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert — version badge present and shows value
+    expect(wrapper.find('.app-version').exists()).toBe(true)
+    expect(wrapper.find('.app-version').text()).toContain('1.2.3')
+    wrapper.unmount()
+  })
+
+  test('version badge absent when config is null', async () => {
+    // Arrange
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert — no version badge while unauthenticated/loading
+    expect(wrapper.find('.app-version').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
