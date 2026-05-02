@@ -122,23 +122,6 @@ def test_index_with_authenticated_user_expect_personalized_message():
 # app()
 # ---------------------------------------------------------------------------
 
-def test_app_with_authenticated_user_expect_renders_without_credentials():
-    """app() renders without embedding credentials in context.
-
-    api_key and ws_endpoint are served by /api/get_config (auth-gated),
-    not embedded in the app.html page source.
-    """
-    controllers = _import_controllers(
-        wds_api_key='app-api-key',
-        wds_endpoint='ws://app:4202/ws',
-    )
-
-    result = controllers.app()
-
-    assert isinstance(result, dict)
-    assert 'api_key' not in result
-    assert 'ws_endpoint' not in result
-
 def test_app_with_authenticated_user_expect_no_api_key_in_context():
     """app() no longer returns api_key (moved to /api/get_config)."""
     controllers = _import_controllers(
