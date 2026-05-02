@@ -43,7 +43,17 @@ const localStorageMock = {
 }
 Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true })
 
-window.__APP_CONFIG__ = { apiKey: 'test', wsEndpoint: 'ws://localhost:4202/ws' }
+// Mock useConfig — DashboardGrid now uses useConfig() instead of window.__APP_CONFIG__
+vi.mock('@/composables/useConfig.js', async () => {
+  const { ref } = await import('vue')
+  return {
+    useConfig: vi.fn(() => ({
+      config:  ref({ apiKey: 'test', wsEndpoint: 'ws://localhost:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })),
+  }
+})
 
 beforeEach(() => {
   vi.clearAllMocks()

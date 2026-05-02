@@ -308,8 +308,9 @@ import { GridLayout, GridItem } from 'vue3-grid-layout-next'
 import 'vue3-grid-layout-next/dist/style.css'
 import WidgetMenu from './WidgetMenu.vue'
 import WidgetWrapper from './WidgetWrapper.vue'
+import { useConfig } from '@/composables/useConfig.js'
 
-const appConfig = window.__APP_CONFIG__ || {};
+const { config: appConfig, loading: configLoading, error: configError } = useConfig()
 
 // Responsive: phone < 640px gets stacked layout; tablet/desktop keeps grid
 const MOBILE_BREAKPOINT = 640
