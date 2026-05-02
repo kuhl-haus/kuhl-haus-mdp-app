@@ -91,8 +91,6 @@ def index():
 @action.uses("app.html", db, session, auth.user)
 def app():
     return dict(
-        api_key=WDS_API_KEY,
-        ws_endpoint=WDS_ENDPOINT  # ,
         # version_info=version_info,
     )
 
