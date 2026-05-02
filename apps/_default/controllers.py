@@ -93,7 +93,7 @@ def index():
 @action.uses("app.html", db, session, auth.user)
 def app():
     return dict(
-        app_version=version_info["image version:"],
+        app_version=version_info.get("image version:", "") if version_info else "",
     )
 
 
