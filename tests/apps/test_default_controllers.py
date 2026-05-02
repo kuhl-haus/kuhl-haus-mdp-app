@@ -197,8 +197,6 @@ def test_get_config_response_shape_expect_all_four_required_keys():
       massive_api_key  → config.massiveApiKey
       finlight_api_key → config.finlightApiKey
 
-    app_version is NOT in get_config — it is injected at page load via
-    window.__APP_VERSION__ in app.html.
     """
     controllers = _import_controllers()
 
