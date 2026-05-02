@@ -162,6 +162,41 @@ describe('DashboardGrid useConfig integration', () => {
     wrapper.unmount()
   })
 
+  test('grid layout is not rendered when config is null — widgets cannot mount prematurely', async () => {
+    // Arrange — config not yet loaded
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert — no grid layout rendered (no widget mount opportunity while config is null)
+    expect(wrapper.find('.mock-grid-layout').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('grid layout renders when config is loaded', async () => {
+    // Arrange — config available
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'test-key', wsEndpoint: 'ws://test:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert — grid layout present (widgets can mount with config available)
+    // Note: mock-grid-layout comes from the vue3-grid-layout-next mock
+    expect(wrapper.find('.mock-grid-layout').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   test('auth-required message not shown after successful auth (error clears with config)', async () => {
     // Arrange — error present initially, then config loads (re-auth or retry)
     const configRef = ref(null)
