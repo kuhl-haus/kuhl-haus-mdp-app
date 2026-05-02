@@ -225,11 +225,14 @@ describe('DashboardGrid useConfig integration', () => {
 })
 
 // ── App version display ────────────────────────────────────────────────────────
+// Version is injected at page load via window.__APP_VERSION__ in app.html,
+// not fetched through useConfig(). No API call, no auth dependency.
 describe('DashboardGrid app version badge', () => {
-  test('renders app version in header when config includes appVersion', async () => {
+  test('renders app version from window.__APP_VERSION__', async () => {
     // Arrange
+    vi.stubGlobal('__APP_VERSION__', '1.2.3')
     vi.mocked(useConfig).mockReturnValueOnce({
-      config:  ref({ apiKey: 'k', wsEndpoint: 'ws://x', massiveApiKey: null, finlightApiKey: null, appVersion: '1.2.3' }),
+      config:  ref({ apiKey: 'k', wsEndpoint: 'ws://x', massiveApiKey: null, finlightApiKey: null }),
       loading: ref(false),
       error:   ref(null),
     })
@@ -238,17 +241,19 @@ describe('DashboardGrid app version badge', () => {
     const wrapper = mountGrid()
     await nextTick()
 
-    // Assert — version badge present and shows value
+    // Assert — version badge present and shows injected value
     expect(wrapper.find('.app-version').exists()).toBe(true)
     expect(wrapper.find('.app-version').text()).toContain('1.2.3')
     wrapper.unmount()
+    vi.unstubAllGlobals()
   })
 
-  test('version badge absent when config is null', async () => {
-    // Arrange
+  test('version badge absent when window.__APP_VERSION__ is not set', async () => {
+    // Arrange — simulate page where version was not injected
+    vi.stubGlobal('__APP_VERSION__', undefined)
     vi.mocked(useConfig).mockReturnValueOnce({
-      config:  ref(null),
-      loading: ref(true),
+      config:  ref({ apiKey: 'k', wsEndpoint: 'ws://x', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
       error:   ref(null),
     })
 
@@ -256,8 +261,9 @@ describe('DashboardGrid app version badge', () => {
     const wrapper = mountGrid()
     await nextTick()
 
-    // Assert — no version badge while unauthenticated/loading
+    // Assert — no badge when version unavailable
     expect(wrapper.find('.app-version').exists()).toBe(false)
     wrapper.unmount()
+    vi.unstubAllGlobals()
   })
 })

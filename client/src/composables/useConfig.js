@@ -27,7 +27,6 @@ export function useConfig() {
         wsEndpoint: data.ws_endpoint,
         massiveApiKey: data.massive_api_key,
         finlightApiKey: data.finlight_api_key,
-        appVersion: data.app_version,
       }
 
       return config.value

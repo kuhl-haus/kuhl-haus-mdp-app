@@ -151,7 +151,7 @@
       <p>Please log in to access the dashboard</p>
     </div>
 
-    <div v-if="appConfig" class="app-version">v{{ appConfig.appVersion }}</div>
+    <div v-if="appVersion" class="app-version">v{{ appVersion }}</div>
   </header>
 
   <!-- Hover Preview Tooltip -->
@@ -315,6 +315,7 @@ import WidgetWrapper from './WidgetWrapper.vue'
 import { useConfig } from '@/composables/useConfig.js'
 
 const { config: appConfig, loading: configLoading, error: configError } = useConfig()
+const appVersion = window.__APP_VERSION__ || null
 
 // Responsive: phone < 640px gets stacked layout; tablet/desktop keeps grid
 const MOBILE_BREAKPOINT = 640

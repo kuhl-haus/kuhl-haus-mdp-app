@@ -188,26 +188,26 @@ def test_get_config_with_none_optional_keys_expect_none_in_response():
     assert result['finlight_api_key'] is None
 
 
-def test_get_config_response_shape_expect_all_five_required_keys():
-    """get_config() response contains all five keys required by useConfig() composable.
+def test_get_config_response_shape_expect_all_four_required_keys():
+    """get_config() response contains all four keys required by useConfig() composable.
 
     useConfig() in the frontend maps:
       api_key          → config.apiKey
       ws_endpoint      → config.wsEndpoint
       massive_api_key  → config.massiveApiKey
       finlight_api_key → config.finlightApiKey
-      app_version      → config.appVersion
 
-    All five must be present for the composable to function correctly.
+    app_version is NOT in get_config — it is injected at page load via
+    window.__APP_VERSION__ in app.html.
     """
     controllers = _import_controllers()
 
     result = controllers.get_config()
 
-    expected_keys = {'api_key', 'ws_endpoint', 'massive_api_key', 'finlight_api_key', 'app_version'}
+    expected_keys = {'api_key', 'ws_endpoint', 'massive_api_key', 'finlight_api_key'}
     assert expected_keys <= set(result.keys()), (
         f"Response shape mismatch. Got {set(result.keys())} expected {expected_keys}. "
-        "Frontend useConfig() depends on all five keys being present."
+        "Frontend useConfig() depends on all four keys being present."
     )
 
 
@@ -219,19 +219,3 @@ def test_get_config_with_empty_wds_api_key_expect_empty_string_in_response():
 
     assert result['api_key'] == ''
 
-
-def test_get_config_expect_app_version_in_response():
-    """get_config() includes app_version sourced from version_info["image version:"].
-
-    The dashboard header reads config.appVersion (mapped from app_version) to
-    display the running image version in the far-right of the header bar.
-    """
-    # Arrange
-    controllers = _import_controllers()
-    controllers.version_info = {"image version:": "1.2.3", "py4web version:": "0.0.1", "image source:": "ghcr.io/test"}
-
-    # Act
-    result = controllers.get_config()
-
-    # Assert
-    assert result['app_version'] == '1.2.3'
