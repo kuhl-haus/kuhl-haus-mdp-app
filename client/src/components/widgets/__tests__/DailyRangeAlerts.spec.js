@@ -1771,9 +1771,9 @@ describe('useConfig integration', () => {
     // Act
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
 
-    // Assert
-    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
-    expect(callArgs.wsUrl).toBe('ws://test-server:4202/ws')
+    // Assert — wsUrl ref updated to real endpoint by the config watch
+    const wsUrlRef = vi.mocked(useWebSocketClient).mock.results[0].value.wsUrl
+    expect(wsUrlRef.value).toBe('ws://test-server:4202/ws')
     wrapper.unmount()
   })
 
@@ -1788,9 +1788,44 @@ describe('useConfig integration', () => {
     // Act
     const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
 
-    // Assert
-    const callArgs = vi.mocked(useWebSocketClient).mock.calls[0][0]
-    expect(callArgs.authKey).toBe('secret-api-key')
+    // Assert — authKey ref updated to real key by the config watch
+    const authKeyRef = vi.mocked(useWebSocketClient).mock.results[0].value.authKey
+    expect(authKeyRef.value).toBe('secret-api-key')
+    wrapper.unmount()
+  })
+
+  test('connect() is called only after config is available (no premature connection)', async () => {
+    // Arrange — config immediately available
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'test-key', wsEndpoint: 'ws://test-server:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+
+    // Act — mount + tick to flush the pre-flush watch scheduler
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+    await nextTick()
+
+    // Assert — connect() was called (by watch, not by autoConnect)
+    const connectMock = vi.mocked(useWebSocketClient).mock.results[0].value.connect
+    expect(connectMock).toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('connect() is not called when config is null (no failed fallback attempt)', () => {
+    // Arrange — config not yet available (fetch in flight)
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(true),
+      error:   ref(null),
+    })
+
+    // Act
+    const wrapper = mount(DailyRangeAlerts, { props: defaultProps })
+
+    // Assert — no connect attempt while config is null
+    const connectMock = vi.mocked(useWebSocketClient).mock.results[0].value.connect
+    expect(connectMock).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

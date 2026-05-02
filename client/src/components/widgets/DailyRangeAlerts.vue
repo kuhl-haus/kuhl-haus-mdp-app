@@ -265,12 +265,14 @@ const { lastDataAt, isConnected, reconnecting, feedName, cacheKey, connect, disc
   })
 
 // Update WS connection params when config loads asynchronously.
-// autoConnect: true means connect() fires on mount. With the ref-update
-// watcher the composable reconnects with the real endpoint once config loads.
+// Wait for config before connecting. autoConnect: false + explicit connect()
+// here eliminates the race where autoConnect fires before the config fetch
+// resolves, causing a failed attempt to ws://localhost:4202/ws.
 watch(appConfig, (cfg) => {
   if (cfg) {
     wsUrlRef.value   = cfg.wsEndpoint || 'ws://localhost:4202/ws'
     authKeyRef.value = cfg.apiKey     || 'secret'
+    connect()
   }
 }, { immediate: true })
 
