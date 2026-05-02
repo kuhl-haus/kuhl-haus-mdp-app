@@ -51,14 +51,6 @@ describe('DashboardGrid useConfig integration', () => {
     vi.mocked(useConfig).mockClear()
   })
 
-  test('useConfig is called on mount', () => {
-    // Arrange + Act
-    mountGrid()
-
-    // Assert
-    expect(useConfig).toHaveBeenCalled()
-  })
-
   test('layout controls are visible when config is loaded', async () => {
     // Arrange
     vi.mocked(useConfig).mockReturnValueOnce({
@@ -146,6 +138,52 @@ describe('DashboardGrid useConfig integration', () => {
     await nextTick()
 
     // Assert post-load: layout controls now visible
+    expect(wrapper.find('.layout-controls').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('auth-required message shown and persists when config fetch returns 401', async () => {
+    // Arrange — simulates authentication failure: config stays null, error is set
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref(null),
+      loading: ref(false),
+      error:   ref(new Error('HTTP 401: Unauthorized')),
+    })
+
+    // Act
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert — auth-required shown (config null means not authenticated)
+    expect(wrapper.find('.auth-required').exists()).toBe(true)
+
+    // Assert — layout controls absent (nothing to show without auth)
+    expect(wrapper.find('.layout-controls').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('auth-required message not shown after successful auth (error clears with config)', async () => {
+    // Arrange — error present initially, then config loads (re-auth or retry)
+    const configRef = ref(null)
+    const errorRef  = ref(new Error('HTTP 401: Unauthorized'))
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  configRef,
+      loading: ref(false),
+      error:   errorRef,
+    })
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Assert pre-auth: auth-required shown
+    expect(wrapper.find('.auth-required').exists()).toBe(true)
+
+    // Act — config loaded (user re-authenticated), error cleared
+    errorRef.value  = null
+    configRef.value = { apiKey: 'test-key', wsEndpoint: 'ws://test:4202/ws', massiveApiKey: null, finlightApiKey: null }
+    await nextTick()
+
+    // Assert post-auth: auth-required gone, controls visible
+    expect(wrapper.find('.auth-required').exists()).toBe(false)
     expect(wrapper.find('.layout-controls').exists()).toBe(true)
     wrapper.unmount()
   })
