@@ -93,7 +93,7 @@ def index():
 @action.uses("app.html", db, session, auth.user)
 def app():
     return dict(
-        app_version=version_info["image version:"],
+        app_version=version_info.get("image version:", "") if version_info else "",
     )
 
 
@@ -111,5 +111,4 @@ def get_config():
         ws_endpoint=WDS_ENDPOINT,
         massive_api_key=MASSIVE_API_KEY,
         finlight_api_key=FINLIGHT_API_KEY,
-        # version_info=version_info,
     )
