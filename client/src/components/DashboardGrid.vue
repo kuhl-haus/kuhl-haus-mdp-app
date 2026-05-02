@@ -893,7 +893,7 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
 }
 
 .app-version {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--pd-text-muted, #888);
   white-space: nowrap;
   margin-left: auto;
