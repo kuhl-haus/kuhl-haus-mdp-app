@@ -233,6 +233,7 @@
 
   <div class="dashboard">
     <!-- Mobile: simple vertical stack (< 640px) -->
+    <div v-if="appConfig">
     <div v-if="isMobile" class="mobile-stack">
       <div
           v-for="item in layout"
@@ -299,6 +300,7 @@
         />
       </GridItem>
     </GridLayout>
+    </div><!-- /v-if="appConfig" -->
   </div>
 </template>
 
