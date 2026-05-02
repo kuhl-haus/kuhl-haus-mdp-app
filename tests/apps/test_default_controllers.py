@@ -226,6 +226,7 @@ def test_get_config_expect_app_version_in_response():
     The dashboard header reads config.appVersion (mapped from app_version) to
     display the running image version in the far-right of the header bar.
     """
+    # Arrange
     controllers = _import_controllers()
     controllers.version_info = {"image version:": "1.2.3", "py4web version:": "0.0.1", "image source:": "ghcr.io/test"}
 
