@@ -59,8 +59,10 @@ def get_versions():
         version_path = os.path.join(APP_FOLDER, 'version.txt')
         with open(version_path, 'r') as f:
             image_version = f.read().strip()
+        if image_version == 'latest':
+            raise ValueError("Invalid version 'latest' detected in version.txt")
     except Exception:
-        image_version = "Unknown"
+        image_version = os.environ.get('IMAGE_VERSION', 'Unknown')
 
     return {
         "py4web version:": py4web_version,
@@ -91,7 +93,7 @@ def index():
 @action.uses("app.html", db, session, auth.user)
 def app():
     return dict(
-        # version_info=version_info,
+        app_version=version_info["image version:"],
     )
 
 
