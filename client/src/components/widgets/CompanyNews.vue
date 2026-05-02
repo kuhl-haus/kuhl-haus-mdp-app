@@ -203,6 +203,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWidgetBus } from '@/composables/useWidgetBus.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useConfig }          from '@/composables/useConfig.js'
 
 const props = defineProps({
   linkColor: { type: String,  default: null },
@@ -212,7 +213,7 @@ const props = defineProps({
 const emit = defineEmits(['update-settings'])
 
 const { activeTickers, setActiveTicker } = useWidgetBus()
-const appConfig    = window.__APP_CONFIG__ || {}
+const { config: appConfig } = useConfig()
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 
 // ── Ticker input & widget bus ─────────────────────────────────────────────────
@@ -291,9 +292,10 @@ const searchQuery = ref('')
 
 const currentFeed = ref('')
 
-const { feedName, cacheKey, isConnected, reconnecting, lastDataAt, getCache, subscribe, unsubscribe, connect, cacheLimit } = useWebSocketClient({
-  wsUrl:     appConfig.wsEndpoint || 'ws://localhost:4202/ws',
-  authKey:   appConfig.apiKey || 'secret',
+const { feedName, cacheKey, isConnected, reconnecting, lastDataAt, getCache, subscribe, unsubscribe, connect,
+        wsUrl: wsUrlRef, authKey: authKeyRef, cacheLimit } = useWebSocketClient({
+  wsUrl:     appConfig.value?.wsEndpoint || 'ws://localhost:4202/ws',
+  authKey:   appConfig.value?.apiKey || 'secret',
   feedName:  '',
   cacheKey:  '',
   cacheLimit: maxArticles.value,
@@ -308,6 +310,16 @@ const { feedName, cacheKey, isConnected, reconnecting, lastDataAt, getCache, sub
   },
   autoConnect: false,  // connect manually when ticker is set
 })
+
+// Update WS connection params when config loads asynchronously.
+// useWebSocketClient captures wsUrl/authKey as refs — updating them here
+// ensures connect() uses the real endpoint even if config wasn't ready at mount.
+watch(appConfig, (cfg) => {
+  if (cfg) {
+    wsUrlRef.value   = cfg.wsEndpoint || 'ws://localhost:4202/ws'
+    authKeyRef.value = cfg.apiKey     || 'secret'
+  }
+}, { immediate: true })
 
 // Re-subscribe when ticker changes
 watch(activeTicker, (newTicker, oldTicker) => {
