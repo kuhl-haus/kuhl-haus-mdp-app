@@ -1,9 +1,685 @@
 =========
 Changelog
 =========
+Version 0.4.0 (2026-05-01)
+==========================
+
+- `a7252f3 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/a7252f3>`_ feat: display app version in dashboard header (#270)
+
+  * feat: expose app_version from get_config and display in dashboard header
+
+  Add app_version to the /api/get_config response, map it through
+
+  useConfig() as appVersion, and render it at the far right of the
+
+  dashboard header bar.
+
+  - controllers.py: get_config() now includes app_version from version_info
+
+  - useConfig.js: maps data.app_version → config.appVersion
+
+  - DashboardGrid.vue: .app-version badge (v-if appConfig) far-right in header
+
+  - Tests: shape test updated to 5 keys; new get_config test; 2 new Vue tests
+
+  refs #245
+
+  * style: increase app-version font size to 13px
+
+  * fix: defensive version_info.get() in get_config; add missing Arrange comment
+
+  Address Bishop's review notes:
+
+  - get_config() uses version_info.get('image version:') to avoid KeyError
+
+  if version_info is None or missing the key in unusual environments
+
+  - Add missing # Arrange comment to test_get_config_expect_app_version_in_response
+
+  * feat: inject app version via window.__APP_VERSION__ at page load
+
+  Version display does not need an API call. The app() controller already
+
+  passes app_version to app.html at render time; inject it as a tiny inline
+
+  script so the Vue app reads it synchronously on startup.
+
+  - app.html: <script>window.__APP_VERSION__ = "[[=app_version]]";</script>
+
+  - DashboardGrid.vue: const appVersion = window.__APP_VERSION__ || null
+
+  - useConfig.js: reverted (appVersion removed; get_config stays 4 keys)
+
+  - controllers.py: app_version removed from get_config response
+
+  - Tests: shape test back to 4 keys; Vue tests use vi.stubGlobal('__APP_VERSION__')
+
+  refs #245
+
+  * chore: remove stale comment from get_config
+
+  * chore: remove stale comment from shape test docstring
+
+  * chore: restore original closing line in shape test docstring
+
+  * chore: restore test_default_controllers.py to mainline (no changes)
+
+  * fix: defensive version_info.get() in app() controller
+
+  KeyError in app() takes down the dashboard for all users on every page load.
+
+  Apply the same defensive pattern already used in get_config().
+
+- `5747ed0 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/5747ed0>`_ Reject 'latest' and use IMAGE_VERSION env fallback
+
+  Treat 'latest' in version.txt as invalid (raise an error) to avoid ambiguous image tags so the fallback code path runs. Update the fallback to read IMAGE_VERSION from the environment (defaulting to 'Unknown') instead of always using a hardcoded 'Unknown'. Also expose app_version from version_info to the template.
+
+- `efb4cf9 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/efb4cf9>`_ chore: remove window.__APP_CONFIG__ from app.html (#269)
+
+  * test(app): failing tests for window.__APP_CONFIG__ removal
+
+  app() should no longer return api_key/ws_endpoint in its context dict.
+
+  Credentials must not be embedded in HTML. Use /api/get_config instead.
+
+  refs #257
+
+  * chore: remove window.__APP_CONFIG__ from app.html
+
+  - Remove <script>window.__APP_CONFIG__ = {...}</script> from app.html
+
+  - Remove api_key and ws_endpoint from app() controller context dict
+
+  - Update test: app() no longer embeds credentials in template context
+
+  All widgets now read credentials from /api/get_config (auth-gated).
+
+  Credentials no longer appear in page source.
+
+  refs #257
+
+  * fix(tests): remove redundant combined test per Bishop review
+
+  The combined test asserted api_key not in result AND ws_endpoint not in result
+
+  together. The two individual tests below already cover each assertion
+
+  separately. Drop the combined test -- three tests covering the same behavior
+
+  fail or pass together and add no value.
+
+  refs #257
+
+- `1a002fa <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/1a002fa>`_ feat(TopGappers): migrate window.__APP_CONFIG__ to useConfig() (#266)
+
+  * feat(TopGainers): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #251
+
+  * feat(TopGappers): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #252
+
+  * fix(TopGappers): complete useWebSocketClient mock — add missing feedName, cacheKey, subscribe, unsubscribe, getCache
+
+  Per Bishop review on PR #266: mock was missing fields the component
+
+  destructures, making it a trap for future tests.
+
+  * fix: remove TopGainers files — belong in PR #268, not here
+
+  * fix: remove stale vite.config.js.bak artifact
+
+- `9c08c73 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/9c08c73>`_ feat(TopVolume): migrate window.__APP_CONFIG__ to useConfig() (#267)
+
+  * feat(TopGainers): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #251
+
+  * feat(TopVolume): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #253
+
+  * fix(TopVolume): complete useWebSocketClient mock — add missing feedName, cacheKey, subscribe, unsubscribe, getCache
+
+  Per Bishop review on PR #267: mock was missing fields the component
+
+  destructures, making it a trap for future tests.
+
+  * fix: remove TopGainers files — belong in PR #268, not here
+
+- `e15cd15 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/e15cd15>`_ feat(TopGainers): migrate window.__APP_CONFIG__ to useConfig() (#268)
+
+  * feat(TopGainers): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #251
+
+  * fix(TopGainers): complete useWebSocketClient mock — add missing feedName, cacheKey, subscribe, unsubscribe, getCache
+
+  Per Bishop review on PR #268: mock was missing fields the component
+
+  destructures, making it a trap for future tests.
+
+- `163aae3 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/163aae3>`_ feat(Quote): migrate window.__APP_CONFIG__ to useConfig() (#265)
+
+  * feat(Quote): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #250
+
+  * fix(Quote): complete useWebSocketClient mock — add missing feedName, cacheKey, subscribe, unsubscribe, getCache
+
+  Per Bishop review on PR #265: mock was missing fields the component
+
+  destructures, making it a trap for future tests.
+
+- `d070c82 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/d070c82>`_ feat(NewsFeed): migrate window.__APP_CONFIG__ to useConfig() (#264)
+
+  * test(NewsFeed): failing tests for useConfig() migration
+
+  refs #249
+
+  * feat(NewsFeed): migrate window.__APP_CONFIG__ to useConfig()
+
+  refs #249
+
+- `82a6247 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/82a6247>`_ feat(DailyRangeAlerts): migrate window.__APP_CONFIG__ to useConfig() (#262)
+
+  * test(DailyRangeAlerts): failing tests for useConfig() migration (clean v2)
+
+  Now that DashboardGrid (#254) gates widget rendering on config being ready,
+
+  DailyRangeAlerts mounts with config.value guaranteed non-null. The migration
+
+  is clean: import useConfig, replace window.__APP_CONFIG__, autoConnect: true
+
+  works immediately with the correct endpoint — no watch, no race.
+
+  3 failing tests:
+
+  - useWebSocketClient receives wsUrl from config.value.wsEndpoint
+
+  - useWebSocketClient receives authKey from config.value.apiKey
+
+  - fallback wsUrl when config is null (defensive baseline)
+
+  85 existing tests passing.
+
+  refs #248
+
+  * feat(DailyRangeAlerts): migrate window.__APP_CONFIG__ to useConfig()
+
+  Clean migration now that DashboardGrid (#254) gates widget rendering.
+
+  DailyRangeAlerts mounts with config.value guaranteed non-null, so
+
+  autoConnect: true fires immediately with the correct WDS endpoint.
+
+  - Import useConfig from @/composables/useConfig.js
+
+  - Replace window.__APP_CONFIG__ || {} with useConfig() config ref
+
+  - Replace appConfig.wsEndpoint/apiKey with appConfig.value?.wsEndpoint/apiKey
+
+  - No watch, no deferred connect — config is already available at mount
+
+  Also: add ref to DailyRangeAlerts.spec.js vue import.
+
+  refs #248
+
+  * fix(DashboardGrid): gate GridLayout on appConfig — prevent premature widget mount
+
+  The GridLayout (and all widgets inside it) had no v-if guard on appConfig.
+
+  Only the header controls were gated. Widgets were mounting before the
+
+  useConfig() fetch resolved, so autoConnect widgets dialed ws://localhost:4202/ws.
+
+  Fix: wrap both mobile-stack and GridLayout v-else in v-if='appConfig'.
+
+  Widgets only mount once config.value is non-null — guaranteed real endpoint.
+
+  New tests verify:
+
+  - grid layout absent when config is null
+
+  - grid layout present when config is loaded
+
+  refs #254
+
+- `fd0d83d <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/fd0d83d>`_ feat(DashboardGrid): migrate window.__APP_CONFIG__ to useConfig() (#261)
+
+  * test(DashboardGrid): failing tests for useConfig() migration
+
+  DashboardGrid is being migrated first (#254) because it is the parent
+
+  component. Once it calls useConfig() and gates widget rendering on
+
+  config.value being non-null, all child widgets mount with config already
+
+  available — eliminating the async timing race for autoConnect widgets.
+
+  4 failing tests:
+
+  - useConfig is called on mount (still uses window.__APP_CONFIG__)
+
+  - layout controls are hidden when config is null (loading state)
+
+  - auth-required message shown when config is null
+
+  - layout controls appear reactively when config loads after null
+
+  2 passing baselines:
+
+  - layout controls visible when config loaded (window.__APP_CONFIG__ always truthy)
+
+  - auth-required hidden when config loaded (same reason)
+
+  refs #254
+
+  * feat(DashboardGrid): migrate window.__APP_CONFIG__ to useConfig()
+
+  - Import useConfig from @/composables/useConfig.js
+
+  - Replace window.__APP_CONFIG__ || {} with const { config: appConfig, ... } = useConfig()
+
+  - Existing v-if='appConfig' template conditions now gate on config.value
+
+  (null while fetching → loading/auth state; non-null when loaded → dashboard)
+
+  - Auth-required state is now real: shows during fetch, persists on 401
+
+  - DashboardGridColNum.spec.js: replace window.__APP_CONFIG__ assignment
+
+  with useConfig mock (same value, now properly mocked)
+
+  Child widgets that mount inside DashboardGrid now have config.value
+
+  available synchronously, eliminating the async timing race for autoConnect.
+
+  refs #254
+
+  * test(DashboardGrid): add 401 error state coverage per Bishop review
+
+  Blocking: no test exercised the configError path. Added two tests:
+
+  - auth-required shown and persists on 401 (config=null, error=Error)
+
+  - auth-required clears when config loads after error (re-auth/retry)
+
+  Also removed 'useConfig is called on mount' — implementation detail,
+
+  covered implicitly by the DOM behavior tests (per pattern from #259).
+
+  refs #254
+
+- `ccb7ab8 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/ccb7ab8>`_ test(get_config): add pytest coverage for /api/get_config endpoint (#258)
+
+  * test(get_config): add coverage for /api/get_config endpoint
+
+  Three new tests alongside the existing happy-path test:
+
+  - None optional keys: MASSIVE_API_KEY=None and FINLIGHT_API_KEY=None
+
+  pass through as None in the response (not converted to empty string)
+
+  - Response shape: all four required keys (api_key, ws_endpoint,
+
+  massive_api_key, finlight_api_key) must be present — documents the
+
+  contract that useConfig() depends on
+
+  - Empty WDS api_key: empty string passes through unmodified
+
+  Note: auth gate (@action.uses(auth.user)) is a py4web decorator concern
+
+  and is not tested at the unit level. The 401 for unauthenticated
+
+  requests is enforced by the framework before the function runs.
+
+  refs #246
+
+  * fix(get_config): use subset check in response shape test
+
+  Bishop review: == locks down the complete response shape and will
+
+  spuriously fail if get_config() ever adds a new field. <= checks
+
+  that the four required keys are present without constraining the
+
+  rest of the response shape — consistent with the test name
+
+  'expect_all_four_required_keys'.
+
+- `37eeeb2 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/37eeeb2>`_ feat(CompanyNews): migrate window.__APP_CONFIG__ to useConfig() (#259)
+
+  * test(CompanyNews): failing tests for useConfig() migration
+
+  3 failing tests:
+
+  - useConfig is called on mount (component uses window.__APP_CONFIG__ instead)
+
+  - useWebSocketClient receives wsUrl from config.value.wsEndpoint
+
+  - useWebSocketClient receives authKey from config.value.apiKey
+
+  2 passing tests (baseline — fallback behavior works when config is null):
+
+  - useWebSocketClient falls back to default wsUrl when config is null
+
+  - useWebSocketClient falls back to default authKey when config is null
+
+  refs #247
+
+  * feat(CompanyNews): migrate window.__APP_CONFIG__ to useConfig()
+
+  - Import useConfig from @/composables/useConfig.js
+
+  - Replace window.__APP_CONFIG__ || {} with const { config: appConfig } = useConfig()
+
+  - Replace appConfig.wsEndpoint with appConfig.value?.wsEndpoint
+
+  - Replace appConfig.apiKey with appConfig.value?.apiKey
+
+  Fallback defaults (ws://localhost:4202/ws, 'secret') retained for
+
+  pre-fetch null state and dev environments.
+
+  refs #247
+
+  * fix(CompanyNews): update wsUrl/authKey refs when config loads async
+
+  Problem: useWebSocketClient is called synchronously at mount time.
+
+  If useConfig() hasn't fetched yet, config.value is null and the
+
+  composable receives fallback values (ws://localhost:4202/ws, 'secret').
+
+  When connect() fires (triggered by ticker selection), it reads the
+
+  now-stale wsUrl ref and connects to the fallback instead of the real
+
+  WDS endpoint.
+
+  Fix: destructure wsUrl and authKey refs from useWebSocketClient, then
+
+  watch appConfig with { immediate: true }. When config loads, update
+
+  both refs. connect() always reads the current ref value, so by the
+
+  time it fires (user selects a ticker), the correct endpoint is used.
+
+  Also update CompanyNews.spec.js mock to include wsUrl and authKey refs
+
+  so the component can destructure them without TypeError.
+
+  refs #247
+
+  * test(CompanyNews): address Bishop review — AAA, async ref-update tests
+
+  - Add AAA (Arrange/Act/Assert) comments to all tests
+
+  - Remove 'useConfig is called on mount' (tests implementation, not behavior)
+
+  - Add two new tests verifying the async ref-update pattern:
+
+  - wsUrl ref is updated when config loads after null initial state
+
+  - authKey ref is updated when config loads after null initial state
+
+  These tests document and verify the watch() design that fixes the
+
+  'ws://localhost:4202/ws failed' error when config loads async.
+
+  - Add design comment explaining the wsUrl/authKey ref-update approach
+
+  refs #247
+
+- `c1973ed <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/c1973ed>`_ perf(DailyRangeAlerts): Rec 3 — RAF batching of live WebSocket events (#244)
+
+  * test(DailyRangeAlerts): failing tests for Rec 3 RAF batching
+
+  5 failing tests covering the required behavior:
+
+  - live event is not immediately added (must be buffered pre-RAF)
+
+  - RAF flush delivers all buffered events in one reactive update
+
+  - burst order preserved after flush (newest first)
+
+  - maxEvents enforced at flush, not per-event
+
+  - second burst after first flush is also batched correctly
+
+  1 passing test (intentional baseline):
+
+  - cache hydration (Array payload) remains synchronous — not affected by RAF
+
+  Architecture: Option A — batching in widget composable, not in
+
+  useWebSocketClient.js. All 5 failing tests assert the pre-RAF state
+
+  (events.value is empty) before advancing fake timers, so they will only
+
+  pass with a real RAF buffer implementation.
+
+  * perf(DailyRangeAlerts): Rec 3 — RAF batch buffer for live events
+
+  Implementation: Option A — batching in widget, useWebSocketClient unchanged.
+
+  Live events accumulate in a plain non-reactive array (_rafPending).
+
+  requestAnimationFrame fires once at the frame boundary and does a single
+
+  events.value assignment: one reactive cycle, one VDOM diff, one paint
+
+  regardless of burst size.
+
+  Cache hydration (Array payload) remains synchronous — one-time load.
+
+  Background tab: RAF pauses when tab hidden; buffer flushes on focus.
+
+  Ordering: incoming.reverse() + existing events (newest first).
+
+  Test updates: two existing tests ('live event prepend', 'maxEvents cap')
+
+  updated to use vi.useFakeTimers + vi.advanceTimersByTime(20) since live
+
+  event behavior now requires RAF flush. RAF batching tests use
+
+  vi.stubGlobal('requestAnimationFrame') for deterministic control,
+
+  decoupled from jsdom's native RAF implementation details.
+
+  5 new tests passing:
+
+  - live event not immediately added (buffered pre-RAF)
+
+  - RAF flush delivers all buffered events in one update
+
+  - burst order preserved (newest first)
+
+  - maxEvents enforced at flush not per-event
+
+  - second burst re-arms RAF correctly
+
+  1 baseline test passing:
+
+  - cache hydration remains synchronous
+
+  500 tests total, 0 failures.
+
+  * fix(DailyRangeAlerts): cancel pending RAF on unmount
+
+  Prevents flushLiveEvents from firing against a detached component
+
+  when the widget is removed mid-burst. cancelAnimationFrame(_rafId)
+
+  in onUnmounted drops the queued callback safely.
+
+- `795f54e <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/795f54e>`_ fix(charts): display ET (America/New_York) time instead of UTC (#243)
+
+  * test(charts): failing tests for ET timezone bug in CandlestickChart and TVLiteChart
+
+  CandlestickChart: x-axis time labels are built with toISOString() which
+
+  produces UTC strings (e.g. '2024-01-15T14:30:00.000Z'). Fixture
+
+  2024-01-15T14:30:00Z = 09:30 EST. Tests assert the label contains '09'
+
+  (ET hour) and does not end with 'Z' (UTC indicator).
+
+  TVLiteChart: createChart is called without localization.timeFormatter so
+
+  lightweight-charts renders all timestamps in UTC. Tests assert the
+
+  createChart options include localization.timeFormatter and that calling
+
+  it with a known UTC unix timestamp returns the ET hour.
+
+  * test(charts): add EDT DST fixture and strengthen ET assertions per Bishop review
+
+  - Add summer fixture (2024-07-15T13:30:00Z = 09:30 EDT) to both specs.
+
+  A naive UTC-5 offset passes the winter fixture but returns 08:30 for
+
+  this input; only a correct America/New_York Intl.DateTimeFormat passes.
+
+  - Replace toContain(ET_HOUR) with toMatch(/09:30/) across all ET hour
+
+  assertions — checks hour+minute together, not a loose substring match.
+
+  - Rename tests to 'winter (EST)' / 'summer (EDT)' for clarity.
+
+  * fix(charts): display ET (America/New_York) time instead of UTC
+
+  CandlestickChart: replace toISOString() with toLocaleString using
+
+  timeZone: 'America/New_York' (sv-SE locale for YYYY-MM-DD HH:MM:SS
+
+  format, 'T' replaced with space for ECharts category axis labels).
+
+  TVLiteChart: add localization.timeFormatter to createChart options.
+
+  Formats Unix timestamps (seconds) as MM/DD HH:MM in America/New_York,
+
+  handling both EST (UTC-5) and EDT (UTC-4) automatically via Intl.
+
+  * fix(TVLiteChart): add tickMarkFormatter to timeScale for ET axis labels
+
+  localization.timeFormatter fixes the crosshair/hover label only.
+
+  The bottom axis tick labels use a separate timeScale.tickMarkFormatter
+
+  which defaults to UTC when unset. Add tickMarkFormatter with the same
+
+  America/New_York timezone, formatting by markType:
+
+  3/4 (intraday) -> HH:MM ET
+
+  2 (day)        -> MM/DD ET
+
+  1 (month)      -> MMM ET
+
+  0 (year)       -> YYYY ET
+
+  Tests: two DST-aware cases (EST winter + EDT summer) for markType 3.
+
+- `9432de3 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/9432de3>`_ Reorder and hide default columns in DailyRangeAlerts
+
+  Update DailyRangeAlerts columns and default visibility/order. DEFAULT_SETTINGS.hiddenCols now hides several less-used fields by default (pct_change_since_open, change, session, prev_day_close, direction, note). The columns array was reordered to surface VWAP, Price, Change %, Float, Volume, Avg Vol and Rel Vol earlier, and column definitions were standardized with decimals and formatters (vwap, close, free_float, avg_volume, relative_volume, change, pct_change_since_open). These changes adjust the default table presentation to prioritize key metrics while keeping additional details available but hidden by default.
+
+- `3d51482 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/3d51482>`_ Remove NewsFeedV2.vue widget component
+
+  Delete the NewsFeedV2.vue component from client/src/components/widgets. This removes the entire news feed widget implementation (controls, mobile card list, desktop virtual scroller, detail modal, WebSocket client logic, column resize handling, filtering/sorting, and scoped styles).
+
+- `245b75c <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/245b75c>`_ feat(NewsFeed): add ticker select/filter mode toggle (#242)
+
+  * test(NewsFeed): failing tests for ticker select/filter mode toggle
+
+  - toggle renders with filter as default label
+
+  - toggle active class reflects current mode
+
+  - toggling emits update-settings with tickerClickMode
+
+  - filter mode: ticker click filters feed AND broadcasts
+
+  - select mode: ticker click broadcasts only, feed unchanged
+
+  - bus sync: filter mode follows external activeTicker; select mode ignores it
+
+  * feat(NewsFeed): add ticker select/filter mode toggle
+
+  Adds a select/filter mode toggle to the news controls bar.
+
+  Filter mode (default): clicking a ticker tag filters the local feed
+
+  to that ticker AND broadcasts to linked widgets (quote, charts).
+
+  Preserves existing behavior.
+
+  Select mode: clicking a ticker tag broadcasts to linked widgets only.
+
+  The news feed view is unchanged — useful when monitoring a broad news
+
+  stream while driving linked widgets from ticker clicks.
+
+  Bus sync watcher updated: in select mode, external activeTicker
+
+  changes from linked widgets do not filter the local feed.
+
+  Toggle preference persisted via update-settings → tickerClickMode.
+
+  - NewsFeed.vue: tickerClickMode ref, toggleTickerClickMode, mode-aware
+
+  toggleTickerFilter, mode-aware bus sync watcher
+
+  - NewsFeed.spec.js: 16 tests (toggle rendering, settings persistence
+
+  via attrs pattern, filter/select behavior, bus sync)
+
+  * fix(NewsFeed): address Bishop review — select-mode deselect, test gaps, beforeEach cleanup
+
+  Blocking:
+
+  - Select-mode toggle-off was undefined (activeTicker.value never set in
+
+  select mode, so double-click always re-broadcast the ticker). Resolved
+
+  with Option B: add lastBroadcastTicker ref for toggle bookkeeping in
+
+  select mode so double-clicking the same ticker broadcasts null and
+
+  clears linked widgets. Reset on mode change. Add comment explaining
+
+  the design decision.
+
+  Medium:
+
+  - Add test: select mode + no linkColor is a complete no-op (no pill, no
+
+  broadcast)
+
+  - Add test: clicking same ticker twice in select mode broadcasts null
+
+  - Add top-level beforeEach to clear shared activeTickers reactive object
+
+  between tests, preventing state leakage
+
+  Minor:
+
+  - VTU emit workaround comment now includes upstream issue ref and TODO
+
+  version note
+
+  - Add test: other settings preserved when tickerClickMode toggles
+
+- `deeee9a <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/deeee9a>`_ feat(ci): add Codecov coverage badges for frontend and backend (refs #152) (#241)
+
 Version 0.3.0 (2026-04-29)
 ==========================
 
+- `65dc8d1 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/65dc8d1>`_ Version 0.3.0 (2026-04-29)
 - `37e79a5 <https://github.com/kuhl-haus/kuhl-haus-mdp-app/commit/37e79a5>`_ Update widget icons in WidgetMenu.vue
 
   Adjust emoji icons for several widgets in client/src/components/WidgetMenu.vue to improve visual consistency. Changes: top-gainers 📈 → 🔝, top-volume 📊 → 🔝, tv-lite-chart 📊 → 📈. No functional behavior changed.
