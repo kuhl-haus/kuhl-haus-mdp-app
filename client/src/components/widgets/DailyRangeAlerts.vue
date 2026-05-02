@@ -162,6 +162,7 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useConfig }          from '@/composables/useConfig.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { parseShareCount } from '@/utils/parseShareCount.js'
 import { getFlameVariant, getFlameTooltip, newsTimestamps } from '@/composables/useWidgetBus.js'
@@ -176,7 +177,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update-settings', 'update-col-widths'])
 
-const appConfig = window.__APP_CONFIG__ || {}
+const { config: appConfig } = useConfig()
 
 const DEFAULT_SETTINGS = {
   feed:               'hod',
@@ -241,10 +242,11 @@ const enforceMaxEvents = () => {
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 const initFeed = FEED_MAP[config.value.feed] || FEED_MAP.hod
 
-const { lastDataAt, isConnected, reconnecting, feedName, cacheKey, connect, disconnect } =
+const { lastDataAt, isConnected, reconnecting, feedName, cacheKey, connect, disconnect,
+        wsUrl: wsUrlRef, authKey: authKeyRef } =
   useWebSocketClient({
-    wsUrl:    appConfig.wsEndpoint || 'ws://localhost:4202/ws',
-    authKey:  appConfig.apiKey     || 'secret',
+    wsUrl:    appConfig.value?.wsEndpoint || 'ws://localhost:4202/ws',
+    authKey:  appConfig.value?.apiKey     || 'secret',
     feedName: initFeed.feedName,
     cacheKey: initFeed.cacheKey,
     onData: (data) => {
@@ -261,6 +263,16 @@ const { lastDataAt, isConnected, reconnecting, feedName, cacheKey, connect, disc
     },
     autoConnect: true,
   })
+
+// Update WS connection params when config loads asynchronously.
+// autoConnect: true means connect() fires on mount. With the ref-update
+// watcher the composable reconnects with the real endpoint once config loads.
+watch(appConfig, (cfg) => {
+  if (cfg) {
+    wsUrlRef.value   = cfg.wsEndpoint || 'ws://localhost:4202/ws'
+    authKeyRef.value = cfg.apiKey     || 'secret'
+  }
+}, { immediate: true })
 
 defineExpose({ lastDataAt, isConnected, reconnecting })
 

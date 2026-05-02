@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
 
 // ── Mock useWebSocketClient ───────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -43,9 +43,22 @@ vi.mock('@/composables/useWidgetBus.js', async () => {
   }
 })
 
+// ── Mock useConfig ───────────────────────────────────────────────────────────
+vi.mock('@/composables/useConfig.js', async () => {
+  const { ref } = await import('vue')
+  return {
+    useConfig: vi.fn(() => ({
+      config:  ref({ apiKey: 'mock-api-key', wsEndpoint: 'ws://mock:4202/ws', massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })),
+  }
+})
+
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { getFlameVariant } from '@/composables/useWidgetBus.js'
+import { useConfig } from '@/composables/useConfig.js'
 import DailyRangeAlerts from '../DailyRangeAlerts.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
