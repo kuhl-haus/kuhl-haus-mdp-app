@@ -122,8 +122,8 @@ def test_index_with_authenticated_user_expect_personalized_message():
 # app()
 # ---------------------------------------------------------------------------
 
-def test_app_with_authenticated_user_expect_config_returned():
-    """app() returns WDS api_key and ws_endpoint."""
+def test_app_with_authenticated_user_expect_no_api_key_in_context():
+    """app() no longer returns api_key (moved to /api/get_config)."""
     controllers = _import_controllers(
         wds_api_key='app-api-key',
         wds_endpoint='ws://app:4202/ws',
@@ -131,8 +131,25 @@ def test_app_with_authenticated_user_expect_config_returned():
 
     result = controllers.app()
 
-    assert result['api_key'] == 'app-api-key'
-    assert result['ws_endpoint'] == 'ws://app:4202/ws'
+    assert 'api_key' not in result, (
+        "api_key must not be returned by app() -- credentials must not be "
+        "embedded in the HTML response. Use /api/get_config instead."
+    )
+
+
+def test_app_with_authenticated_user_expect_no_ws_endpoint_in_context():
+    """app() no longer returns ws_endpoint (moved to /api/get_config)."""
+    controllers = _import_controllers(
+        wds_api_key='app-api-key',
+        wds_endpoint='ws://app:4202/ws',
+    )
+
+    result = controllers.app()
+
+    assert 'ws_endpoint' not in result, (
+        "ws_endpoint must not be returned by app() -- credentials must not be "
+        "embedded in the HTML response. Use /api/get_config instead."
+    )
 
 
 # ---------------------------------------------------------------------------
