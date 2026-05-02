@@ -195,6 +195,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWidgetBus, setNewsTimestamp } from '@/composables/useWidgetBus.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
+import { useConfig }          from '@/composables/useConfig.js'
 
 const props = defineProps({
   feedName:  { type: String,  default: 'news:feed:latest' },
@@ -216,7 +217,7 @@ const toggleTickerClickMode = () => {
   emit('update-settings', { ...props.settings, tickerClickMode: tickerClickMode.value })
 }
 
-const appConfig   = window.__APP_CONFIG__ || {}
+const { config: appConfig } = useConfig()
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
@@ -307,8 +308,8 @@ onUnmounted(() => document.removeEventListener('keyup', onKeyUp))
 // ── WebSocket ──────────────────────────────────────────────────────────────────
 
 const { lastDataAt, isConnected, reconnecting, getCache, cacheLimit } = useWebSocketClient({
-  wsUrl: appConfig.wsEndpoint || 'ws://localhost:4202/ws',
-  authKey: appConfig.apiKey || 'secret',
+  wsUrl: appConfig.value?.wsEndpoint || 'ws://localhost:4202/ws',
+  authKey: appConfig.value?.apiKey || 'secret',
   feedName: props.feedName,
   cacheKey: props.cacheKey,
   cacheLimit: maxArticles.value,
