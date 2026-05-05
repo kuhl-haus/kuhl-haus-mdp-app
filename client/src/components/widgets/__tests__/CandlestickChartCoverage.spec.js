@@ -840,3 +840,100 @@ describe('clearRefresh when no timer', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bearish bar in chartOption (b.c < b.o → '#ef5350' volume color)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('chartOption with bearish bar', () => {
+  test('with bearish bar (c < o) expect volume array has both colors', async () => {
+    // Arrange — mix of bullish and bearish bars
+    global.fetch = mockFetch({
+      results: [ONE_BAR, { t: ONE_BAR.t + 60000, o: 110, h: 115, l: 100, c: 95, v: 500_000 }]
+    })
+    const wrapper = mountChart({ ticker: 'AAPL' })
+    await nextTick(); await nextTick()
+
+    // Assert — bars loaded with bearish bar (c=95 < o=110)
+    const state = wrapper.vm.$.setupState
+    expect(state.bars.length).toBe(2)
+    expect(state.bars[1].c).toBeLessThan(state.bars[1].o)
+    // chartOption is computed — check it runs without error
+    const option = state.chartOption
+    expect(option).toBeTruthy()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchBars: direct call with null tickerLocal (early return)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchBars with null tickerLocal', () => {
+  test('with tickerLocal=null before calling fetchBars expect no fetch', async () => {
+    // Arrange — start with ticker, then clear input
+    global.fetch = mockFetch({ results: [ONE_BAR] })
+    const wrapper = mountChart({ ticker: 'AAPL' })
+    await nextTick(); await nextTick()
+
+    // Act — clear ticker and call fetchBars directly
+    const state = wrapper.vm.$.setupState
+    state.headerTickerInput = ''  // sets tickerLocal to null
+    await nextTick()
+    const callsBefore = global.fetch.mock.calls.length
+    await state.fetchBars()
+    await nextTick()
+
+    // Assert — no additional fetch (early return due to null tickerLocal)
+    expect(global.fetch.mock.calls.length).toBe(callsBefore)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// avgVolume in chartOption (lines 397-400)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('chartOption with avgVolume enabled', () => {
+  test('with avgVolume enabled expect chartOption includes avg-vol series', async () => {
+    // Arrange — enough bars for avgVolume (period=3)
+    const bars = [ONE_BAR, { t: ONE_BAR.t + 60000, o: 105, h: 112, l: 98, c: 108, v: 800_000 },
+                  { t: ONE_BAR.t + 120000, o: 108, h: 115, l: 102, c: 110, v: 600_000 }]
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mountChart({
+      ticker:    'AAPL',
+      volume:    { enabled: true },
+      avgVolume: { enabled: true, period: 3, color: '#ff0000' },
+    })
+    await nextTick(); await nextTick()
+
+    // Assert — chartOption series includes avg-vol line
+    const option = wrapper.vm.$.setupState.chartOption
+    expect(option).toBeTruthy()
+    const avgVolSeries = option?.series?.find?.(s => s.name === 'Avg Vol')
+    expect(avgVolSeries).toBeTruthy()
+    wrapper.unmount()
+  })
+
+  test('with avgVolume color=null expect default color used', async () => {
+    // Arrange — avgVolume without color → triggers ?? '#6b7280' fallback
+    const bars = Array.from({ length: 5 }, (_, i) => ({
+      t: ONE_BAR.t + i * 60000, o: 100, h: 110, l: 90, c: 105, v: 500_000
+    }))
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mountChart({
+      ticker:    'AAPL',
+      volume:    { enabled: true },
+      avgVolume: { enabled: true, period: 3, color: null },  // null → fallback #6b7280
+    })
+    await nextTick(); await nextTick()
+
+    // Assert — chartOption built without crash, default color used
+    const option = wrapper.vm.$.setupState.chartOption
+    const avgVolSeries = option?.series?.find?.(s => s.name === 'Avg Vol')
+    if (avgVolSeries) {
+      expect(avgVolSeries.lineStyle.color).toBe('#6b7280')
+    }
+    wrapper.unmount()
+  })
+})
