@@ -665,3 +665,52 @@ describe('NewsArticleModal company without companyId', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NewsArticleModal: non-Escape key press → if(e.key==='Escape') FALSE path (line 74)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NewsArticleModal non-Escape key', () => {
+  test('with non-Escape key pressed expect modal stays open', async () => {
+    // Arrange
+    const closeFn = vi.fn()
+    const wrapper = mount(NewsArticleModal, {
+      props: {
+        article: {
+          title: 'Test', link: 'https://example.com',
+          publishDate: '2024-01-01T00:00:00Z', source: 'example.com',
+          sentiment: 'neutral', summary: 'test', images: [], companies: [],
+        },
+      },
+      attrs: { onClose: closeFn },
+      attachTo: document.body,
+    })
+    await nextTick()
+
+    // Act — press a non-Escape key (if(e.key==='Escape') FALSE path)
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowDown' }))
+    await nextTick()
+
+    // Assert — close not called (non-Escape key has no effect)
+    expect(closeFn).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4CompanyCard: allNull with null companyData (line 44)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4CompanyCard allNull with null data', () => {
+  test('with null companyData expect allNull=true', async () => {
+    // Arrange — null companyData (if (!d) return true)
+    const wrapper = mount(EQV4CompanyCard, {
+      props: { companyData: null, loading: false, allNull: false, expanded: false },
+    })
+    await nextTick()
+
+    // Assert — allNull=true when d is null
+    expect(wrapper.vm.$.setupState.allNull).toBe(true)
+    wrapper.unmount()
+  })
+})

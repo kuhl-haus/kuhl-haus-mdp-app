@@ -992,3 +992,30 @@ describe('settings watcher rowClickMode null', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toNullableNum: non-finite input → null (line 594)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toNullableNum with non-finite input', () => {
+  test('with non-numeric string expect toNullableNum returns null', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Act — call toNullableNum directly with non-finite value
+    const result = wrapper.vm.$.setupState.toNullableNum('abc')
+
+    // Assert — non-finite → null (Number.isFinite(NaN) = false)
+    expect(result).toBeNull()
+    wrapper.unmount()
+  })
+})
