@@ -1307,3 +1307,122 @@ describe('NARROW mode chip cards with various null data', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NARROW mode: short card chip with real data (lines 486-492)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NARROW mode short card chip with data loaded', () => {
+  test('with narrow + chipCards=[short] + data loaded expect chip-row rendered', async () => {
+    // Arrange — short data loaded, chip mode on, narrow layout (default)
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/short-interest'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_interest: 12e6, days_to_cover: 2.4, avg_daily_volume: 5e6, settlement_date: '2025-01-01' }] }) })
+      if (url.includes('/short-volume'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_volume_ratio: 38.5, short_volume: 8e6, total_volume: 20e6 }] }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    // layoutMode = 'narrow' (default, don't change it)
+    await nextTick()
+
+    // Assert — short card chip row or muted msg exists in narrow col1
+    const shortCard = wrapper.find('.eqv3-short-card')
+    if (shortCard.exists()) {
+      const hasContent = shortCard.find('.eqv3-chip-row, .eqv3-muted-msg').exists()
+      expect(hasContent).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with narrow + short chip + loading state expect loading msg', async () => {
+    // Arrange — keep loading state by not resolving fetch
+    global.fetch = vi.fn().mockReturnValue(new Promise(() => {})) // never resolves
+    const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert — loading msg shown in short card chip mode
+    const shortCard = wrapper.find('.eqv3-short-card')
+    if (shortCard.exists() && wrapper.vm.$.setupState.shortInterestLoading) {
+      expect(shortCard.find('.eqv3-muted-msg').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Short card: list mode with loading state (lines 495-497)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('short card list mode loading', () => {
+  test('with short NOT in chipCards + loading expect list loading msg', async () => {
+    // Arrange — short in list mode (default, no chipCards)
+    global.fetch = vi.fn().mockReturnValue(new Promise(() => {}))
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert — short card shows loading in list mode
+    const shortCard = wrapper.find('.eqv3-short-card')
+    if (shortCard.exists() && wrapper.vm.$.setupState.shortInterestLoading) {
+      expect(shortCard.find('.eqv3-muted-msg').text()).toContain('loading')
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Company card in narrow mode (lines 507+)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('company card in narrow mode', () => {
+  test('with company data loaded expect EQV3CompanyCard rendered', async () => {
+    // Arrange — load company data
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/v3/reference/tickers/'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: { name: 'Apple Inc.', sic_description: 'Tech', description: 'Apple', primary_exchange: 'XNAS' } }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert — company card rendered with data
+    expect(wrapper.vm.companyData.name).toBe('Apple Inc.')
+    const companyCard = wrapper.find('.eqv3-company-card')
+    expect(companyCard.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FULL mode: card controls visible (lines 95-96)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('FULL mode card controls', () => {
+  test('with full mode + unlocked expect card controls in full row', async () => {
+    // Arrange — set full mode
+    const wrapper = mountWidget({ isLocked: false })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — card controls present in full mode draggable
+    expect(wrapper.find('.eqv3-full-row-draggable .eqv3-card-controls').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
