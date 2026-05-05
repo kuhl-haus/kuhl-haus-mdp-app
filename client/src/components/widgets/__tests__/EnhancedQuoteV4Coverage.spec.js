@@ -1132,3 +1132,46 @@ describe('WS onData callback receives quote message', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchCompany: network error → catch block (line 424)
+// fetchShortData: network error → catch block (line 458)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchCompany and fetchShortData network errors', () => {
+  test('with fetchCompany network error expect catch block runs (line 424)', async () => {
+    // Arrange — fetch THROWS (network error → catch block)
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+    const wrapper = mountWidget()
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await flushPromises()
+    await nextTick()
+
+    // Assert — companyLoading is false (finally block ran)
+    expect(state.companyLoading).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('with fetchShortData network error expect catch block runs (line 458)', async () => {
+    // Arrange — fetch THROWS for short interest data
+    global.fetch = vi.fn().mockRejectedValue(new Error('Short data network error'))
+    const wrapper = mountWidget()
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await flushPromises()
+    await nextTick()
+
+    // Assert — shortInterestLoading is false (finally block ran)
+    expect(state.shortInterestLoading).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// flameIcon: variant=null → if(!variant) return null (line 539)
+// ─────────────────────────────────────────────────────────────────────────────
+
+

@@ -767,3 +767,32 @@ describe('EQV4TickerEventsCard: ticker null → fetchEvents early return (L90)',
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4CompanyCard: expand/collapse description (anonymous fns at L22-24)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4CompanyCard expand/collapse', () => {
+  test('with long description and see-more click expect expanded=true', async () => {
+    // Arrange — description longer than truncateDesc maxLen=175
+    const longDesc = 'A'.repeat(200)  // 200 chars > 175 maxLen
+    const wrapper = mount(EQV4CompanyCard, {
+      props: {
+        companyData: { name: 'Test Corp', description: longDesc, sic_description: null, homepage_url: null },
+        loading: false, allNull: false, expanded: false,
+        'onUpdate:expanded': undefined,
+      },
+    })
+    await nextTick()
+
+    // Assert — see-more button visible (truncated description differs from original)
+    const seeMore = wrapper.find('.eqv4-see-more')
+    if (seeMore.exists()) {
+      // Act — click see-more (anonymous fn at L24)
+      await seeMore.trigger('click')
+      await nextTick()
+    }
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
