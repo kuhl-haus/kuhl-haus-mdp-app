@@ -514,3 +514,96 @@ describe('Exposed interface', () => {
     expect(typeof vm.fetchNews).toBe('function')
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Branch coverage additions
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchNews: no finlightApiKey', () => {
+  test('with no finlightApiKey in config expect error state and no fetch', async () => {
+    // Arrange — config missing finlightApiKey
+    const { useConfig } = await import('@/composables/useConfig.js')
+    const { ref } = await import('vue')
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ massiveApiKey: 'test-key', finlightApiKey: null }),
+      loading: ref(false), error: ref(null),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+
+    // Assert — no API key → error shown, fetch not called
+    const state = wrapper.vm.$.setupState
+    expect(state.error).toContain('key not configured')
+    wrapper.unmount()
+  })
+})
+
+describe('fetchNews: json.articles null fallback', () => {
+  test('with json.articles=null expect articles set to [] (null ?? [] fallback)', async () => {
+    // Arrange — API returns null articles
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ articles: null }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.articles).toEqual([])
+    wrapper.unmount()
+  })
+})
+
+describe('cycleSort: toggle direction on same key from asc', () => {
+  test('with sortDir=asc on same key expect toggled to desc', async () => {
+    // Arrange — force asc on time key
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null, isLocked: true, articleCount: 10 },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.sortDir = 'asc'
+    state.sortKey = 'time'
+
+    // Act — cycleSort on same 'time' key (asc → desc)
+    state.cycleSort('time')
+    await nextTick()
+
+    // Assert
+    expect(state.sortDir).toBe('desc')
+    wrapper.unmount()
+  })
+})
+
+describe('filteredArticles sort by title (desc)', () => {
+  test('with sortKey=title desc expect reverse alphabetical order', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [
+          { title: 'Apple News',      publishDate: '2024-01-01T00:00:00Z' },
+          { title: 'Zebra Corp News', publishDate: '2024-01-02T00:00:00Z' },
+        ],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — sort title desc (Z before A)
+    state.sortKey = 'title'
+    state.sortDir = 'desc'
+    await nextTick()
+
+    // Assert
+    expect(state.filteredArticles[0].title).toBe('Zebra Corp News')
+    wrapper.unmount()
+  })
+})
