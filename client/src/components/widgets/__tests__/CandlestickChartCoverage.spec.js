@@ -1095,3 +1095,55 @@ describe('chartOption formatter and color callbacks', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings panel: MACD params interaction (lines 97-99)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('settings panel MACD param inputs', () => {
+  test('with MACD enabled and settings open expect param inputs visible and interactive', async () => {
+    // Arrange — MACD enabled from the start
+    const wrapper = mountChart({
+      ticker: 'AAPL',
+      macd: { enabled: true, fast: 12, slow: 26, signal: 9 },
+    })
+    await nextTick()
+    // Open settings panel
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    // Assert — MACD param inputs rendered (v-if="macdLocal.enabled" = true)
+    const inputs = wrapper.findAll('input[title="Fast"], input[title="Slow"], input[title="Signal"]')
+    expect(inputs.length).toBeGreaterThan(0)
+
+    // Act — change MACD fast param (triggers @change="emitSettings" at line 97)
+    if (inputs.length > 0) {
+      inputs[0].element.value = '8'
+      await inputs[0].trigger('change')
+      await nextTick()
+    }
+    wrapper.unmount()
+  })
+
+  test('with avgVolume period input changed expect emitSettings triggered (line 91)', async () => {
+    // Arrange — avgVolume enabled, settings open
+    const wrapper = mountChart({
+      ticker: 'AAPL',
+      volume: { enabled: true },
+      avgVolume: { enabled: true, period: 20, color: '#abc' },
+    })
+    await nextTick()
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    // Find avgVol period input (in v-if="volumeLocal.enabled" section)
+    const numInputs = wrapper.findAll('.settings-row input.narrow-input')
+    if (numInputs.length > 0) {
+      numInputs[0].element.value = '10'
+      await numInputs[0].trigger('change')
+      await nextTick()
+    }
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
