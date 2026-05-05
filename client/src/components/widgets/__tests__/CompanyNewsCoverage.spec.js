@@ -1416,3 +1416,36 @@ describe('anonymous input handlers', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews sort desc direction (lines 360, 367 ternary FALSE paths)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews sort with desc direction explicitly verified', () => {
+  test('with title sort desc and av < bv expect ternary returns 1 (desc path)', async () => {
+    // Arrange
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+    onData([
+      makeArticle({ title: 'Apple News', link: 'https://a.com/apple' }),
+      makeArticle({ title: 'Zebra Corp', link: 'https://a.com/zebra' }),
+    ])
+    await nextTick()
+
+    // Force desc title sort (Apple < Zebra, so av < bv when comparing (Apple, Zebra))
+    // With desc: returns 1 (puts Apple AFTER Zebra) → FALSE path of ternary at L360
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'title'
+    state.sortDir = 'desc'
+    await nextTick()
+
+    // Assert — Zebra before Apple (desc order)
+    expect(state.filteredNews[0].title).toBe('Zebra Corp')
+    expect(state.filteredNews[1].title).toBe('Apple News')
+    wrapper.unmount()
+  })
+})

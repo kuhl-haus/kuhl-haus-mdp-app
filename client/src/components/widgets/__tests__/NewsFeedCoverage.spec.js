@@ -1618,3 +1618,61 @@ describe('filteredNews sort by tickers with no US companies', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews tickers sort: equal tickers → return 0 (lines 426-428)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews tickers sort with equal tickers', () => {
+  test('with articles having same US ticker expect sort comparison = 0', async () => {
+    // Arrange — 2 articles with the same first US ticker → av == bv → return 0
+    const wrapper = mountFeed()
+    await nextTick()
+    const a1 = makeArticle({
+      companies: [{ ticker: 'AAPL', primaryListing: { exchangeCode: 'XNAS' } }],
+      link: 'https://ex.com/1', publishDate: '2024-01-01T00:00:00Z',
+    })
+    const a2 = makeArticle({
+      companies: [{ ticker: 'AAPL', primaryListing: { exchangeCode: 'XNAS' } }],
+      link: 'https://ex.com/2', publishDate: '2024-01-02T00:00:00Z',
+    })
+    triggerData([a1, a2])
+    await nextTick()
+
+    // Sort by tickers (equal → comparison = 0 → return 0)
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'tickers'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — 2 articles (equal tickers → return 0 path)
+    expect(state.filteredNews.length).toBe(2)
+    wrapper.unmount()
+  })
+
+  test('with tickers sort and TSLA > AAPL expect aVal > bVal path', async () => {
+    // Arrange — TSLA > AAPL alphabetically
+    const a1 = makeArticle({
+      companies: [{ ticker: 'TSLA', primaryListing: { exchangeCode: 'XNAS' } }],
+      link: 'https://ex.com/t', publishDate: '2024-01-01T00:00:00Z',
+    })
+    const a2 = makeArticle({
+      companies: [{ ticker: 'AAPL', primaryListing: { exchangeCode: 'XNAS' } }],
+      link: 'https://ex.com/a', publishDate: '2024-01-02T00:00:00Z',
+    })
+    const wrapper = mountFeed()
+    await nextTick()
+    triggerData([a1, a2])  // TSLA first
+    await nextTick()
+
+    // Sort asc by tickers — TSLA(av=t) > AAPL(bv=a) when comparing (TSLA, AAPL)
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'tickers'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — AAPL first (asc alphabetical)
+    expect(state.filteredNews[0].companies[0].ticker).toBe('AAPL')
+    wrapper.unmount()
+  })
+})
