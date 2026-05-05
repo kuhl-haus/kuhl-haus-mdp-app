@@ -261,3 +261,39 @@ describe('toggleCol with symbol key', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toNum: non-finite → 0 fallback (line 129)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toNum with non-finite value', () => {
+  test('with toNum(NaN) expect 0 fallback', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+
+    // Act — toNum with non-finite value
+    const result = state.toNum('not-a-number')
+
+    // Assert — NaN → 0 (Number.isFinite=false → ternary FALSE → 0)
+    expect(result).toBe(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TopGainers cond-expr L277: some condition [2, 0] 
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('getRowClass with pct_change >= 100', () => {
+  test('with pct_change >= 100 expect hundred-percent-gainer class', async () => {
+    // Arrange — push event with high pct_change
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+
+    // Assert — getRowClass returns 'hundred-percent-gainer'
+    const cls = state.getRowClass({ pct_change: 150 })
+    expect(cls).toBe('hundred-percent-gainer')
+    wrapper.unmount()
+  })
+})
