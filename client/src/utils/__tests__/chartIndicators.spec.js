@@ -390,3 +390,20 @@ describe('calcVolumeAvg', () => {
     expect(result[3]).toBeCloseTo(300, 5)  // (200+300+400)/3
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// calcVWAP: cumV=0 (bar with zero volume) → vw fallback (line 114)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('calcVWAP cumV=0 fallback', () => {
+  test('with bar having v=0 expect vw used as VWAP (cumV=0 path)', () => {
+    // Arrange — bar with zero volume triggers cumV===0 → use bar.vw
+    const bars = [{ t: 1, o: 100, h: 110, l: 90, c: 105, v: 0, vw: 101.5 }]
+
+    // Act
+    const result = calcVWAP(bars, true)
+
+    // Assert — VWAP for a zero-volume bar falls back to vw
+    expect(result[0]).toBe(101.5)
+  })
+})

@@ -163,3 +163,25 @@ describe('EQV3CompanyCard', () => {
     })
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// eqv3Utils branch coverage
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('eqv3Utils edge cases', () => {
+  test('with truncateUrl(null) expect empty string', async () => {
+    // Arrange — call truncateUrl with null (if (!url) return '' guard)
+    const { truncateUrl } = await import('../eqv3Utils.js')
+    expect(truncateUrl(null)).toBe('')
+    expect(truncateUrl(undefined)).toBe('')
+    expect(truncateUrl('')).toBe('')
+  })
+
+  test('with fmtVol(NaN) expect dash', async () => {
+    // Arrange — call fmtVol with non-finite (if (!isFinite(v)) return '—')
+    const { fmtVol } = await import('../eqv3Utils.js')
+    expect(fmtVol(NaN)).toBe('—')
+    expect(fmtVol(null)).toBe('—')
+    expect(fmtVol(undefined)).toBe('—')
+  })
+})

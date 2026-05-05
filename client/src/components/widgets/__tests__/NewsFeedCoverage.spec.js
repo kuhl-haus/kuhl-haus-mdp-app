@@ -1399,15 +1399,20 @@ describe('modal company without exchangeCode', () => {
 
 describe('cycleSort toggles from asc to desc', () => {
   test('with sortDir=asc and cycleSort on same key expect desc', async () => {
-    // Arrange — force sortDir to asc first
+    // Arrange — load articles and open desktop view so sort header renders
     const wrapper = mountFeed()
     await nextTick()
+    triggerData([makeArticle(), makeArticle({ title: 'Another Article' })])
+    // Apply ticker to render desktop view
+    await nextTick()
     const state = wrapper.vm.$.setupState
-    state.sortKey = 'time'
+
+    // Ensure sortDir=asc, sortKey=time
     state.sortDir = 'asc'
+    state.sortKey = 'time'
     await nextTick()
 
-    // Act — cycle sort on same key (time)
+    // Act — call cycleSort directly (asc→desc on same key)
     state.cycleSort('time')
     await nextTick()
 
