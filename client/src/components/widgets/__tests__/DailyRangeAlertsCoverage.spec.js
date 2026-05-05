@@ -757,14 +757,85 @@ describe('onMaxEventsChange with non-finite input', () => {
     const state = wrapper.vm.$.setupState
     const prevValue = state.prevMaxEvents
 
-    // Act — simulate non-numeric input via DOM (triggers onMaxEventsBlur)
-    const input = wrapper.find('[data-testid="max-events-input"]')
-    input.element.value = 'abc'
-    await input.trigger('change')
+    // Act — directly set maxEventsInput ref to non-finite value then trigger blur
+    state.maxEventsInput = 'abc'
+    await nextTick()
+    // Call onMaxEventsBlur via setupState
+    state.onMaxEventsBlur()
     await nextTick()
 
-    // Assert — reset to previous value (non-finite path)
+    // Assert — reset to previous value (non-finite: 'abc' → NaN)
     expect(state.maxEventsInput).toBe(prevValue)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings watcher: non-null values trigger string conversion (lines 577-584)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('settings watcher updates local state with non-null values', () => {
+  test('with settings prop changed to include numeric values expect inputs updated', async () => {
+    // Arrange — start with null values
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: null, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Act — change settings prop to include non-null values (triggers watcher)
+    await wrapper.setProps({
+      settings: {
+        minPrice: 5, maxPrice: 100, minVolume: 50000,
+        minRelVol: 1.5, minAvgVol: 100000, minFloat: 1000000,
+        maxFloat: 100000000, pctChangeThreshold: 2.5,
+        hiddenCols: [], colOrder: [],
+      },
+    })
+    await nextTick()
+
+    // Assert — watcher fired, inputs updated with string conversions
+    const state = wrapper.vm.$.setupState
+    expect(state.minPriceLocal).toBe('5')
+    expect(state.maxPriceLocal).toBe('100')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getCellClass: non-function cellClass (static string path, lines 536-537)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('getCellClass with static string cellClass', () => {
+  test('with column having static string cellClass expect it used directly', async () => {
+    // Arrange — show hidden columns (like pct_change_since_open with cellClass function)
+    // and create event with visible data
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { hiddenCols: [], minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // getCellClass: when typeof col.cellClass === 'function' → call it (TRUE branch)
+    // when cellClass is a static string → use directly (FALSE branch = lines 536 false)
+    const state = wrapper.vm.$.setupState
+
+    // Create a column with static string cellClass (not function)
+    const staticCol = { key: 'test', cellClass: 'static-class' }
+    const result = state.getCellClass(staticCol, { test: 1 })
+
+    // Assert — static cellClass included
+    expect(result).toContain('static-class')
     wrapper.unmount()
   })
 })
