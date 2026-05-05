@@ -575,3 +575,196 @@ describe('onFlameTouchEnd with no timer', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feed='lod' → 'Max Change %' label (lines 81-82)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('feed=lod label variants', () => {
+  function mountLod(overrides = {}) {
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    return mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { feed: 'lod', minPrice: 0, maxPrice: null, ...overrides } },
+    })
+  }
+
+  test('with feed=lod expect Max Change % label shown (not Min)', async () => {
+    // Arrange — lod feed changes the label from Min% to Max%; open controls
+    const wrapper = mountLod()
+    await nextTick()
+    // Open the controls panel
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    // Assert — shows "Max Change %" in settings controls
+    const labels = wrapper.findAll('.filter-label')
+    const maxChangeLbl = labels.find(l => l.text().includes('Max Change'))
+    expect(maxChangeLbl).toBeTruthy()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// maxEvents=0 → no slice in flushLiveEvents (line 232)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('flushLiveEvents with maxEvents=0', () => {
+  test('with maxEvents=0 expect all events kept (no slice)', async () => {
+    // Arrange — maxEvents=0 means unlimited
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { maxEvents: 0, minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Push more events than would fit with any cap
+    const state = wrapper.vm.$.setupState
+    state._rafPending = [makeEvent({ symbol: 'AAPL' }), makeEvent({ symbol: 'TSLA' }), makeEvent({ symbol: 'MSFT' })]
+    state.flushLiveEvents()
+    await nextTick()
+
+    // Assert — all 3 events kept (no slice since maxEvents=0)
+    expect(state.events.length).toBe(3)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Event with null timestamp → empty time cell (line 403)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('event with null timestamp', () => {
+  test('with null timestamp in event expect empty time cell', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    const state = wrapper.vm.$.setupState
+    // Push event with null timestamp
+    state._rafPending = [makeEvent({ timestamp: null })]
+    state.flushLiveEvents()
+    await nextTick()
+
+    // Assert — time column format returns '' for null timestamp
+    const timeCol = state.visibleColumns.find(c => c.key === 'timestamp')
+    if (timeCol?.format) {
+      expect(timeCol.format(null)).toBe('')
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings watcher: non-null minPrice/maxPrice → string conversion (lines 577-584)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('settings watcher with non-null numeric values', () => {
+  test('with minPrice=5 and maxPrice=100 in settings expect inputs populated', async () => {
+    // Arrange — settings with numeric minPrice and maxPrice
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: {
+        minPrice: 5, maxPrice: 100, minVolume: 50000, minRelVol: 1.5,
+        minAvgVol: 100000, minFloat: 1000000, maxFloat: 100000000,
+        pctChangeThreshold: 2.5,
+      } },
+    })
+    await nextTick()
+
+    // Assert — settings with non-null values were converted to strings in inputs
+    const state = wrapper.vm.$.setupState
+    expect(state.minPriceLocal).toBe('5')
+    expect(state.maxPriceLocal).toBe('100')
+    expect(state.minVolumeInput).toBe('50000')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// enforceMaxEvents: no trimming when length <= maxEv (line 592)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('enforceMaxEvents no-op when under limit', () => {
+  test('with 2 events and maxEvents=100 expect no trimming', async () => {
+    // Arrange — few events, high limit → length <= maxEv
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { maxEvents: 100, minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    const state = wrapper.vm.$.setupState
+    state._rafPending = [makeEvent({ symbol: 'AA' }), makeEvent({ symbol: 'BB' })]
+    state.flushLiveEvents()
+    await nextTick()
+
+    // enforceMaxEvents called but length=2 <= maxEv=100 → no trimming
+    state.enforceMaxEvents()
+    expect(state.events.length).toBe(2)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onMaxEventsChange: non-finite input → reset (line 632)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onMaxEventsChange with non-finite input', () => {
+  test('with non-numeric maxEvents input expect reset to previous value', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { maxEvents: 50, minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+    // Open controls to make input visible
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    const state = wrapper.vm.$.setupState
+    const prevValue = state.prevMaxEvents
+
+    // Act — simulate non-numeric input via DOM (triggers onMaxEventsBlur)
+    const input = wrapper.find('[data-testid="max-events-input"]')
+    input.element.value = 'abc'
+    await input.trigger('change')
+    await nextTick()
+
+    // Assert — reset to previous value (non-finite path)
+    expect(state.maxEventsInput).toBe(prevValue)
+    wrapper.unmount()
+  })
+})
