@@ -18,6 +18,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import * as wsComposable from '@/composables/useWebSocketClient.js'
 
 // ── Same global stubs as existing spec ────────────────────────────────────────
 vi.mock('vue3-grid-layout-next', () => ({
@@ -1027,20 +1028,26 @@ describe('article/filing count change handlers', () => {
 
 describe('WS onData with null data', () => {
   test('with null data expect if(!data) early return', async () => {
-    // Arrange
-    const wrapper = mountWidget()
+    // Spy on useWebSocketClient to capture the onData callback EQV4 passes in.
+    // useWebSocketClient only calls onData when parsed.data is truthy, so the
+    // if(!data) guard in EQV4's onData is only reachable by calling it directly.
+    const spy = vi.spyOn(wsComposable, 'useWebSocketClient')
+
+    const wrapper = mountWidget({ settings: {} })
     await nextTick()
-    const state = ss(wrapper)
-    state.manualTicker = 'AAPL'
+    wrapper.vm.manualTicker = 'AAPL'
     await nextTick()
-    
-    // The onData callback is internal — access via setupState
-    // Test: quoteData stays null when null data is passed
-    state.quoteData = null
-    
-    // This exercises the if(!data || ...) guard in onData (line 473)
-    // Can't call onData directly, but verify quoteData stays null when data is null
-    expect(state.quoteData).toBeNull()
+
+    // Extract the onData callback from the component's useWebSocketClient call
+    const capturedOnData = spy.mock.calls.at(-1)?.[0]?.onData
+    spy.mockRestore()
+
+    // Act — call onData(null) directly: exercises if(!data) → early return
+    capturedOnData?.(null)
+    await nextTick()
+
+    // Assert — quoteData not updated (null data filtered)
+    expect(wrapper.vm.quoteData).toBeNull()
     wrapper.unmount()
   })
 })
