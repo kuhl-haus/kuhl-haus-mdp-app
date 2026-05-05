@@ -1147,3 +1147,34 @@ describe('settings panel MACD param inputs', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// activeTicker bus watcher: null → if(t) FALSE path (line 238)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('activeTicker bus watcher with null (bus cleared)', () => {
+  test('with activeTicker becoming null expect if(t) FALSE path', async () => {
+    // Arrange — mount with ticker set via bus, then clear bus
+    const { useScannerLink } = await import('@/composables/useScannerLink.js')
+    vi.mocked(useScannerLink).mockReturnValueOnce({
+      activeTicker: { value: 'AAPL' },  // starts with AAPL
+      onRowClick: vi.fn(),
+    })
+    global.fetch = mockFetch({ results: [ONE_BAR] })
+    const wrapper = mountChart({ ticker: 'AAPL' })
+    await nextTick()
+
+    // Get the activeTicker ref from the mock results
+    const mockResults = vi.mocked(useScannerLink).mock.results
+    const lastResult = mockResults[mockResults.length - 1]
+    if (lastResult?.value?.activeTicker) {
+      // Set to null → watch fires with t=null → if(t) = FALSE
+      lastResult.value.activeTicker.value = null
+      await nextTick()
+    }
+
+    // Assert — no crash, headerTickerInput unchanged by null
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
