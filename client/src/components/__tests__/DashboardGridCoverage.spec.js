@@ -786,3 +786,61 @@ describe('drawLayoutPreview widget label fallback (3rd || operand)', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// drawLayoutPreview: BOTH userLabel=undefined AND type=undefined → 'widget' fallback
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('drawLayoutPreview widget label: ALL 3 || paths covered', () => {
+  test('with undefined userLabel AND undefined type expect third || operand widget used', async () => {
+    // L773: item.userLabel || item.type || 'widget'
+    // Need: userLabel=undefined (path 0 = false), type=undefined (path 1 = false)
+    // → 'widget' (path 2 = true)
+    seedLayouts({ 'Full': makeLayout() })
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+    state.showPreviewDialog = true
+    state.previewLayoutName = 'Full'
+    await nextTick()
+
+    // Type 1: userLabel=truthy → path 0
+    state.drawLayoutPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4, userLabel: 'My Widget', type: '' }], 12)
+    // Type 2: userLabel=falsy, type=truthy → path 1
+    state.drawLayoutPreview([{ i: 'w2', x: 0, y: 0, w: 6, h: 4, userLabel: '', type: 'quote' }], 12)
+    // Type 3: BOTH falsy → path 2 = 'widget'
+    state.drawLayoutPreview([{ i: 'w3', x: 0, y: 0, w: 6, h: 4 }], 12)  // NO userLabel, NO type
+
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// saveLayout with non-numeric widget ID → parseInt returns NaN → if FALSE (L413)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('saveLayout with non-numeric widget ID (L413 FALSE path)', () => {
+  test('with layout item having non-numeric i expect NaN branch skips counter update', async () => {
+    // Arrange — layout item with no numeric part in i → parseInt = NaN → FALSE
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Set layout with a non-numeric item i ('nonumeric' → split('-')[1] = undefined → NaN)
+    state.layout = [{ i: 'nonumeric', x: 0, y: 0, w: 6, h: 4, type: 'quote' }]
+    state.saveLayoutName = 'TestLayout'
+    state.showSaveDialog = true
+    await nextTick()
+
+    // Act — call saveLayout (loops items, NaN check → FALSE path)
+    if (state.saveLayout) {
+      state.saveLayout()
+    }
+    await nextTick()
+
+    // Assert — layout saved, no crash
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

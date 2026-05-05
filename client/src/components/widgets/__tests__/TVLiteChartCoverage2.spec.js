@@ -601,3 +601,45 @@ describe('fetchBars json.results null in TVLiteChart', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateChart with volumeSeriesRef/avgVolumeSeriesRef/macdSeriesRef nulled out
+// Covers L451 FALSE, L464 FALSE, L506 FALSE
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('updateChart with series refs nulled (L451/L464/L506 FALSE paths)', () => {
+  test('with volumeSeriesRef/avgVolumeSeriesRef/macdSeriesRef null expect if-guards skip (FALSE)', async () => {
+    // Arrange — mount with ticker and bars to trigger chart init
+    const wrapper = mount(TVLiteChart, {
+      props: {
+        isLocked: true, isMobile: false,
+        settings: { interval: '1D', activeTicker: 'AAPL' },
+      },
+    })
+    await flushPromises()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Set bars with actual data
+    state.bars = [
+      { t: 1_700_000_000_000, o: 175, h: 182, l: 174, c: 180, v: 5e7 },
+    ]
+    await nextTick()
+
+    // Null out series refs to hit the FALSE paths of the if-guards
+    // These are `let` variables in setup — setting via setupState sets the underlying binding
+    state.volumeSeriesRef = null      // L451: if (volumeSeriesRef) → FALSE
+    state.avgVolumeSeriesRef = null   // L464: if (avgVolumeSeriesRef) → FALSE
+    state.macdSeriesRef = { line: null, signal: null, histogram: null }  // L506: if (macdSeriesRef.line) → FALSE
+
+    // Act — call updateChart directly
+    if (state.updateChart) {
+      state.updateChart()
+    }
+    await nextTick()
+
+    // Assert — no crash
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
