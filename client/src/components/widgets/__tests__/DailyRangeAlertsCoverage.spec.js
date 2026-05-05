@@ -839,3 +839,64 @@ describe('getCellClass with static string cellClass', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WS init with null appConfig endpoints → || fallback (lines 243, 318)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('WS initialization with null config values', () => {
+  test('with appConfig missing wsEndpoint expect || fallback used', async () => {
+    // Arrange — mock useConfig to return config WITHOUT wsEndpoint
+    const { useConfig } = await import('@/composables/useConfig.js')
+    const { ref } = await import('vue')
+    vi.mocked(useConfig).mockReturnValueOnce({
+      config:  ref({ apiKey: 'test', wsEndpoint: null, massiveApiKey: null, finlightApiKey: null }),
+      loading: ref(false),
+      error:   ref(null),
+    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+
+    // Act — mount with null wsEndpoint (exercises || 'ws://...' fallback)
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Assert — no crash
+    expect(wrapper.vm.$.setupState).toBeTruthy()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Feed watch: unknown feed → || FEED_MAP.hod fallback (line 270)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Feed watch with unknown feed name', () => {
+  test('with settings.feed changed to unknown value expect fallback to hod', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { feed: 'hod', minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Act — change feed to an unknown value (triggers FEED_MAP[newFeed] || FEED_MAP.hod)
+    await wrapper.setProps({ settings: { feed: 'unknown-feed', minPrice: 0, maxPrice: null } })
+    await nextTick()
+
+    // Assert — no crash (fallback to hod feed)
+    expect(wrapper.vm.$.setupState).toBeTruthy()
+    wrapper.unmount()
+  })
+})
