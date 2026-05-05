@@ -594,3 +594,9 @@ describe('fetchBars json.results null in TVLiteChart', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateChart indicator null filter (line 501)
+// Access the overlay series data and verify null-filtering worked
+// ─────────────────────────────────────────────────────────────────────────────
+

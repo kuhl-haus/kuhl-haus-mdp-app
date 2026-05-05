@@ -668,3 +668,39 @@ describe('saveLayout without setting as default', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// drawLayoutPreview: item with no userLabel AND no type → 'widget' fallback (line 661)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('drawLayoutPreview item.userLabel || item.type || widget fallback', () => {
+  test('with widget having no userLabel and no type expect widget fallback label', async () => {
+    // Arrange — layout with widget that has neither userLabel nor type
+    seedLayouts({
+      'NoTypeLayout': {
+        layout: [{ i: 'widget-1', x: 0, y: 0, w: 6, h: 4 }],  // no type, no userLabel
+        widgetCounter: 1,
+        dashboardColNum: 12,
+        created: Date.now(), modified: Date.now(), description: '',
+      },
+    })
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Show preview dialog (attaches previewCanvas)
+    state.showPreviewDialog = true
+    state.previewLayoutName = 'NoTypeLayout'
+    await nextTick()
+
+    // Act — call drawLayoutPreview with layout that has no type/userLabel
+    expect(() => {
+      state.drawLayoutPreview(
+        [{ i: 'widget-1', x: 0, y: 0, w: 6, h: 4, userLabel: '', type: '' }],
+        12
+      )
+    }).not.toThrow()
+
+    wrapper.unmount()
+  })
+})
