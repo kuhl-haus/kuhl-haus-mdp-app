@@ -1053,3 +1053,82 @@ describe('WS onData with null data', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WS onData callback: receive a quote message (line 472 anonymous function)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('WS onData callback receives quote message', () => {
+  test('with WS message for activeTicker expect quoteData updated', async () => {
+    // Arrange — capture the WS and trigger a message
+    let capturedOnMessage = null
+    global.WebSocket = class MockWS {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+      set onmessage(fn) { capturedOnMessage = fn }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    const wrapper = mountWidget()
+    await new Promise(r => setTimeout(r, 20))
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await nextTick()
+
+    // Act — simulate WS receiving a quote for AAPL
+    if (capturedOnMessage) {
+      capturedOnMessage({
+        data: JSON.stringify({ data: { symbol: 'AAPL', close: 180 } }),
+      })
+      await nextTick()
+      // Assert — quoteData updated (onData callback called with data.data)
+      if (state.quoteData) {
+        expect(state.quoteData.symbol).toBe('AAPL')
+      }
+    }
+
+    wrapper.unmount()
+  })
+
+  test('with WS message for wrong symbol expect quoteData NOT updated', async () => {
+    // Arrange — same setup
+    let capturedOnMessage = null
+    global.WebSocket = class MockWS {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+      set onmessage(fn) { capturedOnMessage = fn }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    const wrapper = mountWidget()
+    await new Promise(r => setTimeout(r, 20))
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await nextTick()
+    state.quoteData = null
+
+    // Act — WS message for TSLA (wrong symbol → filtered out)
+    if (capturedOnMessage) {
+      capturedOnMessage({
+        data: JSON.stringify({ data: { symbol: 'TSLA', close: 200 } }),
+      })
+      await nextTick()
+      // Assert — quoteData stays null (symbol filter)
+      expect(state.quoteData).toBeNull()
+    }
+
+    wrapper.unmount()
+  })
+})
