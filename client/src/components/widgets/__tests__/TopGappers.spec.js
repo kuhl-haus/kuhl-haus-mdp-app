@@ -39,6 +39,22 @@ import TopGappers from '../TopGappers.vue'
 
 const defaultProps = { isLocked: true, linkColor: null, isMobile: false, settings: {} }
 
+const makeWsMock = () => ({
+  lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
+  feedName:     ref(''), cacheKey:     ref(''),
+  wsUrl:        ref('ws://localhost:4202/ws'), authKey:      ref('secret'),
+  connect:      vi.fn(), disconnect:   vi.fn(),
+  subscribe:    vi.fn(), unsubscribe:  vi.fn(),
+  getCache:     vi.fn(), cacheLimit:   ref(1000),
+})
+
+function makeRow(overrides = {}) {
+  return { symbol: 'X', close: 5, change: 1, pct_change: 20, pct_change_since_open: 15,
+    accumulated_volume: 200_000, relative_volume: 7, free_float: 500_000,
+    avg_volume: 50_000, prev_day_volume: 100_000, official_open_price: 4,
+    prev_day_close: 4, aggregate_vwap: 4.5, prev_day_vwap: 4, ...overrides }
+}
+
 describe('useConfig integration', () => {
   beforeEach(() => { vi.mocked(useWebSocketClient).mockClear(); vi.mocked(useConfig).mockClear() })
 
@@ -69,6 +85,119 @@ describe('useConfig integration', () => {
     const w = mount(TopGappers, { props: defaultProps })
     // Assert
     expect(vi.mocked(useWebSocketClient).mock.calls[0][0].wsUrl).toBe('ws://localhost:4202/ws')
+    w.unmount()
+  })
+})
+
+describe('filteredData and getRowClass', () => {
+  beforeEach(() => { vi.mocked(useWebSocketClient).mockClear() })
+
+  async function mountWithData(data, settings = {}) {
+    const def = { volumeThreshold: '0', relVolumeThreshold: '0', minPriceThreshold: 0, maxPriceThreshold: 1000000000, minChangePercent: 0, hiddenCols: [] }
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const w = mount(TopGappers, { props: { ...defaultProps, settings: { ...def, ...settings } } })
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    onData(data)
+    await w.vm.$nextTick()
+    return w
+  }
+
+  test('with empty data expect no rows', async () => {
+    const w = await mountWithData([])
+    expect(w.findAll('tbody tr').length).toBe(0)
+    w.unmount()
+  })
+
+  test('with data passing filters expect rows rendered', async () => {
+    const w = await mountWithData([makeRow()])
+    expect(w.findAll('tbody tr').length).toBe(1)
+    w.unmount()
+  })
+
+  test('with pct_change >= 100 expect hundred-percent-gainer class', async () => {
+    const w = await mountWithData([makeRow({ pct_change: 100 })])
+    expect(w.find('tbody tr').classes('hundred-percent-gainer')).toBe(true)
+    w.unmount()
+  })
+
+  test('with pct_change in 50-99 expect fifty-percent-gainer class', async () => {
+    const w = await mountWithData([makeRow({ pct_change: 60 })])
+    expect(w.find('tbody tr').classes('fifty-percent-gainer')).toBe(true)
+    w.unmount()
+  })
+
+  test('with pct_change in 20-49 expect twenty-percent-gainer class', async () => {
+    const w = await mountWithData([makeRow({ pct_change: 25 })])
+    expect(w.find('tbody tr').classes('twenty-percent-gainer')).toBe(true)
+    w.unmount()
+  })
+
+  test('with pct_change in 10-19 expect ten-percent-gainer class', async () => {
+    const w = await mountWithData([makeRow({ pct_change: 12 })])
+    expect(w.find('tbody tr').classes('ten-percent-gainer')).toBe(true)
+    w.unmount()
+  })
+
+  test('with update-settings emit expect emitted when filters change', async () => {
+    const calls = []
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const w = mount(TopGappers, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': (s) => calls.push(s) },
+    })
+    await w.findAll('select')[0].setValue('250')
+    await w.vm.$nextTick()
+    expect(calls.length).toBeGreaterThan(0)
+    w.unmount()
+  })
+})
+
+
+// ── column format / cellClass coverage ───────────────────────────────────────
+
+describe('column format and cellClass', () => {
+  beforeEach(() => { vi.mocked(useWebSocketClient).mockClear() })
+
+  async function mountWithAllData(data) {
+    const settings = { volumeThreshold: '0', relVolumeThreshold: '0', minPriceThreshold: 0,
+                       maxPriceThreshold: 1000000000, minChangePercent: 0, hiddenCols: [] }
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const w = mount(TopGappers, { props: { ...defaultProps, settings } })
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    onData(data)
+    await w.vm.$nextTick()
+    return w
+  }
+
+  test('with negative pct_change expect negative cellClass in table', async () => {
+    const data = [makeRow({ pct_change: -5, change: -0.25, pct_change_since_open: -3 })]
+    const w = await mountWithAllData(data)
+    const tds = w.findAll('td')
+    expect(tds.some(td => td.classes('negative'))).toBe(true)
+    w.unmount()
+  })
+
+  test('with relative_volume below 2 expect normal relVol class', async () => {
+    const data = [makeRow({ relative_volume: 1.5, pct_change: 5, pct_change_since_open: 3 })]
+    const w = await mountWithAllData(data)
+    const relVolTds = w.findAll('td.relative_volume')
+    expect(relVolTds.some(td => td.classes('normal'))).toBe(true)
+    w.unmount()
+  })
+
+  test('with relative_volume = 2.5 expect medium relVol class', async () => {
+    const data = [makeRow({ relative_volume: 2.5, pct_change: 5, pct_change_since_open: 3 })]
+    const w = await mountWithAllData(data)
+    const relVolTds = w.findAll('td.relative_volume')
+    expect(relVolTds.some(td => td.classes('medium'))).toBe(true)
+    w.unmount()
+  })
+
+  test('with relative_volume = 4 expect high relVol class', async () => {
+    const data = [makeRow({ relative_volume: 4, pct_change: 5, pct_change_since_open: 3 })]
+    const w = await mountWithAllData(data)
+    const relVolTds = w.findAll('td.relative_volume')
+    expect(relVolTds.some(td => td.classes('high'))).toBe(true)
     w.unmount()
   })
 })

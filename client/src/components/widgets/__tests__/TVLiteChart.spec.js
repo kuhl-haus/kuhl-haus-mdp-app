@@ -572,3 +572,47 @@ describe('ET timezone in chart localization', () => {
     wrapper.unmount()
   })
 })
+
+// ── tickMarkFormatter coverage for all markType branches ─────────────────────
+
+describe('tickMarkFormatter all markType branches', () => {
+  // 1705329000 = 2024-01-15 14:30:00 UTC = 09:30 EST
+  const WINTER_TIMESTAMP = 1705329000
+
+  test('with markType 4 (TimeWithSeconds) expect time format returned', () => {
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+    // markType 4 also triggers the >=3 branch
+    const result = timeScale.tickMarkFormatter(WINTER_TIMESTAMP, 4)
+    expect(result).toMatch(/[0-9]{2}:[0-9]{2}/)
+    wrapper.unmount()
+  })
+
+  test('with markType 2 (DayOfMonth) expect month/day format returned', () => {
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+    const result = timeScale.tickMarkFormatter(WINTER_TIMESTAMP, 2)
+    // Should contain month/day (01/15 for Jan 15 in ET)
+    expect(result).toMatch(/[0-9]{2}\/[0-9]{2}/)
+    wrapper.unmount()
+  })
+
+  test('with markType 1 (Month) expect month abbreviation returned', () => {
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+    const result = timeScale.tickMarkFormatter(WINTER_TIMESTAMP, 1)
+    // Should be a short month name like "Jan"
+    expect(result.length).toBeGreaterThan(0)
+    expect(result.length).toBeLessThan(6)
+    wrapper.unmount()
+  })
+
+  test('with markType 0 (Year) expect year format returned', () => {
+    const wrapper = mount(TVLiteChart, { props: defaultProps })
+    const timeScale = vi.mocked(createChart).mock.calls[0]?.[1]?.timeScale
+    const result = timeScale.tickMarkFormatter(WINTER_TIMESTAMP, 0)
+    // Should contain a year like "2024"
+    expect(result).toMatch(/202[0-9]/)
+    wrapper.unmount()
+  })
+})

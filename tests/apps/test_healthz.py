@@ -96,3 +96,23 @@ def test_healthz_index_with_all_env_vars_expect_all_reflected(monkeypatch):
     assert result['image_version'] == '2.0.0'
     assert result['container_image'] == 'ghcr.io/kuhl-haus/kuhl-haus-mdp-app:2.0.0'
     assert 'version' in result  # py4web version — present but value not asserted
+
+
+def test_healthz_index_with_importlib_exception_expect_unknown_version(monkeypatch):
+    """When importlib.metadata.version() raises, __version__ becomes 'Unknown'."""
+    from unittest.mock import patch
+
+    # Arrange — load healthz fresh to pick up the patched importlib
+    for mod in list(sys.modules.keys()):
+        if 'healthz' in mod:
+            del sys.modules[mod]
+
+    # Act — patch importlib.metadata.version to raise at import time
+    with patch('importlib.metadata.version', side_effect=Exception('py4web not installed')):
+        import apps.healthz as healthz
+
+    result = healthz.page()
+
+    # Assert — version is 'Unknown' but the endpoint still works
+    assert result['status'] == 'OK'
+    assert result['version'] == 'Unknown'

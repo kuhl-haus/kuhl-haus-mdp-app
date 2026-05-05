@@ -72,6 +72,13 @@ version = { source = "scm" }
 package-dir = "src"
 includes = ["src/kuhl_haus"]
 
+[tool.coverage.run]
+omit = [
+    "apps/_dashboard/*",
+    "apps/_default/common.py",
+    "apps/_default/settings.py",
+]
+
 [tool.pytest.ini_options]
 addopts = ["--verbose"]
 norecursedirs = ["dist", "build", ".tox"]
