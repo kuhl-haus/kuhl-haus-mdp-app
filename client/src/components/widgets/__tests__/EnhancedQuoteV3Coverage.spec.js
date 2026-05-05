@@ -2264,3 +2264,46 @@ describe('session chip rendering with partial data', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// floatShares: quoteData.free_float=null + no share_class → null (line 970)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('floatShares with both free_float and share_class null', () => {
+  test('with both free_float and share_class null expect floatShares=null', async () => {
+    // Arrange — both null → floatShares = null ?? null = null
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...SAMPLE_QUOTE,
+      free_float: null,
+      share_class_shares_outstanding: null,  // both null
+    }
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.floatShares).toBeNull()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// dataAge: quoteData.end_timestamp present (non-null) → shows formatted date (L928)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('dataAge with valid end_timestamp', () => {
+  test('with end_timestamp set expect dataAge shows formatted date', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE, end_timestamp: Date.now() }
+    await nextTick()
+
+    // Assert — dataAge returns formatted string (not '—')
+    const age = wrapper.vm.$.setupState.dataAge
+    expect(age).not.toBe('—')
+    wrapper.unmount()
+  })
+})

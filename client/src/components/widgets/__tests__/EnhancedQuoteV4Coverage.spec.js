@@ -961,3 +961,35 @@ describe('fetchCompany with null results', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchShortData: json.results?.[0] when results is empty array (line ~850)
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchCompany: branding with logo_url=null expect logoUrl=null (line ~834)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchCompany branding logo_url=null', () => {
+  test('with branding.logo_url=null expect logoUrl=null', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        results: { name: 'Corp', branding: { logo_url: null, icon_url: null } },
+      }),
+    })
+    const wrapper = mountWidget()
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await flushPromises()
+    await nextTick()
+
+    // Assert — branding present but null → logoUrl=null
+    expect(state.logoUrl).toBeNull()
+    wrapper.unmount()
+  })
+})
