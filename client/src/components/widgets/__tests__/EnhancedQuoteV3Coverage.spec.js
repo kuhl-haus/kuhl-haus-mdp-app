@@ -1580,3 +1580,282 @@ describe('descExpanded via company card', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Computed edge cases: changeClass / relVolClass / floatShares / rvBar with
+// quoteData=null or extreme relative_volume values
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computed branches: quoteData null and rv thresholds', () => {
+  const Q = {
+    symbol: 'AAPL', close: 180, change: 2, pct_change: 1.1,
+    pct_change_since_open: 0.5, change_since_open: 0.9,
+    end_timestamp: Date.now(),
+    pre_market_high: 181, pre_market_low: 179,
+    regular_session_high: 182, regular_session_low: 178,
+    after_hours_high: 180.5, after_hours_low: 179.5,
+    official_open_price: 179, aggregate_vwap: 180.2,
+    accumulated_volume: 10_000_000, relative_volume: 1.0, avg_volume: 10_000_000,
+    free_float: 500_000_000,
+    prev_day_open: 177, prev_day_high: 183, prev_day_low: 176,
+    prev_day_close: 177.5, prev_day_volume: 9_000_000, prev_day_vwap: 178,
+    splits: [],
+  }
+
+  test('with quoteData=null expect changeClass, relVolClass, floatShares return empty/null', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    // Explicitly null quoteData
+    wrapper.vm.quoteData = null
+    await nextTick()
+
+    // Assert — all null-guard paths return empty/null
+    const s = wrapper.vm.$.setupState
+    expect(s.changeClass).toBe('')
+    expect(s.relVolClass).toBe('')
+    expect(s.floatShares).toBeNull()
+    wrapper.unmount()
+  })
+
+  test('with relative_volume >= 5 expect relVolClass=extreme and rvBarColor=red', async () => {
+    // Arrange — extreme volume
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...Q, relative_volume: 5.5 }
+    await nextTick()
+
+    // Assert — extreme class, red bar color
+    const s = wrapper.vm.$.setupState
+    expect(s.relVolClass).toBe('extreme')
+    expect(s.rvBarColor).toBe('#dc2626')
+    wrapper.unmount()
+  })
+
+  test('with relative_volume >= 3 expect relVolClass=high and rvBarColor=orange', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...Q, relative_volume: 3.5 }
+    await nextTick()
+
+    // Assert
+    const s = wrapper.vm.$.setupState
+    expect(s.relVolClass).toBe('high')
+    expect(s.rvBarColor).toBe('#f97316')
+    wrapper.unmount()
+  })
+
+  test('with relative_volume >= 2 expect relVolClass=medium and rvBarColor=yellow', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...Q, relative_volume: 2.5 }
+    await nextTick()
+
+    // Assert
+    const s = wrapper.vm.$.setupState
+    expect(s.relVolClass).toBe('medium')
+    expect(s.rvBarColor).toBe('#eab308')
+    wrapper.unmount()
+  })
+
+  test('with rvBarWidth: non-finite relative_volume expect 0%', async () => {
+    // Arrange — non-finite rv (null/NaN)
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...Q, relative_volume: null }
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.rvBarWidth).toBe('0%')
+    wrapper.unmount()
+  })
+
+  test('with rvBarColor: non-finite relative_volume expect default green', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...Q, relative_volume: null }
+    await nextTick()
+
+    // Assert — default green
+    expect(wrapper.vm.$.setupState.rvBarColor).toBe('#22c55e')
+    wrapper.unmount()
+  })
+
+  test('with free_float=null expect floatShares falls back to share_class_shares_outstanding', async () => {
+    // Arrange — no free_float, has share_class_shares_outstanding
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...Q, free_float: null, share_class_shares_outstanding: 1_000_000 }
+    await nextTick()
+
+    // Assert — uses share_class fallback
+    expect(wrapper.vm.$.setupState.floatShares).toBe(1_000_000)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchCompany: resp.ok=false + branding absent
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchCompany edge cases', () => {
+  test('with company fetch resp.ok=false expect companyData stays empty', async () => {
+    // Arrange — HTTP error response
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404, json: vi.fn() })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+
+    // Assert — companyData not populated (resp.ok=false guard triggered)
+    const s = wrapper.vm.$.setupState
+    expect(s.companyData).toEqual({})
+    expect(s.logoUrl).toBeNull()
+    wrapper.unmount()
+  })
+
+  test('with company results missing branding expect logoUrl and iconUrl null', async () => {
+    // Arrange — company data without branding field
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        results: { name: 'Apple Inc.', sic_description: 'Tech' },
+        // no branding field
+      }),
+    })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+
+    // Assert — logo and icon fall back to null
+    const s = wrapper.vm.$.setupState
+    expect(s.logoUrl).toBeNull()
+    expect(s.iconUrl).toBeNull()
+    expect(s.companyData.name).toBe('Apple Inc.')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// allShortNull with partial data (not all fields null)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('allShortNull with partial short data', () => {
+  test('with short_interest set but others null expect allShortNull=false', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    const s = wrapper.vm.$.setupState
+    s.shortInterestData = { short_interest: 5_000_000, days_to_cover: null, short_volume_ratio: null }
+    await nextTick()
+
+    // Assert — at least one field set → not all null
+    expect(s.allShortNull).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('with all short fields null expect allShortNull=true', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    const s = wrapper.vm.$.setupState
+    s.shortInterestData = { short_interest: null, days_to_cover: null, short_volume_ratio: null }
+    await nextTick()
+
+    // Assert
+    expect(s.allShortNull).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// allCompanyNull with partial data
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('allCompanyNull with partial company data', () => {
+  test('with name set expect allCompanyNull=false', async () => {
+    // Arrange — use a fetch that returns a company with a name
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ results: { name: 'Tesla', sic_description: null } }),
+    })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+
+    // Assert — name is set, allCompanyNull=false
+    expect(wrapper.vm.$.setupState.allCompanyNull).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Narrow col1: prev chip and short chip rendered (lines 519-537)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('narrow col1 chip cards prev and short', () => {
+  const FULL_Q = {
+    symbol: 'AAPL', close: 180, change: 2, pct_change: 1.1,
+    pct_change_since_open: 0.5, change_since_open: 0.9,
+    end_timestamp: Date.now(),
+    pre_market_high: 181, pre_market_low: 179,
+    regular_session_high: 182, regular_session_low: 178,
+    after_hours_high: 180.5, after_hours_low: 179.5,
+    official_open_price: 179, aggregate_vwap: 180.2,
+    accumulated_volume: 10_000_000, relative_volume: 1.5, avg_volume: 7_000_000,
+    free_float: 500_000_000,
+    prev_day_open: 177, prev_day_high: 183, prev_day_low: 176,
+    prev_day_close: 177.5, prev_day_volume: 9_000_000, prev_day_vwap: 178,
+    splits: [],
+  }
+
+  test('with chipCards=[prev] in narrow mode expect eqv3-chip-row in prev card', async () => {
+    // Arrange — default narrow, prev card in chip mode
+    const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_Q }
+    await nextTick()
+
+    // Assert — prev card chips visible
+    const chips = wrapper.findAll('.eqv3-chip')
+    expect(chips.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  test('with chipCards=[short] + real short data in narrow mode expect chip-row or muted', async () => {
+    // Arrange — short card in chip mode, data loaded
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/short-interest'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_interest: 5e6, days_to_cover: 2, avg_daily_volume: 2e6, settlement_date: '2025-01-01' }] }) })
+      if (url.includes('/short-volume'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_volume_ratio: 35, short_volume: 4e6, total_volume: 12e6 }] }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_Q }
+    await nextTick()
+
+    // Assert — short card has some content
+    const shortCard = wrapper.find('.eqv3-short-card')
+    expect(shortCard.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
