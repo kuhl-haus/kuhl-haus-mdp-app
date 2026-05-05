@@ -1342,7 +1342,7 @@ describe('modal company ticker active class', () => {
 describe('modal with no source article', () => {
   test('with selected article having no source expect modal-source href=#', async () => {
     // Arrange — open modal with sourceless article
-    const wrapper = mountFeed({}, document.body)
+    const wrapper = mountFeedWithModal()
     await nextTick()
     const noSourceArticle = {
       ...makeArticle(),
@@ -1372,7 +1372,7 @@ describe('modal with no source article', () => {
 describe('modal company without exchangeCode', () => {
   test('with company having no primaryListing expect no crash and company rendered', async () => {
     // Arrange
-    const wrapper = mountFeed({}, document.body)
+    const wrapper = mountFeedWithModal()
     await nextTick()
     const article = {
       ...makeArticle(),
@@ -1516,7 +1516,7 @@ describe('filteredNews with active search filter', () => {
 describe('modal ticker click for US company', () => {
   test('with US company ticker click expect toggleTickerFilter called', async () => {
     // Arrange — open modal with US company
-    const wrapper = mountFeed({}, document.body)
+    const wrapper = mountFeedWithModal()
     await nextTick()
     const article = {
       ...makeArticle(),
@@ -1549,7 +1549,7 @@ describe('modal ticker click for US company', () => {
 describe('modal company without companyId', () => {
   test('with company missing companyId expect ticker used as fallback key', async () => {
     // Arrange — company without companyId (co.companyId || co.ticker uses ticker)
-    const wrapper = mountFeed({}, document.body)
+    const wrapper = mountFeedWithModal()
     await nextTick()
     const article = {
       ...makeArticle(),
@@ -1684,7 +1684,7 @@ describe('filteredNews tickers sort with equal tickers', () => {
 describe('modal image error handler', () => {
   test('with image load error expect image hidden (anonymous fn at L142)', async () => {
     // Arrange — open modal with article that has an image
-    const wrapper = mountFeed({}, document.body)
+    const wrapper = mountFeedWithModal()
     await nextTick()
     const article = makeArticle({
       images: ['https://example.com/image.jpg'],
@@ -1708,7 +1708,7 @@ describe('modal image error handler', () => {
 
   test('with modal backdrop click expect modal closed (line 131)', async () => {
     // Arrange
-    const wrapper = mountFeed({}, document.body)
+    const wrapper = mountFeedWithModal()
     await nextTick()
     triggerData([makeArticle()])
     await nextTick()
