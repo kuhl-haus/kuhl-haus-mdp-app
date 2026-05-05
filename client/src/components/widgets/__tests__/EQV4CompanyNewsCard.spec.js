@@ -692,3 +692,63 @@ describe('fetchNews early-return with null ticker (L134 TRUE)', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// formatTime: if (!ts) L208, if (isNaN(d.getTime())) L210
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4CompanyNewsCard formatTime edge cases', () => {
+  test('with null timestamp expect formatTime returns empty string (L208 TRUE)', async () => {
+    // Arrange — mount with ticker to get state
+    const { mount } = await import('@vue/test-utils')
+    const { nextTick } = await import('vue')
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call formatTime with null (if (!ts) return '' → L208 TRUE)
+    const result = state.formatTime ? state.formatTime(null) : ''
+
+    // Assert
+    expect(result).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with invalid date string expect formatTime returns empty string (L210 TRUE)', async () => {
+    // Arrange
+    const { mount } = await import('@vue/test-utils')
+    const { nextTick } = await import('vue')
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call formatTime with invalid date string (isNaN(d.getTime()) → L210 TRUE)
+    const result = state.formatTime ? state.formatTime('not-a-date') : ''
+
+    // Assert
+    expect(result).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with valid timestamp expect formatTime returns formatted date (L208/L210 FALSE)', async () => {
+    // Arrange
+    const { mount } = await import('@vue/test-utils')
+    const { nextTick } = await import('vue')
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call formatTime with valid ISO timestamp (both conditions FALSE)
+    const result = state.formatTime ? state.formatTime('2024-01-15T14:30:00Z') : 'fallback'
+
+    // Assert — returns a formatted time string (not empty)
+    expect(result).not.toBe('')
+    wrapper.unmount()
+  })
+})

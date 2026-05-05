@@ -571,3 +571,30 @@ describe('busTicker watcher clears manualTicker', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// watch(isConnected): if(connected && currentFeed.value) FALSE path (L201)
+// Need: isConnected becomes true BUT currentFeed is empty (no ticker set yet)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('isConnected watcher FALSE path (no currentFeed)', () => {
+  test('with isConnected=true but no ticker expect currentFeed empty → FALSE path (L201)', async () => {
+    // Arrange — mock with isConnected starting false so watcher can fire
+    const isConnectedRef = ref(false)
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      ...makeWsMock(),
+      isConnected: isConnectedRef,
+    })
+    const wrapper = mountQuote()  // no ticker set → currentFeed.value = ''
+    await nextTick()
+
+    // Act — trigger isConnected watcher by changing to true (no ticker → currentFeed empty)
+    isConnectedRef.value = true
+    await nextTick()
+    await nextTick()
+
+    // Assert — watcher fired but condition was FALSE (currentFeed empty)
+    expect(wrapper.vm.$.setupState.currentFeed).toBe('')
+    wrapper.unmount()
+  })
+})

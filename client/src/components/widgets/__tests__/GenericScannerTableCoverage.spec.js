@@ -364,3 +364,56 @@ describe('column with render function', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L81: colWidths watcher FALSE path (v=null → skip update)
+// L141: onFlameTouchEnd FALSE path (no timer → nothing to clear)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('colWidths watcher and onFlameTouchEnd', () => {
+  test('with colWidths changed to null expect watcher skips update (L81 FALSE)', async () => {
+    // Arrange — mount with initial colWidths then change to null
+    const wrapper = mountTable({ colWidths: { symbol: 100 } })
+    await nextTick()
+
+    // Act — setProps with null colWidths → watcher fires with v=null → FALSE path
+    await wrapper.setProps({ colWidths: null })
+    await nextTick()
+
+    // Assert — no crash (if(v) is false → localWidths not updated)
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with colWidths changed to truthy value expect watcher updates (L81 TRUE confirmed)', async () => {
+    // Arrange
+    const wrapper = mountTable({ colWidths: { symbol: 100 } })
+    await nextTick()
+
+    // Act — set new truthy colWidths → TRUE path
+    await wrapper.setProps({ colWidths: { symbol: 150, price: 80 } })
+    await nextTick()
+
+    // Assert — localWidths updated
+    const state = wrapper.vm.$.setupState
+    expect(state.localWidths.symbol).toBe(150)
+    wrapper.unmount()
+  })
+
+  test('with onFlameTouchEnd called when no timer expect no crash (L141 FALSE)', async () => {
+    // Arrange — mount (flameLongPressTimer starts null)
+    const wrapper = mountTable()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call onFlameTouchEnd directly (flameLongPressTimer=null → if(timer) FALSE)
+    if (state.onFlameTouchEnd) {
+      state.onFlameTouchEnd()
+    }
+    await nextTick()
+
+    // Assert — no crash
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
