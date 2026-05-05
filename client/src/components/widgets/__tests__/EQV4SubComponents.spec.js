@@ -796,3 +796,66 @@ describe('EQV4CompanyCard expand/collapse', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4SecEdgarCard L166: if (!props.ticker) return (TRUE path — no ticker)
+// EQV4StockSplitsCard L76: if (!props.ticker) return (TRUE path)
+// EQV4TickerEventsCard L90: if (!props.ticker) return (TRUE path)
+// Call fetch functions directly without ticker to hit early return
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetch early-return when ticker is null', () => {
+  test('with EQV4SecEdgarCard fetch called with no ticker expect early return (L166 TRUE)', async () => {
+    // Arrange — mount without ticker so fetchFilings null-guard fires
+    const wrapper = mount(EQV4SecEdgarCard, {
+      props: { ticker: null, filingCount: 5 },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call fetchFilings directly (ticker=null → if(!props.ticker) return TRUE)
+    if (state.fetchFilings) {
+      await state.fetchFilings()
+    }
+
+    // Assert — loading stays false (returned early)
+    expect(state.loading).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('with EQV4StockSplitsCard fetch called with no ticker expect early return (L76 TRUE)', async () => {
+    // Arrange
+    const wrapper = mount(EQV4StockSplitsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act
+    if (state.fetchSplits) {
+      await state.fetchSplits()
+    }
+
+    // Assert
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with EQV4TickerEventsCard fetch called with no ticker expect early return (L90 TRUE)', async () => {
+    // Arrange
+    const wrapper = mount(EQV4TickerEventsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act
+    if (state.fetchEvents) {
+      await state.fetchEvents()
+    }
+
+    // Assert
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

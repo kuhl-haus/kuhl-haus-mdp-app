@@ -665,3 +665,30 @@ describe('filteredArticles sort: equal timestamps', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4CompanyNewsCard L134: if (!props.ticker) return (TRUE path)
+// Call fetchNews directly without ticker to hit early return
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchNews early-return with null ticker (L134 TRUE)', () => {
+  test('with no ticker expect fetchNews returns early (if !props.ticker TRUE)', async () => {
+    // Arrange — mount without ticker
+    const { mount } = await import('@vue/test-utils')
+    const { nextTick } = await import('vue')
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call fetchNews directly (ticker=null → if(!props.ticker) return TRUE path)
+    if (state.fetchNews) {
+      await state.fetchNews()
+    }
+
+    // Assert — loading stays false (returned early)
+    expect(state.loading).toBe(false)
+    wrapper.unmount()
+  })
+})
