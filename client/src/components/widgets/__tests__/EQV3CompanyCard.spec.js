@@ -185,4 +185,16 @@ describe('eqv3Utils edge cases', () => {
     expect(fmtVol(null)).toBe('—')
     expect(fmtVol(undefined)).toBe('—')
   })
+
+  test('with fmtVol(500) expect raw string (sub-thousand, if(v>=1e3) FALSE)', () => {
+    // Arrange — v < 1e3 → if(v >= 1e3) is FALSE → return v.toString()
+    const result = fmtVol(500)
+    // Assert — returns '500' (no K/M/B suffix)
+    expect(result).toBe('500')
+  })
+
+  test('with fmtVol(250) expect raw string (another sub-thousand)', () => {
+    // Another sub-thousand value
+    expect(fmtVol(250)).toBe('250')
+  })
 })
