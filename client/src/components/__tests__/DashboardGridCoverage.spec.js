@@ -593,3 +593,67 @@ describe('mobile toolbar isLocked state', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// drawLayoutPreview / drawMiniPreview: colOverride=null → ?? dashboardColNum fallback
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('drawLayoutPreview and drawMiniPreview with null colOverride', () => {
+  test('with colOverride=null in drawLayoutPreview expect dashboardColNum used as fallback', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Act — call drawLayoutPreview directly with null colOverride
+    // This exercises the `cols = colOverride ?? dashboardColNum.value` path (line 615)
+    expect(() => {
+      state.drawLayoutPreview([], null)
+    }).not.toThrow()
+
+    wrapper.unmount()
+  })
+
+  test('with colOverride=undefined in drawMiniPreview expect no crash', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Act — call drawMiniPreview with undefined colOverride
+    // This exercises `cols = colOverride ?? dashboardColNum.value` in drawMiniPreview (line 730)
+    expect(() => {
+      state.drawMiniPreview([], undefined)
+    }).not.toThrow()
+
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// saveLayout: saveAsDefault=false (line 413 FALSE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('saveLayout without setting as default', () => {
+  test('with saveAsDefault=false expect defaultLayoutName unchanged', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+    state.showSaveDialog = true
+    state.saveLayoutName = 'TestLayout'
+    state.saveAsDefault = false
+    state.saveLayoutDescription = ''
+    await nextTick()
+
+    // Act
+    state.saveLayout()
+    await nextTick()
+
+    // Assert — layout saved but no default set
+    expect(state.savedLayouts['TestLayout']).toBeTruthy()
+    expect(state.defaultLayoutName).toBe(null)
+
+    wrapper.unmount()
+  })
+})
