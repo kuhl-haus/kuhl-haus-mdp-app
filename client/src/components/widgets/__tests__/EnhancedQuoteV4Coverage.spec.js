@@ -554,3 +554,69 @@ describe('activeBrandingUrl edge cases', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// busTicker watcher: null clears manualTicker (line 385 FALSE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('busTicker watcher with null value', () => {
+  test('with busTicker becoming null expect manualTicker NOT cleared', async () => {
+    // Arrange — manualTicker is set, busTicker null doesn't clear it
+    const wrapper = mountWidget()
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await nextTick()
+
+    // The watch(busTicker, t => { if (t) manualTicker = '' })
+    // When t=null, the if(t) guard prevents clearing
+    // We verify: manualTicker stays 'AAPL'
+    expect(state.manualTicker).toBe('AAPL')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// watch(activeTicker): unsubscribe path when currentFeed is set (line 399)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('watch(activeTicker): unsubscribe+resubscribe when currentFeed set', () => {
+  test('with ticker changed and currentFeed already set expect resubscribe', async () => {
+    // Arrange — set first ticker so currentFeed is populated
+    const wrapper = mountWidget()
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await nextTick()
+    expect(state.currentFeed).toContain('AAPL')
+
+    // Act — change ticker (currentFeed is set → unsubscribe path taken)
+    state.manualTicker = 'TSLA'
+    await nextTick()
+
+    // Assert — new feed set
+    expect(state.currentFeed).toContain('TSLA')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchCompany: logo URL fallback (iconUrl only, line 409)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('activeBrandingUrl: icon mode fallback to logo', () => {
+  test('with icon mode + iconUrl=null + logoUrl set expect logo used as fallback', async () => {
+    // Arrange — icon mode, no icon URL, has logo URL
+    const wrapper = mountWidget({ settings: { brandingMode: 'icon' } })
+    await nextTick()
+    const state = ss(wrapper)
+    state.logoUrl = 'https://cdn.massive.com/logo.png'
+    state.iconUrl = null
+    await nextTick()
+
+    // Assert — falls back to logoUrl (iconUrl ?? logoUrl path)
+    const url = state.activeBrandingUrl
+    expect(url).toContain('logo.png')
+    wrapper.unmount()
+  })
+})

@@ -2100,3 +2100,119 @@ describe('ResizeObserver callback: layoutMode switching', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Narrow col1: hidden cards → 'show' button visible (lines 95-96)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('narrow col1 hidden card controls', () => {
+  test('with hidden card expect show button in card controls', async () => {
+    // Arrange — hide 'today' card via settings
+    const wrapper = mountWidget({ isLocked: false, settings: { hiddenCards: ['today'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert — 'show' toggle visible for hidden card
+    const toggles = wrapper.findAll('.eqv3-card-toggle')
+    const showToggle = toggles.find(t => t.text() === 'show')
+    expect(showToggle).toBeTruthy()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wide col2: card controls (isLocked=false) + session chip null (lines 253, 409)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('wide mode col2 card controls and session chip null', () => {
+  test('with wide mode + isLocked=false expect drag handle in col2', async () => {
+    // Arrange
+    const wrapper = mountWidget({ isLocked: false })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — drag handles visible in wide mode (isLocked=false)
+    const handles = wrapper.findAll('.eqv3-drag-handle')
+    expect(handles.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  test('with chipCards=[session] in wide mode + null session data expect muted dash', async () => {
+    // Arrange — wide mode, session in chip mode, null pre_market/AH data
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...SAMPLE_QUOTE,
+      pre_market_high: null, pre_market_low: null,
+      after_hours_high: null, after_hours_low: null,
+    }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — muted dashes in session chip sections
+    const muted = wrapper.findAll('.eqv3-muted-val, .eqv3-session-chip-vals.eqv3-muted-val')
+    expect(muted.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// activeTicker watch: currentFeed IS set (unsubscribe + resubscribe path)
+// lines 880-902 WS watcher
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('activeTicker watcher: unsubscribe when changing ticker', () => {
+  test('with ticker changed and currentFeed set expect unsubscribe+resubscribe', async () => {
+    // Arrange — set first ticker, then change to second
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // First ticker sets currentFeed
+    expect(state.currentFeed).toContain('AAPL')
+
+    // Act — change ticker (watcher re-fires with currentFeed already set)
+    state.manualTicker = 'TSLA'
+    await nextTick()
+
+    // Assert — currentFeed updated to TSLA
+    expect(state.currentFeed).toContain('TSLA')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// changeClass, relVolClass, floatShares: null quoteData paths (lines 928, 962, 970)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computed with null quoteData (from script level)', () => {
+  test('with quoteData set to null after mount expect computed returns null/empty', async () => {
+    // Arrange — mount, set ticker, get data, then null the data
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Verify data state
+    const state = wrapper.vm.$.setupState
+    expect(state.changeClass).not.toBe('')
+
+    // Act — null out quoteData
+    wrapper.vm.quoteData = null
+    await nextTick()
+
+    // Assert — computed returns defaults when quoteData is null
+    expect(state.changeClass).toBe('')
+    expect(state.relVolClass).toBe('')
+    expect(state.floatShares).toBeNull()
+    wrapper.unmount()
+  })
+})
