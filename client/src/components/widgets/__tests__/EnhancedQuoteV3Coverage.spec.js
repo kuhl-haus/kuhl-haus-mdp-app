@@ -2008,3 +2008,95 @@ describe('wide col2: short chip with data', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ResizeObserver callback: layoutMode switching (lines 725-727)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ResizeObserver callback: layoutMode switching', () => {
+  let capturedCallback = null
+
+  beforeEach(() => {
+    // Override ResizeObserver mock to capture the callback
+    capturedCallback = null
+    global.ResizeObserver = class CaptureResizeObserver {
+      constructor(cb) { capturedCallback = cb }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  })
+
+  afterEach(() => {
+    // Restore simple mock
+    global.ResizeObserver = class ResizeObserver {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    capturedCallback = null
+  })
+
+  test('with width >= FULL (1600) expect layoutMode=full', async () => {
+    // Arrange — mount so ResizeObserver is constructed and callback captured
+    const wrapper = mountWidget()
+    await nextTick()
+    expect(capturedCallback).not.toBeNull()
+
+    // Act — simulate ResizeObserver firing with full-width
+    capturedCallback([{ contentRect: { width: 1600 } }])
+    await nextTick()
+
+    // Assert — layoutMode switches to 'full'
+    expect(wrapper.vm.$.setupState.layoutMode).toBe('full')
+    wrapper.unmount()
+  })
+
+  test('with width >= WIDE (1200) expect layoutMode=wide', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    await nextTick()
+    expect(capturedCallback).not.toBeNull()
+
+    // Act — simulate wide width
+    capturedCallback([{ contentRect: { width: 1200 } }])
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.layoutMode).toBe('wide')
+    wrapper.unmount()
+  })
+
+  test('with width < WIDE expect layoutMode=narrow', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    await nextTick()
+    wrapper.vm.$.setupState.layoutMode = 'full'  // start at full
+    await nextTick()
+    expect(capturedCallback).not.toBeNull()
+
+    // Act — simulate narrow width (< BREAKPOINTS.WIDE=360)
+    capturedCallback([{ contentRect: { width: 300 } }])
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.layoutMode).toBe('narrow')
+    wrapper.unmount()
+  })
+
+  test('with entries[0]?.contentRect.width undefined expect ?? 0 fallback → narrow', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    await nextTick()
+    expect(capturedCallback).not.toBeNull()
+
+    // Act — simulate entry without width (null coalescing ?? 0)
+    capturedCallback([{ contentRect: {} }])
+    await nextTick()
+
+    // Assert — width=0 → narrow mode
+    expect(wrapper.vm.$.setupState.layoutMode).toBe('narrow')
+    wrapper.unmount()
+  })
+})
