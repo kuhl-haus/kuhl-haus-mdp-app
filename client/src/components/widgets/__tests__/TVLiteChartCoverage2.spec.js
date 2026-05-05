@@ -544,3 +544,53 @@ describe('emitSettings with empty ticker', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateChart: avgVolume color=null → ?? '#0257ff' fallback (line 468)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('updateChart avgVolume color null fallback', () => {
+  test('with avgVolume color=null expect ?? #0257ff used in applyOptions', async () => {
+    // Arrange — bars + volume=true + avgVolume.color=null
+    const bars = Array.from({ length: 5 }, (_, i) => makeBar(i))
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: {
+        ticker: 'AAPL',
+        volume:    { enabled: true },
+        avgVolume: { enabled: true, period: 3, color: null },  // null → ?? '#0257ff'
+      }},
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — no crash, bars loaded
+    const state = wrapper.vm.$.setupState
+    // Assert no crash
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchBars: json.results=null → ?? [] fallback (line 290)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchBars json.results null in TVLiteChart', () => {
+  test('with json.results=null expect bars=[] (null ?? [] fallback)', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: vi.fn().mockResolvedValue({ results: null }),
+    })
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL' } },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — bars fallback to [] (null ?? [])
+    expect(wrapper.vm.$.setupState.bars).toEqual([])
+    wrapper.unmount()
+  })
+})

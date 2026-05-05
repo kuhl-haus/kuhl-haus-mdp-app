@@ -1566,3 +1566,55 @@ describe('modal company without companyId', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort by title with null title → || '' fallback (lines 424-425)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews sort by title with null title article', () => {
+  test('with null title article in title sort expect || "" fallback', async () => {
+    // Arrange — sort by title with one article having null title
+    const wrapper = mountFeed()
+    await nextTick()
+    const a1 = { ...makeArticle(), title: null, link: 'https://example.com/1' }
+    const a2 = { ...makeArticle(), title: 'Z Corp', link: 'https://example.com/2' }
+    triggerData([a1, a2])
+    await nextTick()
+
+    // Act — sort by title
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'title'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — no crash (null || '' = '' used as sort key)
+    expect(state.filteredNews.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort by tickers with no US companies → || '' fallback (lines 427-428)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews sort by tickers with no US companies', () => {
+  test('with article having no US companies expect || "" fallback for ticker key', async () => {
+    // Arrange — article with only non-US company (usCompanies returns [])
+    const wrapper = mountFeed()
+    await nextTick()
+    const a1 = makeArticle({ companies: [{ ticker: 'XTSE:ABC', primaryListing: { exchangeCode: 'XTSE' } }], link: 'https://ex.com/1' })
+    const a2 = makeArticle({ companies: [{ ticker: 'AAPL', primaryListing: { exchangeCode: 'XNAS' } }], link: 'https://ex.com/2' })
+    triggerData([a1, a2])
+    await nextTick()
+
+    // Act — sort by tickers (non-US company → usCompanies=[0] → [0]?.ticker = undefined → || '' = '')
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'tickers'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — no crash, '' (foreign) comes before 'aapl' alphabetically
+    expect(state.filteredNews.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})

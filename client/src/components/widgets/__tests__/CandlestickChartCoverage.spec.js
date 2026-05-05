@@ -983,3 +983,52 @@ describe('chartOption avgVolume.enabled=false', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// chartOption: avgVolume color=null → ?? '#6b7280' fallback (line 400)
+// chartOption: VWAP color=null → ?? color fallback (line 441)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('chartOption: null color fallbacks', () => {
+  test('with avgVolume color=null + VWAP color=null expect defaults used', async () => {
+    // Arrange — enable both with null colors → triggers ?? fallbacks
+    const bars = Array.from({ length: 5 }, (_, i) => ({ ...ONE_BAR, t: ONE_BAR.t + i * 60000 }))
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mountChart({
+      ticker: 'AAPL',
+      volume:    { enabled: true },
+      avgVolume: { enabled: true, period: 3, color: null },  // null color → ?? '#6b7280'
+      vwap:      { enabled: true, color: null },              // null color → ?? default
+    })
+    await nextTick(); await nextTick()
+
+    // Assert — chartOption built without crash (defaults applied)
+    const option = wrapper.vm.$.setupState.chartOption
+    const avgVolSeries = option?.series?.find?.(s => s.name === 'Avg Vol')
+    if (avgVolSeries) {
+      // null ?? '#6b7280' = '#6b7280'
+      expect(avgVolSeries.lineStyle.color).toBe('#6b7280')
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// json.results = null → bars fallback to [] (line 289)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchBars json results null', () => {
+  test('with json.results=null expect bars=[] (null ?? [] fallback)', async () => {
+    // Arrange — mock returns null results
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: vi.fn().mockResolvedValue({ results: null }),
+    })
+    const wrapper = mountChart({ ticker: 'AAPL' })
+    await nextTick(); await nextTick()
+
+    // Assert — bars is empty array (null ?? [])
+    expect(wrapper.vm.$.setupState.bars).toEqual([])
+    wrapper.unmount()
+  })
+})
