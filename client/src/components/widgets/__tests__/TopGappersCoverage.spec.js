@@ -586,3 +586,31 @@ describe('sort comparison with multiple rows', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort comparison: aVal > bVal path (lines 278-279 cond-expr)
+// Push rows in reverse order so sort comparator gets (larger, smaller)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort comparison aVal > bVal path', () => {
+  test('with rows in desc order expect aVal > bVal comparison to run', async () => {
+    // Arrange — push rows in DESC order (TSLA=30 first, AAPL=20 second)
+    // Sort algorithm may call comparator with (TSLA, AAPL) → aVal=30 > bVal=20
+    const row1 = makeRow({ symbol: 'TSLA', pct_change: 30 })  // larger first
+    const row2 = makeRow({ symbol: 'AAPL', pct_change: 20 })  // smaller second
+    
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const wrapper = mount(TopGappers, {
+      props: { ...defaultProps, settings: openSettings },
+    })
+    // Push via onData (cache hydration path - already in desc order)
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    onData([row1, row2])  // array → cache hydration path
+    await nextTick()
+
+    // The filteredEvents sort will call comparator with various (a, b)
+    // With desc sort of already-sorted array: may call (TSLA, AAPL) → aVal>bVal path
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

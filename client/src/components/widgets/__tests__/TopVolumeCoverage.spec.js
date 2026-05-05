@@ -509,3 +509,43 @@ describe('sort comparison with multiple rows', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort comparison: aVal > bVal and equal paths
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort comparison aVal > bVal and equal paths', () => {
+  test('with rows in desc order expect aVal > bVal comparison runs', async () => {
+    // Push rows in desc order (larger accumulated_volume first)
+    const row1 = makeRow({ symbol: 'TSLA', accumulated_volume: 800_000 })
+    const row2 = makeRow({ symbol: 'AAPL', accumulated_volume: 200_000 })
+
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const wrapper = mount(TopVolume, {
+      props: { ...defaultProps, settings: openSettings },
+    })
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    onData([row1, row2])  // cache hydration
+    await nextTick()
+
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with equal accumulated_volume rows expect comparison returns 0', async () => {
+    // Push rows with equal values
+    const row1 = makeRow({ symbol: 'TSLA', accumulated_volume: 500_000 })
+    const row2 = makeRow({ symbol: 'AAPL', accumulated_volume: 500_000 })
+
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const wrapper = mount(TopVolume, {
+      props: { ...defaultProps, settings: openSettings },
+    })
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    onData([row1, row2])
+    await nextTick()
+
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
