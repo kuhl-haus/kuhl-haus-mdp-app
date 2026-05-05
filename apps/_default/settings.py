@@ -37,8 +37,8 @@ APP_NAME = os.path.split(APP_FOLDER)[-1]
 DB_FOLDER = required_folder(APP_FOLDER, "databases")
 DB_URI = PYDAL_URI
 DB_POOL_SIZE = 1
-DB_MIGRATE = True
-DB_FAKE_MIGRATE = False
+DB_MIGRATE = os.environ.get("DB_MIGRATE", "true").lower() == "true"
+DB_FAKE_MIGRATE = os.environ.get("DB_FAKE_MIGRATE", "false").lower() == "true"
 
 # location where static files are stored:
 STATIC_FOLDER = required_folder(APP_FOLDER, "static")
