@@ -1350,7 +1350,7 @@ describe('NARROW mode short card chip with data loaded', () => {
 
     // Assert — loading msg shown in short card chip mode
     const shortCard = wrapper.find('.eqv3-short-card')
-    if (shortCard.exists() && wrapper.vm.$.setupState.shortInterestLoading) {
+    if (shortCard.exists() && wrapper.vm.shortInterestLoading) {
       expect(shortCard.find('.eqv3-muted-msg').exists()).toBe(true)
     }
     wrapper.unmount()
@@ -1373,7 +1373,7 @@ describe('short card list mode loading', () => {
 
     // Assert — short card shows loading in list mode
     const shortCard = wrapper.find('.eqv3-short-card')
-    if (shortCard.exists() && wrapper.vm.$.setupState.shortInterestLoading) {
+    if (shortCard.exists() && wrapper.vm.shortInterestLoading) {
       expect(shortCard.find('.eqv3-muted-msg').text()).toContain('loading')
     }
     wrapper.unmount()
@@ -1522,7 +1522,7 @@ describe('allShortNull and allCompanyNull computed', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.$.setupState.allShortNull).toBe(true)
+    expect(wrapper.vm.allShortNull).toBe(true)
     wrapper.unmount()
   })
 
@@ -1541,7 +1541,7 @@ describe('allShortNull and allCompanyNull computed', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.$.setupState.allCompanyNull).toBe(false)
+    expect(wrapper.vm.allCompanyNull).toBe(false)
     wrapper.unmount()
   })
 })
@@ -1570,12 +1570,12 @@ describe('descExpanded via company card', () => {
     if (companyCard.exists()) {
       companyCard.vm.$emit('expand')
       await nextTick()
-      expect(wrapper.vm.$.setupState.descExpanded).toBe(true)
+      expect(wrapper.vm.descExpanded).toBe(true)
 
       // Also collapse
       companyCard.vm.$emit('collapse')
       await nextTick()
-      expect(wrapper.vm.$.setupState.descExpanded).toBe(false)
+      expect(wrapper.vm.descExpanded).toBe(false)
     }
     wrapper.unmount()
   })
@@ -1612,7 +1612,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert — all null-guard paths return empty/null
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     expect(s.changeClass).toBe('')
     expect(s.relVolClass).toBe('')
     expect(s.floatShares).toBeNull()
@@ -1628,7 +1628,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert — extreme class, red bar color
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     expect(s.relVolClass).toBe('extreme')
     expect(s.rvBarColor).toBe('#dc2626')
     wrapper.unmount()
@@ -1643,7 +1643,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     expect(s.relVolClass).toBe('high')
     expect(s.rvBarColor).toBe('#f97316')
     wrapper.unmount()
@@ -1658,7 +1658,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     expect(s.relVolClass).toBe('medium')
     expect(s.rvBarColor).toBe('#eab308')
     wrapper.unmount()
@@ -1673,7 +1673,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.$.setupState.rvBarWidth).toBe('0%')
+    expect(wrapper.vm.rvBarWidth).toBe('0%')
     wrapper.unmount()
   })
 
@@ -1686,7 +1686,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert — default green
-    expect(wrapper.vm.$.setupState.rvBarColor).toBe('#22c55e')
+    expect(wrapper.vm.rvBarColor).toBe('#22c55e')
     wrapper.unmount()
   })
 
@@ -1699,7 +1699,7 @@ describe('computed branches: quoteData null and rv thresholds', () => {
     await nextTick()
 
     // Assert — uses share_class fallback
-    expect(wrapper.vm.$.setupState.floatShares).toBe(1_000_000)
+    expect(wrapper.vm.floatShares).toBe(1_000_000)
     wrapper.unmount()
   })
 })
@@ -1718,7 +1718,7 @@ describe('fetchCompany edge cases', () => {
     await nextTick()
 
     // Assert — companyData not populated (resp.ok=false guard triggered)
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     expect(s.companyData).toEqual({})
     expect(s.logoUrl).toBeNull()
     wrapper.unmount()
@@ -1739,7 +1739,7 @@ describe('fetchCompany edge cases', () => {
     await nextTick()
 
     // Assert — logo and icon fall back to null
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     expect(s.logoUrl).toBeNull()
     expect(s.iconUrl).toBeNull()
     expect(s.companyData.name).toBe('Apple Inc.')
@@ -1757,7 +1757,7 @@ describe('allShortNull with partial short data', () => {
     const wrapper = mountWidget()
     withTicker(wrapper)
     await nextTick()
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     s.shortInterestData = { short_interest: 5_000_000, days_to_cover: null, short_volume_ratio: null }
     await nextTick()
 
@@ -1771,7 +1771,7 @@ describe('allShortNull with partial short data', () => {
     const wrapper = mountWidget()
     withTicker(wrapper)
     await nextTick()
-    const s = wrapper.vm.$.setupState
+    const s = wrapper.vm
     s.shortInterestData = { short_interest: null, days_to_cover: null, short_volume_ratio: null }
     await nextTick()
 
@@ -1798,7 +1798,7 @@ describe('allCompanyNull with partial company data', () => {
     await nextTick()
 
     // Assert — name is set, allCompanyNull=false
-    expect(wrapper.vm.$.setupState.allCompanyNull).toBe(false)
+    expect(wrapper.vm.allCompanyNull).toBe(false)
     wrapper.unmount()
   })
 })
@@ -1887,7 +1887,7 @@ describe('full-mode short card kv-list with real data', () => {
     const shortCard = wrapper.find('.eqv3-short-card')
     expect(shortCard.exists()).toBe(true)
     // allShortNull should be false (we have real data)
-    expect(wrapper.vm.$.setupState.allShortNull).toBe(false)
+    expect(wrapper.vm.allShortNull).toBe(false)
     wrapper.unmount()
   })
 })
@@ -2004,7 +2004,7 @@ describe('wide col2: short chip with data', () => {
     // Assert — short card exists with data (not allShortNull)
     const shortCard = wrapper.find('.eqv3-short-card')
     expect(shortCard.exists()).toBe(true)
-    expect(wrapper.vm.$.setupState.allShortNull).toBe(false)
+    expect(wrapper.vm.allShortNull).toBe(false)
     wrapper.unmount()
   })
 })
@@ -2049,7 +2049,7 @@ describe('ResizeObserver callback: layoutMode switching', () => {
     await nextTick()
 
     // Assert — layoutMode switches to 'full'
-    expect(wrapper.vm.$.setupState.layoutMode).toBe('full')
+    expect(wrapper.vm.layoutMode).toBe('full')
     wrapper.unmount()
   })
 
@@ -2064,7 +2064,7 @@ describe('ResizeObserver callback: layoutMode switching', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.$.setupState.layoutMode).toBe('wide')
+    expect(wrapper.vm.layoutMode).toBe('wide')
     wrapper.unmount()
   })
 
@@ -2072,7 +2072,7 @@ describe('ResizeObserver callback: layoutMode switching', () => {
     // Arrange
     const wrapper = mountWidget()
     await nextTick()
-    wrapper.vm.$.setupState.layoutMode = 'full'  // start at full
+    wrapper.vm.layoutMode = 'full'  // start at full
     await nextTick()
     expect(capturedCallback).not.toBeNull()
 
@@ -2081,7 +2081,7 @@ describe('ResizeObserver callback: layoutMode switching', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.$.setupState.layoutMode).toBe('narrow')
+    expect(wrapper.vm.layoutMode).toBe('narrow')
     wrapper.unmount()
   })
 
@@ -2096,7 +2096,7 @@ describe('ResizeObserver callback: layoutMode switching', () => {
     await nextTick()
 
     // Assert — width=0 → narrow mode
-    expect(wrapper.vm.$.setupState.layoutMode).toBe('narrow')
+    expect(wrapper.vm.layoutMode).toBe('narrow')
     wrapper.unmount()
   })
 })
@@ -2173,7 +2173,7 @@ describe('activeTicker watcher: unsubscribe when changing ticker', () => {
     const wrapper = mountWidget()
     withTicker(wrapper)
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
 
     // First ticker sets currentFeed
     expect(state.currentFeed).toContain('AAPL')
@@ -2202,7 +2202,7 @@ describe('computed with null quoteData (from script level)', () => {
     await nextTick()
 
     // Verify data state
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
     expect(state.changeClass).not.toBe('')
 
     // Act — null out quoteData
@@ -2227,11 +2227,11 @@ describe('onColReorder in wide mode', () => {
     const wrapper = mountWidget()
     withTicker(wrapper)
     await nextTick()
-    wrapper.vm.$.setupState.layoutMode = 'wide'  // not narrow → isNarrow=false
+    wrapper.vm.layoutMode = 'wide'  // not narrow → isNarrow=false
     await nextTick()
 
     // Act — call onColReorder directly (triggers isNarrow.value ? narrow : wide)
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
     let emitted = null
     // Temporarily capture emit by checking if cards were emitted
     expect(() => state.onColReorder({ oldIndex: 0, newIndex: 1 })).not.toThrow()
@@ -2283,7 +2283,7 @@ describe('floatShares with both free_float and share_class null', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.$.setupState.floatShares).toBeNull()
+    expect(wrapper.vm.floatShares).toBeNull()
     wrapper.unmount()
   })
 })
@@ -2302,7 +2302,7 @@ describe('dataAge with valid end_timestamp', () => {
     await nextTick()
 
     // Assert — dataAge returns formatted string (not '—')
-    const age = wrapper.vm.$.setupState.dataAge
+    const age = wrapper.vm.dataAge
     expect(age).not.toBe('—')
     wrapper.unmount()
   })
@@ -2409,7 +2409,7 @@ describe('EQV3 WS onData callback via message simulation', () => {
     }
 
     // Assert — quoteData updated if ticker matches
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
     if (capturedOnMessage && state.quoteData) {
       expect(state.quoteData.symbol).toBe('AAPL')
     }
@@ -2422,7 +2422,7 @@ describe('EQV3 WS onData callback via message simulation', () => {
     withTicker(wrapper)
     await new Promise(r => setTimeout(r, 20))
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
     state.quoteData = null
 
     // Act — wrong symbol message
@@ -2499,7 +2499,7 @@ describe('EQV3 WS message with null relative_volume', () => {
       await nextTick()
     }
 
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
     if (state.quoteData) {
       // Assert — rvBarWidth uses '0%' fallback (null rv → NaN → non-finite)
       expect(state.rvBarWidth).toBe('0%')
@@ -2523,7 +2523,7 @@ describe('NARROW col1: short kv-list body gated by quoteData', () => {
     const wrapper = mountWidget()
     withTicker(wrapper)
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
 
     // Set quoteData (unlocks eqv3-body rendering)
     state.quoteData = { ...SAMPLE_QUOTE }
@@ -2544,7 +2544,7 @@ describe('NARROW col1: short kv-list body gated by quoteData', () => {
     const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
     withTicker(wrapper)
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
 
     state.quoteData = { ...SAMPLE_QUOTE }
     state.shortInterestData = { short_interest: 1.5e7, days_to_cover: 3.2, short_volume_ratio: 0.42 }
@@ -2570,7 +2570,7 @@ describe('NARROW col1: prev card with quoteData', () => {
     const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
     withTicker(wrapper)
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
 
     // quoteData with full prev day fields
     state.quoteData = { ...SAMPLE_QUOTE }
@@ -2592,7 +2592,7 @@ describe('NARROW col1: prev card with quoteData', () => {
     const wrapper = mountWidget({ settings: {} })
     withTicker(wrapper)
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const state = wrapper.vm
 
     state.quoteData = { ...SAMPLE_QUOTE }  // has prev_day_open, prev_day_high, etc.
     await nextTick()

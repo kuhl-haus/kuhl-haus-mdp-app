@@ -989,7 +989,7 @@ const rvBarColor = computed(() => {
   return '#22c55e'
 })
 
-defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, visibleCards, hiddenCards, hiddenCardIds, chipCardIds, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl, iconUrl, brandingMode, activeBrandingUrl, toggleBranding, toggleCardVisibility, toggleCardChips })
+defineExpose({ lastDataAt, isConnected, reconnecting, quoteData, manualTicker, companyData, companyLoading, shortInterestData, shortInterestLoading, layoutMode, activeCards, visibleCards, hiddenCards, hiddenCardIds, chipCardIds, col3Cards, fullRowCards, isDragging, onColReorder, onDragEnd, onFullRowDragEnd, onFullRowReorder, _fullRow, logoUrl, iconUrl, brandingMode, activeBrandingUrl, toggleBranding, toggleCardVisibility, toggleCardChips, changeClass, relVolClass, allShortNull, allCompanyNull, descExpanded, rvBarWidth, rvBarColor, floatShares, dataAge, currentFeed })
 </script>
 
 <style scoped>
