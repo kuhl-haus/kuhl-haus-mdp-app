@@ -937,3 +937,27 @@ describe('cardLabel with unknown card ID', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchCompany: json.results=null → || {} fallback (line 409)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchCompany with null results', () => {
+  test('with json.results=null expect || {} fallback used', async () => {
+    // Arrange — company fetch returns null results → json.results || {} = {}
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ results: null }),
+    })
+    const wrapper = mountWidget()
+    await nextTick()
+    const state = ss(wrapper)
+    state.manualTicker = 'AAPL'
+    await flushPromises()
+    await nextTick()
+
+    // Assert — companyData populated with null fields (from {} spread)
+    expect(state.companyData).toEqual(expect.objectContaining({ name: null }))
+    wrapper.unmount()
+  })
+})

@@ -1019,3 +1019,57 @@ describe('toNullableNum with non-finite input', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// hiddenColsLocal init: settings.hiddenCols=null → ?? [] fallback (line 501)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('hiddenColsLocal initialization with null hiddenCols', () => {
+  test('with settings.hiddenCols=null expect ?? [] fallback at init', async () => {
+    // Arrange — mount with hiddenCols=null so ?? [] is used
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { hiddenCols: null, minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Assert — hiddenColsLocal initialized to [] (null ?? [])
+    const state = wrapper.vm.$.setupState
+    expect(state.hiddenColsLocal).toEqual([])
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredEvents: symbol not matching tickerFilter (line 243/318 context)
+// Test that NULL wsUrl config triggers || fallback at WS init
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('DailyRangeAlerts with sessionFilter null', () => {
+  test('with settings.sessionFilter=null in merged config expect ?? empty string', async () => {
+    // Arrange — settings watcher: merged.sessionFilter ?? '' → '' fallback
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null, sessionFilter: 'regular' } },
+    })
+    await nextTick()
+
+    // Act — update settings with sessionFilter=null → ?? '' fallback
+    await wrapper.setProps({ settings: { minPrice: 0, maxPrice: null, sessionFilter: null } })
+    await nextTick()
+
+    // Assert — sessionFilterLocal becomes '' (null ?? '')
+    expect(wrapper.vm.$.setupState.sessionFilterLocal).toBe('')
+    wrapper.unmount()
+  })
+})
