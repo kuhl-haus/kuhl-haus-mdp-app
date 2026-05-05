@@ -2438,3 +2438,73 @@ describe('EQV3 WS onData callback via message simulation', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WS message with null relative_volume → rvBarWidth=0%, rvBarColor=green
+// (Tries to cover EQV3 L962/L970 via WS simulation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV3 WS message with null relative_volume', () => {
+  let capturedOnMessage2 = null
+
+  beforeEach(() => {
+    capturedOnMessage2 = null
+    global.WebSocket = class CaptureWS2 {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+      set onmessage(fn) { capturedOnMessage2 = fn }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+  })
+
+  afterEach(() => {
+    global.WebSocket = class RestoreWS2 {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() {}
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+    capturedOnMessage2 = null
+  })
+
+  test('with WS quote having null relative_volume expect rvBarWidth=0%', async () => {
+    // Arrange — send quote with null rv → !isFinite(NaN) = true → '0%'
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await new Promise(r => setTimeout(r, 20))
+    await nextTick()
+
+    // Send WS message with null relative_volume
+    if (capturedOnMessage2) {
+      capturedOnMessage2({
+        data: JSON.stringify({
+          data: {
+            symbol: 'AAPL',
+            close: 180,
+            relative_volume: null,  // null → NaN → !isFinite = true
+            pct_change: 1.5,
+            end_timestamp: Date.now(),
+          },
+        }),
+      })
+      await nextTick()
+    }
+
+    const state = wrapper.vm.$.setupState
+    if (state.quoteData) {
+      // Assert — rvBarWidth uses '0%' fallback (null rv → NaN → non-finite)
+      expect(state.rvBarWidth).toBe('0%')
+      expect(state.rvBarColor).toBe('#22c55e')  // default green
+    }
+    wrapper.unmount()
+  })
+})

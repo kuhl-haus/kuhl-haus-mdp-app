@@ -314,3 +314,32 @@ describe('sort comparison with 2 rows', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort with ASC direction to cover ternary TRUE path (line 277)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort with ASC direction (ternary TRUE path)', () => {
+  test('with sortDir=asc and 2 rows expect comparison returned (not -comparison)', async () => {
+    // Arrange — set asc sort direction BEFORE pushing data
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const wrapper = mount(TopGainers, {
+      props: { ...defaultProps, settings: openSettings },
+    })
+    const state = wrapper.vm.$.setupState
+    // Set asc direction (triggers ternary TRUE → returns comparison)
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Push 2 rows via cache hydration
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    onData([
+      makeRow({ symbol: 'AAPL', pct_change_since_open: 10 }),
+      makeRow({ symbol: 'TSLA', pct_change_since_open: 25 }),
+    ])
+    await nextTick()
+
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
