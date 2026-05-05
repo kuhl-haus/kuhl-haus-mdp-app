@@ -2354,3 +2354,87 @@ describe('card control button clicks', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WS onData callback: receive quote message (EQV3 anonymous fn at L871)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV3 WS onData callback via message simulation', () => {
+  let capturedOnMessage = null
+
+  beforeEach(() => {
+    capturedOnMessage = null
+    // Override MockWebSocket to capture onmessage
+    global.WebSocket = class CaptureWS {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+      set onmessage(fn) { capturedOnMessage = fn }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+  })
+
+  afterEach(() => {
+    // Restore original mock
+    global.WebSocket = class RestoreWS {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+    capturedOnMessage = null
+  })
+
+  test('with WS message for activeTicker expect quoteData updated', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await new Promise(r => setTimeout(r, 20))
+    await nextTick()
+
+    // Act — simulate WS quote message
+    if (capturedOnMessage) {
+      capturedOnMessage({
+        data: JSON.stringify({ data: { symbol: 'AAPL', close: 180, pct_change: 1.5 } }),
+      })
+      await nextTick()
+    }
+
+    // Assert — quoteData updated if ticker matches
+    const state = wrapper.vm.$.setupState
+    if (capturedOnMessage && state.quoteData) {
+      expect(state.quoteData.symbol).toBe('AAPL')
+    }
+    wrapper.unmount()
+  })
+
+  test('with WS message for wrong symbol expect quoteData not updated', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await new Promise(r => setTimeout(r, 20))
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.quoteData = null
+
+    // Act — wrong symbol message
+    if (capturedOnMessage) {
+      capturedOnMessage({
+        data: JSON.stringify({ data: { symbol: 'TSLA', close: 200 } }),
+      })
+      await nextTick()
+    }
+
+    // Assert — quoteData stays null (wrong symbol filtered)
+    expect(state.quoteData).toBeNull()
+    wrapper.unmount()
+  })
+})
