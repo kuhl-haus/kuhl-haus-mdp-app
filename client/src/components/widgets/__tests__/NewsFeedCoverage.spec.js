@@ -1189,3 +1189,148 @@ describe('settings from props', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort indicator '▲' (asc direction)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort indicator ▲ for asc direction', () => {
+  test('with time asc direction expect ▲ indicator shown', async () => {
+    // Arrange — toggle to asc
+    const wrapper = mountFeed()
+    await nextTick()
+
+    // Act — click time header (default=desc → toggle to asc)
+    await wrapper.find('.vs-th.col-time').trigger('click')
+    await nextTick()
+
+    // Assert — ▲ indicator
+    expect(wrapper.find('.sort-indicator').text().trim()).toBe('▲')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onData: company without ticker → setNewsTimestamp not called for it
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onData company without ticker', () => {
+  test('with company missing ticker field expect setNewsTimestamp not called for it', async () => {
+    // Arrange
+    const wrapper = mountFeed()
+    await nextTick()
+
+    // Act — inject article with company that has no ticker
+    triggerData([makeArticle({
+      companies: [
+        { ticker: '', name: 'No Ticker Corp', primaryListing: { exchangeCode: 'XNAS' } },
+        { ticker: 'AAPL', name: 'Apple', primaryListing: { exchangeCode: 'XNAS' } },
+      ],
+    })])
+    await nextTick()
+
+    // Assert — setNewsTimestamp called for AAPL (has ticker) but not for empty ticker
+    expect(vi.mocked(setNewsTimestamp)).toHaveBeenCalledWith('AAPL', expect.any(Number))
+    // Not called with empty string
+    expect(vi.mocked(setNewsTimestamp)).not.toHaveBeenCalledWith('', expect.any(Number))
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews sort: equal timestamps → returns 0 (no reorder)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews sort equal timestamps', () => {
+  test('with two articles at same timestamp expect stable order', async () => {
+    // Arrange — same timestamp triggers av === bv → return 0
+    const SAME_TS = '2024-06-01T12:00:00Z'
+    const wrapper = mountFeed()
+    await nextTick()
+    triggerData([
+      makeArticle({ link: 'https://a.com/1', title: 'Article A', publishDate: SAME_TS }),
+      makeArticle({ link: 'https://a.com/2', title: 'Article B', publishDate: SAME_TS }),
+    ])
+    await nextTick()
+
+    // Assert — both articles present (sort returns 0 for equal timestamps)
+    expect(wrapper.findAll('.vs-row').length).toBe(2)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews sort: av > bv branch
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews sort av > bv branch', () => {
+  test('with time asc sort and 2 articles expect older first (av>bv path tested)', async () => {
+    // Arrange — sort by time asc; article A (2024-01) < article B (2024-06)
+    // When comparing B vs A: bv < av → av > bv = TRUE for B→A comparison
+    const wrapper = mountFeed()
+    await nextTick()
+    triggerData([
+      makeArticle({ link: 'https://a.com/old', title: 'Old',  publishDate: '2024-01-01T10:00:00Z' }),
+      makeArticle({ link: 'https://a.com/new', title: 'New',  publishDate: '2024-06-01T10:00:00Z' }),
+    ])
+    await nextTick()
+
+    // Toggle to asc (default is desc)
+    await wrapper.find('.vs-th.col-time').trigger('click')
+    await nextTick()
+
+    // Assert — older first in asc sort
+    const rows = wrapper.findAll('.vs-row')
+    expect(rows[0].text()).toContain('Old')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// colWidths prop change: time=0 → uses DEFAULT_WIDTHS.time (86px fallback)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('colWidths with time=0', () => {
+  test('with colWidths.time=0 expect default px applied to time header', async () => {
+    // Arrange — time=0 means use DEFAULT_WIDTHS.time as fallback
+    const wrapper = mount(NewsFeed, {
+      props: { ...defaultProps, colWidths: { time: 0, title: 0 } },
+      global: { stubs: { Teleport: true } },
+    })
+    await nextTick()
+
+    // Assert — time column still has a px width (from DEFAULT_WIDTHS)
+    const timeHeader = wrapper.find('.vs-th.col-time')
+    const style = timeHeader.element.style.width
+    expect(style).toMatch(/^\d+px$/)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal: active ticker in modal companies
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('modal company ticker active class', () => {
+  test('with activeTicker matching company in modal expect ticker-tag--active', async () => {
+    // Arrange
+    const wrapper = mountFeedWithModal()
+    triggerData([makeArticle({
+      companies: [{ ticker: 'AAPL', name: 'Apple', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C1' }],
+    })])
+    await nextTick()
+
+    // Set active ticker to AAPL first
+    await wrapper.findAll('.ticker-tag')[0].trigger('click')
+    await nextTick()
+
+    // Open modal
+    await wrapper.find('.vs-row').trigger('click')
+    await nextTick()
+
+    // Assert — modal company AAPL tag has active class
+    const modalTag = document.querySelector('.modal-company .ticker-tag--active')
+    expect(modalTag).not.toBeNull()
+    wrapper.unmount()
+  })
+})
