@@ -1172,3 +1172,30 @@ describe('modal company primaryListing with no exchangeCode', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onKeyUp: non-Escape key pressed → if(e.key==='Escape') FALSE path (line 267)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onKeyUp with non-Escape key', () => {
+  test('with non-Escape key pressed expect modal not dismissed', async () => {
+    // Arrange — open modal first
+    const wrapper = mountCNWithBody()
+    await nextTick()
+    const { onData } = getMock()
+    const article = makeArticle()
+    onData([article])
+    await nextTick()
+    wrapper.vm.$.setupState.openDetail(article)
+    await nextTick()
+    expect(wrapper.vm.$.setupState.selected).toEqual(article)
+
+    // Act — press a non-Escape key (if(e.key==='Escape') FALSE path)
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }))
+    await nextTick()
+
+    // Assert — modal still open (non-Escape key has no effect)
+    expect(wrapper.vm.$.setupState.selected).toEqual(article)
+    wrapper.unmount()
+  })
+})

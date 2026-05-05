@@ -1541,3 +1541,28 @@ describe('modal ticker click for US company', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal company without companyId → || ticker as key (line 160)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('modal company without companyId', () => {
+  test('with company missing companyId expect ticker used as fallback key', async () => {
+    // Arrange — company without companyId (co.companyId || co.ticker uses ticker)
+    const wrapper = mountFeed({}, document.body)
+    await nextTick()
+    const article = {
+      ...makeArticle(),
+      companies: [{ ticker: 'TSLA', name: 'Tesla', primaryListing: { exchangeCode: 'XNAS' }, companyId: null }],
+    }
+    triggerData([article])
+    await nextTick()
+    wrapper.vm.$.setupState.selected = article
+    await nextTick()
+
+    // Assert — company section rendered (no crash with null companyId)
+    const coSection = document.querySelector('.modal-companies')
+    expect(coSection).not.toBeNull()
+    wrapper.unmount()
+  })
+})
