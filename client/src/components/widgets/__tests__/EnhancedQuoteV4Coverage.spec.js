@@ -873,3 +873,25 @@ describe('activeBrandingUrl logo mode returns logo URL', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toggleCardChips with no chipCards in settings → ?? [] fallback (line 213)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toggleCardChips with no chipCards in settings', () => {
+  test('with settings missing chipCards expect ?? [] fallback used', async () => {
+    // Arrange — no chipCards in settings (props.settings?.chipCards = undefined)
+    let emitted = null
+    const wrapper = mountWidget({ settings: {} },  // no chipCards key
+      (s) => { emitted = s })
+    await nextTick()
+
+    // Act — toggle a card chip (triggers props.settings?.chipCards ?? [])
+    ss(wrapper).toggleCardChips('today')
+    await nextTick()
+
+    // Assert — chipCards now includes 'today' (started from [] fallback)
+    expect(emitted?.chipCards).toContain('today')
+    wrapper.unmount()
+  })
+})

@@ -1199,3 +1199,61 @@ describe('onKeyUp with non-Escape key', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews sort: null title → (a.title || '').toLowerCase() (lines 355-364)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews title sort with null title', () => {
+  test('with article having null title expect || "" fallback in title sort', async () => {
+    // Arrange — push article with null title
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    // Set ticker so desktop view renders
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    const articleNoTitle = makeArticle({ title: null, link: 'https://example.com/null-title' })
+    const articleWithTitle = makeArticle({ title: 'Z Corp News', link: 'https://example.com/z-corp' })
+    onData([articleNoTitle, articleWithTitle])
+    await nextTick()
+
+    // Sort by title asc (triggers title sort with a.title=null)
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'title'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — articles sorted (no crash with null title)
+    expect(state.filteredNews.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// usCompanies: article with null companies → ?? [] fallback (line 375)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('usCompanies with null companies', () => {
+  test('with article having null companies expect ?? [] fallback', async () => {
+    // Arrange
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    // Article with null companies → usCompanies returns [] (companies?.filter() ?? [])
+    const articleNullCompanies = makeArticle({ companies: null })
+    onData([articleNullCompanies])
+    await nextTick()
+
+    // Assert — no crash, filteredNews has 1 item
+    const state = wrapper.vm.$.setupState
+    expect(state.filteredNews.length).toBe(1)
+    wrapper.unmount()
+  })
+})
