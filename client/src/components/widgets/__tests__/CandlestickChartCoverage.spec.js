@@ -937,3 +937,49 @@ describe('chartOption with avgVolume enabled', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings watcher: ticker=null → ?? '' fallback (line 338)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('settings watcher with null ticker', () => {
+  test('with settings.ticker=null expect headerTickerInput set to empty string', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [ONE_BAR] })
+    const wrapper = mountChart({ ticker: 'AAPL' })
+    await nextTick()
+
+    // Act — update settings with null ticker (triggers ?? '' fallback)
+    await wrapper.setProps({ settings: { ticker: null, interval: '1d' } })
+    await nextTick()
+
+    // Assert — headerTickerInput falls back to ''
+    expect(wrapper.vm.$.setupState.headerTickerInput).toBe('')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// avgVolume.enabled=false in chartOption (line 399)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('chartOption avgVolume.enabled=false', () => {
+  test('with volume enabled but avgVolume disabled expect no Avg Vol series', async () => {
+    // Arrange — bars needed, volume=true, avgVolume=false
+    const bars = Array.from({ length: 5 }, (_, i) => ONE_BAR)
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mountChart({
+      ticker: 'AAPL',
+      volume:    { enabled: true },
+      avgVolume: { enabled: false, period: 20, color: '#abc' },
+    })
+    await nextTick(); await nextTick()
+
+    // Access chartOption via setupState
+    const option = wrapper.vm.$.setupState.chartOption
+    // Assert — no Avg Vol series
+    const avgVolSeries = option?.series?.find?.(s => s.name === 'Avg Vol')
+    expect(avgVolSeries).toBeUndefined()
+    wrapper.unmount()
+  })
+})

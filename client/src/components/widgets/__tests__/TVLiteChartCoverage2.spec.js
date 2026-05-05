@@ -463,3 +463,52 @@ describe('VWAP null values with 1 bar', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// buildDateRange with unknown interval → || fallback (line 225)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildDateRange with unknown interval (TVLiteChart)', () => {
+  test('with unknown interval expect buildDateRange falls back to 1d config', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL', interval: 'unknown-interval' } },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Act — call buildDateRange directly with unknown interval
+    const state = wrapper.vm.$.setupState
+    expect(() => state.buildDateRange('unknown-interval')).not.toThrow()
+
+    // Assert — fallback config used (no crash, returns valid date range)
+    const range = state.buildDateRange('unknown-interval')
+    expect(range.from).toBeTruthy()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings watcher: ticker=null → ?? '' fallback in TVLiteChart (line 263)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('settings watcher ticker null in TVLiteChart', () => {
+  test('with settings.ticker=null expect headerTickerInput cleared', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL' } },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Act — update settings with null ticker
+    await wrapper.setProps({ settings: { ticker: null } })
+    await nextTick()
+
+    // Assert — input cleared (m.ticker?.trim() = undefined, ?? '' fallback)
+    expect(wrapper.vm.$.setupState.headerTickerInput).toBe('')
+    wrapper.unmount()
+  })
+})
