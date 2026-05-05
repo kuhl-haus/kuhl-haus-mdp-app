@@ -470,3 +470,402 @@ class TestLogo:
 
         assert exc_info.value.status == 404
         mock_bytes_redis.setex.assert_not_called()  # nothing cached on failure
+
+
+# ---------------------------------------------------------------------------
+# company tests
+# ---------------------------------------------------------------------------
+
+def _make_ticker_details(
+    name="Apple Inc.",
+    description="Consumer electronics company",
+    homepage_url="https://apple.com",
+    logo_url="https://api.polygon.io/v1/reference/company-branding/apple.com/logo",
+    list_date="1980-12-12",
+    market_cap=2_500_000_000_000,
+    primary_exchange="XNAS",
+    sic_description="Electronic computers",
+    total_employees=150000,
+    share_class_shares_outstanding=15_550_000_000,
+):
+    r = MagicMock()
+    r.name = name
+    r.description = description
+    r.homepage_url = homepage_url
+    r.branding = MagicMock()
+    r.branding.logo_url = logo_url
+    r.list_date = list_date
+    r.market_cap = market_cap
+    r.primary_exchange = primary_exchange
+    r.sic_description = sic_description
+    r.total_employees = total_employees
+    r.share_class_shares_outstanding = share_class_shares_outstanding
+    return r
+
+
+class TestCompany:
+    def test_with_cache_hit_expect_cache_returned(self):
+        # Arrange
+        md = _import_market_data()
+        cached_data = {"name": "Apple Inc.", "description": "Consumer electronics"}
+        mock_redis = _make_redis_mock(json.dumps(cached_data))
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client") as mock_client:
+            result = md.company("AAPL")
+
+        # Assert
+        assert result["symbol"] == "AAPL"
+        assert result["source"] == "cache"
+        assert result["data"]["name"] == "Apple Inc."
+        mock_client.assert_not_called()
+
+    def test_with_cache_hit_symbol_uppercased(self):
+        # Arrange
+        md = _import_market_data()
+        cached_data = {"name": "Apple Inc."}
+        mock_redis = _make_redis_mock(json.dumps(cached_data))
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis):
+            result = md.company("aapl")
+
+        # Assert
+        assert result["symbol"] == "AAPL"
+
+    def test_with_empty_sentinel_expect_available_false(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(json.dumps({}))
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client") as mock_client:
+            result = md.company("TSLA")
+
+        # Assert
+        assert result["available"] is False
+        assert result["source"] == "cache"
+        mock_client.assert_not_called()
+
+    def test_with_cache_miss_expect_api_called(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(None)
+        ticker_details = _make_ticker_details()
+        mock_massive = MagicMock()
+        mock_massive.get_ticker_details.return_value = ticker_details
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client", return_value=mock_massive):
+            result = md.company("AAPL")
+
+        # Assert
+        assert result["symbol"] == "AAPL"
+        assert result["source"] == "api"
+        assert result["data"]["name"] == "Apple Inc."
+        assert result["data"]["description"] == "Consumer electronics company"
+        assert result["data"]["logo_url"] == "https://api.polygon.io/v1/reference/company-branding/apple.com/logo"
+        assert result["data"]["market_cap"] == 2_500_000_000_000
+        mock_massive.get_ticker_details.assert_called_once_with("AAPL")
+        mock_redis.setex.assert_called_once()
+
+    def test_with_api_returns_no_name_expect_empty_sentinel(self):
+        # Arrange — Massive returns an object but name is None
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(None)
+        ticker_details = MagicMock()
+        ticker_details.name = None
+        mock_massive = MagicMock()
+        mock_massive.get_ticker_details.return_value = ticker_details
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client", return_value=mock_massive):
+            result = md.company("UNKN")
+
+        # Assert
+        assert result["available"] is False
+        assert result["source"] == "api"
+        mock_redis.setex.assert_called_once()
+        _, ttl, payload = mock_redis.setex.call_args[0]
+        assert json.loads(payload) == {}
+
+    def test_with_api_failure_expect_graceful_error(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(None)
+        mock_massive = MagicMock()
+        mock_massive.get_ticker_details.side_effect = RuntimeError("API down")
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client", return_value=mock_massive):
+            result = md.company("AAPL")
+
+        # Assert
+        assert "error" in result
+        assert result["data"] == {}
+        mock_redis.setex.assert_called_once()
+        _, ttl, _ = mock_redis.setex.call_args[0]
+        assert ttl == 60  # _RETRY_TTL
+
+    def test_with_redis_read_error_expect_fallthrough_to_api(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = MagicMock()
+        mock_redis.get.side_effect = Exception("Redis connection refused")
+        mock_redis.setex.return_value = True
+        ticker_details = _make_ticker_details()
+        mock_massive = MagicMock()
+        mock_massive.get_ticker_details.return_value = ticker_details
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client", return_value=mock_massive):
+            result = md.company("AAPL")
+
+        # Assert — falls through to API
+        assert result["source"] == "api"
+        assert result["data"]["name"] == "Apple Inc."
+        mock_massive.get_ticker_details.assert_called_once()
+
+    def test_with_redis_write_error_expect_result_still_returned(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = None
+        mock_redis.setex.side_effect = Exception("Redis write failed")
+        ticker_details = _make_ticker_details()
+        mock_massive = MagicMock()
+        mock_massive.get_ticker_details.return_value = ticker_details
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_massive_client", return_value=mock_massive):
+            result = md.company("AAPL")
+
+        # Assert — result returned even if Redis write fails
+        assert result["source"] == "api"
+        assert result["data"]["name"] == "Apple Inc."
+
+
+# ---------------------------------------------------------------------------
+# news tests
+# ---------------------------------------------------------------------------
+
+def _make_article(
+    title="AAPL beats estimates",
+    summary="Apple reported Q2 earnings...",
+    link="https://example.com/aapl-earnings",
+    source="example.com",
+    publish_date="2026-04-30T12:00:00Z",
+    sentiment="positive",
+    confidence=0.85,
+):
+    a = MagicMock()
+    a.title = title
+    a.summary = summary
+    a.link = link
+    a.source = source
+    a.publishDate = publish_date
+    a.sentiment = sentiment
+    a.confidence = confidence
+    return a
+
+
+def _make_finlight_response(articles=None):
+    resp = MagicMock()
+    resp.articles = articles if articles is not None else [_make_article()]
+    return resp
+
+
+class TestNews:
+    def _mock_request(self, md):
+        """Stub the request module used by news() to avoid real HTTP."""
+        return MagicMock()
+
+    def test_with_cache_hit_expect_articles_returned(self):
+        # Arrange
+        md = _import_market_data()
+        cached_articles = [
+            {"title": "AAPL beats", "summary": "Good quarter", "url": "https://x.com/1",
+             "source": "x.com", "published_at": "2026-04-30", "sentiment": "positive", "confidence": 0.9},
+        ]
+        mock_redis = _make_redis_mock(json.dumps(cached_articles))
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_finlight_client") as mock_fl:
+            result = md.news("AAPL")
+
+        # Assert
+        assert result["symbol"] == "AAPL"
+        assert result["source"] == "cache"
+        assert len(result["articles"]) == 1
+        assert result["articles"][0]["title"] == "AAPL beats"
+        mock_fl.assert_not_called()
+
+    def test_with_cache_hit_symbol_uppercased(self):
+        # Arrange
+        md = _import_market_data()
+        cached_articles = [{"title": "TSLA news", "summary": "", "url": "",
+                            "source": "", "published_at": "", "sentiment": "neutral", "confidence": 0.5}]
+        mock_redis = _make_redis_mock(json.dumps(cached_articles))
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis):
+            result = md.news("tsla")
+
+        # Assert
+        assert result["symbol"] == "TSLA"
+
+    def test_with_empty_sentinel_expect_available_false(self):
+        # Arrange — cached empty list is the no-data sentinel
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(json.dumps([]))
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_finlight_client") as mock_fl:
+            result = md.news("AAPL")
+
+        # Assert
+        assert result["available"] is False
+        assert result["source"] == "cache"
+        assert result["articles"] == []
+        mock_fl.assert_not_called()
+
+    def test_with_cache_miss_expect_finlight_called(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(None)
+        article = _make_article()
+        mock_svc = MagicMock()
+        mock_svc.fetch_articles.return_value = _make_finlight_response([article])
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_finlight_client", return_value=mock_svc):
+            result = md.news("AAPL")
+
+        # Assert
+        assert result["symbol"] == "AAPL"
+        assert result["source"] == "api"
+        assert len(result["articles"]) == 1
+        assert result["articles"][0]["title"] == "AAPL beats estimates"
+        assert result["articles"][0]["sentiment"] == "positive"
+        mock_svc.fetch_articles.assert_called_once()
+        mock_redis.setex.assert_called_once()
+
+    def test_with_limit_param_respected(self):
+        # Arrange — cache has 5 articles, limit=2 → only 2 returned
+        md = _import_market_data()
+        cached_articles = [
+            {"title": f"Article {i}", "summary": "", "url": f"https://x.com/{i}",
+             "source": "x.com", "published_at": "2026-04-30", "sentiment": "neutral", "confidence": 0.5}
+            for i in range(5)
+        ]
+        mock_redis = _make_redis_mock(json.dumps(cached_articles))
+
+        mock_request = MagicMock()
+        mock_request.query.get.return_value = "2"
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "request", mock_request):
+            result = md.news("AAPL")
+
+        # Assert
+        assert len(result["articles"]) == 2
+
+    def test_with_api_returns_empty_articles_expect_empty_cached(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(None)
+        mock_svc = MagicMock()
+        mock_svc.fetch_articles.return_value = _make_finlight_response([])
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_finlight_client", return_value=mock_svc):
+            result = md.news("AAPL")
+
+        # Assert
+        assert result["source"] == "api"
+        assert result["articles"] == []
+        mock_redis.setex.assert_called_once()
+        _, ttl, payload = mock_redis.setex.call_args[0]
+        assert json.loads(payload) == []
+
+    def test_with_api_failure_expect_graceful_error(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = _make_redis_mock(None)
+        mock_svc = MagicMock()
+        mock_svc.fetch_articles.side_effect = RuntimeError("Finlight timeout")
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_finlight_client", return_value=mock_svc):
+            result = md.news("AAPL")
+
+        # Assert
+        assert "error" in result
+        assert result["articles"] == []
+        mock_redis.setex.assert_called_once()
+        _, ttl, _ = mock_redis.setex.call_args[0]
+        assert ttl == 60  # _RETRY_TTL
+
+    def test_with_redis_read_error_expect_fallthrough_to_finlight(self):
+        # Arrange
+        md = _import_market_data()
+        mock_redis = MagicMock()
+        mock_redis.get.side_effect = Exception("Redis down")
+        mock_redis.setex.return_value = True
+        article = _make_article()
+        mock_svc = MagicMock()
+        mock_svc.fetch_articles.return_value = _make_finlight_response([article])
+
+        # Act
+        with patch.object(md, "_get_wdc", return_value=mock_redis), \
+             patch.object(md, "_get_finlight_client", return_value=mock_svc):
+            result = md.news("AAPL")
+
+        # Assert — falls through to Finlight
+        assert result["source"] == "api"
+        assert len(result["articles"]) == 1
+        mock_svc.fetch_articles.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _detect_image_content_type tests
+# ---------------------------------------------------------------------------
+
+class TestDetectImageContentType:
+    def _get_fn(self):
+        md = _import_market_data()
+        return md._detect_image_content_type
+
+    def test_with_png_magic_bytes_expect_image_png(self):
+        fn = self._get_fn()
+        assert fn(b'\x89PNG\r\n\x1a\nsome data') == "image/png"
+
+    def test_with_gif_magic_bytes_expect_image_gif(self):
+        fn = self._get_fn()
+        assert fn(b'GIF89a\x01\x00') == "image/gif"
+
+    def test_with_jpeg_magic_bytes_expect_image_jpeg(self):
+        fn = self._get_fn()
+        assert fn(b'\xff\xd8\xff\xe0\x00\x10JFIF') == "image/jpeg"
+
+    def test_with_svg_data_expect_image_svg_xml(self):
+        fn = self._get_fn()
+        svg_data = b'<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg">...</svg>'
+        assert fn(svg_data) == "image/svg+xml"
+
+    def test_with_unknown_bytes_expect_png_fallback(self):
+        fn = self._get_fn()
+        assert fn(b'\x00\x01\x02\x03unknown data') == "image/png"

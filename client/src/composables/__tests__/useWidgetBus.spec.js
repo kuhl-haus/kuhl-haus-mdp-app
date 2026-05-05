@@ -5,8 +5,8 @@
  * imports within the same test run. Each test clears all colors via
  * clearActiveTicker to ensure isolation without needing module resets.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
-import { useWidgetBus, LINK_COLORS } from '../useWidgetBus.js'
+import { describe, it, test, expect, beforeEach, afterEach, vi } from 'vitest'
+import { useWidgetBus, LINK_COLORS, getFlameVariant, getFlameTooltip, setNewsTimestamp, newsTimestamps } from '../useWidgetBus.js'
 
 // Helper: clear all colors between tests
 function resetBus() {
@@ -133,5 +133,143 @@ describe('useWidgetBus', () => {
     unaffected.forEach(name => {
       expect(activeTickers[name]).toBeNull()
     })
+  })
+})
+
+// --------------------------------------------------------------------
+// setNewsTimestamp
+// --------------------------------------------------------------------
+
+describe('setNewsTimestamp', () => {
+  beforeEach(() => {
+    // Clear newsTimestamps between tests
+    Object.keys(newsTimestamps).forEach(k => delete newsTimestamps[k])
+  })
+
+  test('with new ticker expect timestamp set', () => {
+    setNewsTimestamp('AAPL', 1000)
+    expect(newsTimestamps['AAPL']).toBe(1000)
+  })
+
+  test('with newer timestamp expect value updated', () => {
+    newsTimestamps['TSLA'] = 100
+    setNewsTimestamp('TSLA', 9999)
+    expect(newsTimestamps['TSLA']).toBe(9999)
+  })
+
+  test('with older timestamp expect value unchanged', () => {
+    newsTimestamps['NVDA'] = 9999
+    setNewsTimestamp('NVDA', 100)
+    expect(newsTimestamps['NVDA']).toBe(9999)
+  })
+
+  test('with null ticker expect no-op', () => {
+    setNewsTimestamp(null, 12345)
+    expect(Object.keys(newsTimestamps).length).toBe(0)
+  })
+
+  test('with empty string ticker expect no-op', () => {
+    setNewsTimestamp('', 12345)
+    expect(Object.keys(newsTimestamps).length).toBe(0)
+  })
+})
+
+// --------------------------------------------------------------------
+// getFlameVariant
+// --------------------------------------------------------------------
+
+describe('getFlameVariant', () => {
+  let nowSpy
+  const REF_NOW = 10 * 3_600_000  // arbitrary reference point (10h epoch)
+
+  beforeEach(() => {
+    Object.keys(newsTimestamps).forEach(k => delete newsTimestamps[k])
+    nowSpy = vi.spyOn(Date, 'now').mockReturnValue(REF_NOW)
+  })
+  afterEach(() => nowSpy.mockRestore())
+
+  test('with no timestamp expect null', () => {
+    expect(getFlameVariant('AAPL')).toBeNull()
+  })
+
+  test('with timestamp 30min ago expect red', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 30 * 60 * 1000  // 0.5h ago
+    expect(getFlameVariant('AAPL')).toBe('red')
+  })
+
+  test('with timestamp 2h ago expect orange', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 2 * 3_600_000
+    expect(getFlameVariant('AAPL')).toBe('orange')
+  })
+
+  test('with timestamp 6h ago expect yellow', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 6 * 3_600_000
+    expect(getFlameVariant('AAPL')).toBe('yellow')
+  })
+
+  test('with timestamp 18h ago expect white', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 18 * 3_600_000
+    expect(getFlameVariant('AAPL')).toBe('white')
+  })
+
+  test('with timestamp 48h ago expect blue', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 48 * 3_600_000
+    expect(getFlameVariant('AAPL')).toBe('blue')
+  })
+
+  test('with timestamp 96h ago expect dark', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 96 * 3_600_000
+    expect(getFlameVariant('AAPL')).toBe('dark')
+  })
+})
+
+// --------------------------------------------------------------------
+// getFlameTooltip (also covers formatAge branches)
+// --------------------------------------------------------------------
+
+describe('getFlameTooltip', () => {
+  let nowSpy
+  const REF_NOW = 200 * 3_600_000  // large base to avoid negatives
+
+  beforeEach(() => {
+    Object.keys(newsTimestamps).forEach(k => delete newsTimestamps[k])
+    nowSpy = vi.spyOn(Date, 'now').mockReturnValue(REF_NOW)
+  })
+  afterEach(() => nowSpy.mockRestore())
+
+  test('with no timestamp expect null', () => {
+    expect(getFlameTooltip('AAPL')).toBeNull()
+  })
+
+  test('with timestamp returns string containing label and age', () => {
+    newsTimestamps['AAPL'] = REF_NOW - 30 * 60 * 1000  // 30 min
+    const tooltip = getFlameTooltip('AAPL')
+    expect(typeof tooltip).toBe('string')
+    expect(tooltip).toContain('Hot news')
+    expect(tooltip).toContain('ago')
+  })
+
+  test('with age under 60s expect Xs ago format', () => {
+    newsTimestamps['X'] = REF_NOW - 30 * 1000  // 30 seconds
+    const tooltip = getFlameTooltip('X')
+    expect(tooltip).toContain('30s ago')
+  })
+
+  test('with age in minutes expect Xm ago format', () => {
+    newsTimestamps['X'] = REF_NOW - 5 * 60 * 1000  // 5 minutes
+    const tooltip = getFlameTooltip('X')
+    expect(tooltip).toContain('5m ago')
+  })
+
+  test('with age in hours expect Xh ago format', () => {
+    newsTimestamps['X'] = REF_NOW - 3 * 3_600_000  // 3 hours
+    const tooltip = getFlameTooltip('X')
+    expect(tooltip).toContain('3h ago')
+  })
+
+  test('with age in days expect Xd ago format', () => {
+    newsTimestamps['X'] = REF_NOW - 2 * 24 * 3_600_000  // 2 days
+    const tooltip = getFlameTooltip('X')
+    expect(tooltip).toContain('2d ago')
   })
 })
