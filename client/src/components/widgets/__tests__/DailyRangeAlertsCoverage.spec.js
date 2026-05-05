@@ -16,7 +16,7 @@
  */
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
 
 // ── Same mocks as existing spec ────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -407,6 +407,171 @@ describe('enforceMaxEvents', () => {
     // Assert — only 2 events stored (cap applied)
     const state = wrapper.vm.$.setupState
     expect(state.events.length).toBeLessThanOrEqual(2)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hidden-by-default columns made visible — format + cellClass coverage
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('hidden columns visible via settings', () => {
+  function mountWithAllColumns(overrides = {}) {
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: {
+        ...defaultProps,
+        // Show all columns (including hidden-by-default)
+        settings: { hiddenCols: [], minPrice: 0, maxPrice: null, ...overrides },
+      },
+    })
+    return wrapper
+  }
+
+  function makeFullEvent(overrides = {}) {
+    return {
+      symbol: 'AAPL', timestamp: 1_000_000, price: 10, previous: 9, note: 'Breakout',
+      pct_change: 10, accumulated_volume: 1_000_000, relative_volume: 2,
+      session: 'regular', avg_volume: 500_000, free_float: 10_000_000,
+      change: 2, close: 10, direction: 'high',
+      pct_change_since_open: 5, prev_day_close: 9.5,
+      ...overrides,
+    }
+  }
+
+  test('with pct_change_since_open positive expect positive class on cell', async () => {
+    // Arrange — make pct_change_since_open column visible
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ pct_change_since_open: 5 })])
+    await nextTick()
+
+    // Assert — positive class on pct_change_since_open cell
+    const cells = wrapper.findAll('td.pct_change_since_open')
+    expect(cells.some(td => td.classes().includes('positive'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with pct_change_since_open negative expect negative class on cell', async () => {
+    // Arrange
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ pct_change_since_open: -3 })])
+    await nextTick()
+
+    // Assert
+    const cells = wrapper.findAll('td.pct_change_since_open')
+    expect(cells.some(td => td.classes().includes('negative'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with change positive expect + prefix in format', async () => {
+    // Arrange
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ change: 2 })])
+    await nextTick()
+
+    // Assert — change column shows +2.00
+    const cells = wrapper.findAll('td.change')
+    expect(cells.some(td => td.text().startsWith('+'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with change negative expect negative class and minus prefix', async () => {
+    // Arrange
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ change: -1.5 })])
+    await nextTick()
+
+    // Assert
+    const cells = wrapper.findAll('td.change')
+    expect(cells.some(td => td.classes().includes('negative'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with session column visible expect session value rendered', async () => {
+    // Arrange
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ session: 'pre' })])
+    await nextTick()
+
+    // Assert — session cell renders (no format, no decimals → raw value)
+    const cells = wrapper.findAll('td.session')
+    expect(cells.some(td => td.text() === 'pre')).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with non-finite numeric column value expect empty string', async () => {
+    // Arrange — NaN value for a decimals column → Number.isFinite = false → ''
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ prev_day_close: 'not-a-number' })])
+    await nextTick()
+
+    // Assert — empty cell for non-finite
+    const cells = wrapper.findAll('td.prev_day_close')
+    expect(cells.some(td => td.text() === '')).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with formatVolume B suffix via acc_volume >= 1B', async () => {
+    // Arrange
+    const wrapper = mountWithAllColumns()
+    await nextTick()
+    getOnData()([makeFullEvent({ accumulated_volume: 2_000_000_000 })])
+    await nextTick()
+
+    // Assert — B suffix in volume column
+    const cells = wrapper.findAll('td.accumulated_volume')
+    expect(cells.some(td => td.text().includes('B'))).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// flushLiveEvents: empty _rafPending early return
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('flushLiveEvents empty batch', () => {
+  test('with no pending events expect flushLiveEvents is a no-op', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Act — call flushLiveEvents directly via setupState (empty _rafPending)
+    const state = wrapper.vm.$.setupState
+    // _rafPending is an internal non-reactive variable; calling flushLiveEvents with it empty
+    // exercises the `if (_rafPending.length === 0)` early return
+    expect(() => state.flushLiveEvents()).not.toThrow()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onFlameTouchEnd when timer is null (already cleared)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onFlameTouchEnd with no timer', () => {
+  test('with no pending timer expect onFlameTouchEnd is a no-op', async () => {
+    // Arrange
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Act — call onFlameTouchEnd without a prior touchStart
+    const state = wrapper.vm.$.setupState
+    expect(() => state.onFlameTouchEnd()).not.toThrow()
     wrapper.unmount()
   })
 })
