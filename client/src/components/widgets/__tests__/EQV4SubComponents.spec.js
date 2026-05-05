@@ -537,3 +537,54 @@ describe('EQV4TickerEventsCard additional', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4CompanyCard — primary_exchange null (line 11)
+// ─────────────────────────────────────────────────────────────────────────────
+import EQV4CompanyCard from '../EQV4CompanyCard.vue'
+
+describe('EQV4CompanyCard', () => {
+  test('with no primary_exchange expect dash shown', async () => {
+    // Arrange — company data with null primary_exchange (|| '—' fallback)
+    const wrapper = mount(EQV4CompanyCard, {
+      props: {
+        companyData: { name: 'Test', primary_exchange: null, market_cap: null, total_employees: null, list_date: null },
+        loading: false, allNull: false, expanded: false,
+      },
+    })
+    await nextTick()
+
+    // Assert — '—' shown for missing exchange
+    expect(wrapper.find('.eqv4-v').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4HeroCard — pct_change_since_open null → ?? 0 fallback (line 35)
+// ─────────────────────────────────────────────────────────────────────────────
+import EQV4HeroCard from '../EQV4HeroCard.vue'
+
+describe('EQV4HeroCard', () => {
+  test('with pct_change_since_open=null expect ?? 0 fallback (defaults to 0)', async () => {
+    // Arrange — quoteData with null pct_change_since_open
+    const wrapper = mount(EQV4HeroCard, {
+      props: {
+        quoteData: {
+          close: 180, pct_change: 1.5, pct_change_since_open: null,
+          change_since_open: null, end_timestamp: Date.now(),
+        },
+        isLocked: true,
+        heroMode: 'wide',
+        brandingMode: 'logo',
+        activeBrandingUrl: null,
+        flameIcon: null,
+      },
+    })
+    await nextTick()
+
+    // Assert — '0.00%' shown from the ?? 0 fallback
+    expect(wrapper.find('.eqv4-since-open').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

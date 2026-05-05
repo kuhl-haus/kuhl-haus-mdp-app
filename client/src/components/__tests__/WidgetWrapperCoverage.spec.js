@@ -481,3 +481,73 @@ describe('link color swatches', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Title tooltip: isLocked=false renders 'Double-click to rename' (line 20)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('title tooltip with isLocked=false', () => {
+  test('with isLocked=false in desktop mode expect tooltip shows rename hint', async () => {
+    // Arrange — unlocked widget, not in editing mode, desktop (not mobile)
+    const wrapper = mountWrapper({
+      widgetType: 'quote', isLocked: false, isMobile: false, userLabel: 'My Widget',
+    })
+    await nextTick()
+
+    // Assert — widget-title has tooltip about double-click
+    const title = wrapper.find('.widget-title')
+    expect(title.exists()).toBe(true)
+    expect(title.attributes('title')).toContain('Double-click')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// linkColorHex: no linkColor → null (line 108)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('linkColorHex with no linkColor', () => {
+  test('with linkColor=null expect linkColorHex=null', async () => {
+    // Arrange
+    const wrapper = mountWrapper({ widgetType: 'quote', linkColor: null })
+    await nextTick()
+
+    // Assert — null linkColor → linkColorHex = null
+    expect(wrapper.vm.$.setupState.linkColorHex).toBeNull()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onTitleTouchEnd with no timer (line 144 FALSE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onTitleTouchEnd with no timer', () => {
+  test('with onTitleTouchEnd called without prior touchStart expect no crash', async () => {
+    // Arrange
+    const wrapper = mountWrapper({ widgetType: 'quote', isLocked: false })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call touchEnd without touchStart (longPressTimer is null)
+    expect(() => state.onTitleTouchEnd()).not.toThrow()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// elapsedMs: no lastDataAt → null (line 164)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('elapsedMs with no lastDataAt', () => {
+  test('with no widget data expect elapsedMs=null (lastDataAt=null path)', async () => {
+    // Arrange — no widget attached (activeWidget=null → lastDataAt=null)
+    const wrapper = mountWrapper({ widgetType: 'quote' })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // With no widget ref, lastDataAt=null → elapsedMs=null
+    expect(state.elapsedMs).toBeNull()
+    wrapper.unmount()
+  })
+})
