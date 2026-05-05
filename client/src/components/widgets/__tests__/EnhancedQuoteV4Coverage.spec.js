@@ -1043,7 +1043,8 @@ describe('WS onData with null data', () => {
     spy.mockRestore()
 
     // Act — call onData(null) directly: exercises if(!data) → early return
-    capturedOnData?.(null)
+    expect(capturedOnData).toBeDefined()
+    capturedOnData(null)
     await nextTick()
 
     // Assert — quoteData not updated (null data filtered)
