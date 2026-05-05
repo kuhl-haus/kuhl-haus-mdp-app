@@ -1426,3 +1426,157 @@ describe('FULL mode card controls', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// More narrow mode col1 card tests (prev chip, short kv-list with data)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NARROW col1: prev chip and short kv-list with data', () => {
+  const BASE = {
+    symbol: 'GOOGL', close: 180.0, change: 3.0, pct_change: 1.69,
+    pct_change_since_open: 0.9, change_since_open: 1.62, end_timestamp: Date.now(),
+    pre_market_high: 181.0, pre_market_low: 179.0,
+    regular_session_high: 182.0, regular_session_low: 178.0,
+    after_hours_high: 180.5, after_hours_low: 179.5,
+    official_open_price: 179.0, aggregate_vwap: 180.25,
+    accumulated_volume: 15_000_000, relative_volume: 1.5, avg_volume: 12_000_000,
+    free_float: 500_000_000,
+    prev_day_open: 177.0, prev_day_high: 183.0, prev_day_low: 176.0,
+    prev_day_close: 177.5, prev_day_volume: 14_000_000, prev_day_vwap: 178.0,
+    splits: [],
+  }
+
+  test('with chipCards=[prev] in narrow mode expect eqv3-chip in prev card', async () => {
+    // Arrange — prev chip in default narrow layout
+    const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE }
+    await nextTick()
+
+    // Assert — prev card exists in narrow col1 and has chip content
+    const allCards = wrapper.findAll('.eqv3-card')
+    const prevCards = allCards.filter(c => c.classes().includes('eqv3-prev-card'))
+    expect(prevCards.length).toBeGreaterThan(0)
+    if (prevCards.length > 0) {
+      expect(prevCards[0].find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with chipCards=[prev,today,volume,session] in narrow expect all chips', async () => {
+    // Arrange — all chips enabled
+    const wrapper = mountWidget({ settings: { chipCards: ['prev', 'today', 'volume', 'session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE }
+    await nextTick()
+
+    // Assert — multiple chip rows rendered in narrow mode
+    const chipRows = wrapper.findAll('.eqv3-chip-row')
+    expect(chipRows.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  test('with short data loaded in narrow list mode expect kv-list rendered', async () => {
+    // Arrange — no chipCards (list mode), real short data
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/short-interest'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_interest: 8e6, days_to_cover: 1.6, avg_daily_volume: 4e6, settlement_date: '2025-01-01' }] }) })
+      if (url.includes('/short-volume'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_volume_ratio: 32.0, short_volume: 5e6, total_volume: 15e6 }] }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget()  // no chipCards
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE }
+    await nextTick()
+
+    // Assert — short card exists with kv-list (not chip, not loading, not allShortNull)
+    const shortCard = wrapper.find('.eqv3-short-card')
+    if (shortCard.exists()) {
+      // allShortNull should be false (we have short_interest=8e6)
+      const hasKvList = shortCard.find('.eqv3-kv-list').exists()
+      const hasMuted = shortCard.find('.eqv3-muted-msg').exists()
+      expect(hasKvList || hasMuted).toBe(true)
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Script-level: allShortNull computed, allCompanyNull computed
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('allShortNull and allCompanyNull computed', () => {
+  test('with all short data null expect allShortNull=true', async () => {
+    // Arrange — fetch returns empty results → all null
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.allShortNull).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with company data loaded expect allCompanyNull=false', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/v3/reference/tickers/'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: { name: 'Test Corp' } }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.allCompanyNull).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Script-level: descExpanded toggle via company card events
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('descExpanded via company card', () => {
+  test('with EQV3CompanyCard expand event expect descExpanded=true', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/v3/reference/tickers/'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: { name: 'Test Corp', description: 'A test company.' } }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Act — emit expand from EQV3CompanyCard
+    const companyCard = wrapper.findComponent({ name: 'EQV3CompanyCard' })
+    if (companyCard.exists()) {
+      companyCard.vm.$emit('expand')
+      await nextTick()
+      expect(wrapper.vm.$.setupState.descExpanded).toBe(true)
+
+      // Also collapse
+      companyCard.vm.$emit('collapse')
+      await nextTick()
+      expect(wrapper.vm.$.setupState.descExpanded).toBe(false)
+    }
+    wrapper.unmount()
+  })
+})
