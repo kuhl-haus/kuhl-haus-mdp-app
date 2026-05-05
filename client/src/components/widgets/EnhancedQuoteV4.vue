@@ -591,10 +591,6 @@ defineExpose({
   onLayoutUpdated,
   onGridColsChange,
   onGridRowHeightChange,
-  // internal reactive state needed by tests
-  currentFeed,
-  feedName,
-  internalLayout,
 })
 </script>
 
