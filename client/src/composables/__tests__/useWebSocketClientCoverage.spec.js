@@ -371,7 +371,7 @@ describe('message handler: data without .data field', () => {
       set onmessage(fn) { capturedOnMessage = fn }
     }
 
-    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    // Using top-level imported useWebSocketClient
     const { connect } = useWebSocketClient({ wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '', onData })
     connect()
     await new Promise(r => setTimeout(r, 20)) // wait for open
@@ -400,7 +400,7 @@ describe('scheduleReconnect with autoReconnect=false', () => {
       set onclose(fn) { closeHandler = fn }
     }
 
-    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    // Using top-level imported useWebSocketClient
     const ws = useWebSocketClient({
       wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '',
       autoReconnect: false,
@@ -424,7 +424,7 @@ describe('scheduleReconnect with autoReconnect=false', () => {
 describe('onUnmounted with no feedName', () => {
   test('with no feedName on unmount expect no error', async () => {
     // Arrange — mount a component that uses useWebSocketClient with no feedName
-    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    // Using top-level imported useWebSocketClient
     const { mount } = await import('@vue/test-utils')
     const { defineComponent } = await import('vue')
 
@@ -460,7 +460,7 @@ describe('disconnect while WS is open', () => {
     global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
     global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
 
-    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    // Using top-level imported useWebSocketClient
     const ws = useWebSocketClient({
       wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '',
     })
@@ -496,7 +496,7 @@ describe('WebSocket onerror callback', () => {
     global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
     global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
 
-    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    // Using top-level imported useWebSocketClient
     const ws = useWebSocketClient({
       wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '',
     })
@@ -532,7 +532,7 @@ describe('disconnect while WS active (alternate)', () => {
     global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
 
     // Create a new isolated useWebSocketClient instance
-    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    // Using top-level imported useWebSocketClient
     const ws = useWebSocketClient({
       wsUrl: 'ws://localhost:4202/ws',
       authKey: '',
