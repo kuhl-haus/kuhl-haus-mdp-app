@@ -64,6 +64,7 @@ vi.mock('@/utils/chartIndicators.js', () => ({
 
 import { calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD, calcVolumeAvg } from '@/utils/chartIndicators.js'
 import CandlestickChart from '../CandlestickChart.vue'
+import { useScannerLink } from '@/composables/useScannerLink.js'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1154,8 +1155,7 @@ describe('settings panel MACD param inputs', () => {
 
 describe('activeTicker bus watcher with null (bus cleared)', () => {
   test('with activeTicker becoming null expect if(t) FALSE path', async () => {
-    // Arrange — mount with ticker set via bus, then clear bus
-    const { useScannerLink } = await import('@/composables/useScannerLink.js')
+    // Arrange — use static import of useScannerLink
     vi.mocked(useScannerLink).mockReturnValueOnce({
       activeTicker: { value: 'AAPL' },  // starts with AAPL
       onRowClick: vi.fn(),
