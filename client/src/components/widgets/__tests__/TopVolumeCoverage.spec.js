@@ -470,3 +470,24 @@ describe('getRelVolClass extreme relative volume', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sortBy with non-listed key → 'asc' (line 252)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sortBy with non-listed key', () => {
+  test('with sortBy(symbol) expect sortDir=asc', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'relative_volume'
+
+    // Act — switch to 'symbol' (not in list → 'asc')
+    state.sortBy('symbol')
+    await nextTick()
+
+    // Assert
+    expect(state.sortDir).toBe('asc')
+    wrapper.unmount()
+  })
+})

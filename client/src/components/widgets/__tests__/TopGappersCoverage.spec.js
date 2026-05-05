@@ -534,3 +534,25 @@ describe('sortBy with pct_change sets desc direction', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sortBy with key NOT in list → 'asc' default (line 251 [0,1] path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sortBy with non-listed key sets asc direction', () => {
+  test('with sortBy(symbol) expect sortDir=asc (not in pct_change/relVol list)', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'pct_change'  // start with something else
+
+    // Act — switch to 'symbol' key (NOT in ['pct_change', 'relative_volume'] → 'asc')
+    state.sortBy('symbol')
+    await nextTick()
+
+    // Assert — asc direction (key not in list → ternary FALSE → 'asc')
+    expect(state.sortKey).toBe('symbol')
+    expect(state.sortDir).toBe('asc')
+    wrapper.unmount()
+  })
+})

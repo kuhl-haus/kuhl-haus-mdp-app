@@ -521,15 +521,18 @@ describe('Exposed interface', () => {
 
 describe('fetchNews: no finlightApiKey', () => {
   test('with no finlightApiKey in config expect error state and no fetch', async () => {
-    // Arrange — use the _configRef side-channel to set null finlightApiKey
+    // Arrange — set null finlightApiKey BEFORE mounting
     const { _configRef } = await import('@/composables/useConfig.js')
     _configRef.value.finlightApiKey = null
+
+    // Mount with ticker set so fetchNews is called immediately
     const wrapper = mount(EQV4CompanyNewsCard, {
       props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
     })
-    await nextTick(); await nextTick(); await nextTick()
+    // fetchNews runs immediately with null finlightApiKey
+    await nextTick()
 
-    // Assert — no API key → error shown
+    // Assert — no API key → error shown (if(!config.value?.finlightApiKey) body entered)
     const state = wrapper.vm.$.setupState
     expect(state.error).toContain('key not configured')
 
