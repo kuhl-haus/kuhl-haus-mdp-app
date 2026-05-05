@@ -202,16 +202,17 @@ describe('WidgetWrapper', () => {
   })
 
   test('with unlink button clicked expect update-link-color emitted with null', async () => {
-    // Arrange
+    // Arrange — attrs pattern required: VTU 2.4.x does not capture <script setup> emissions via wrapper.emitted()
     const calls = []
-    const wrapper = mountWrapper({ isLocked: false })
+    const wrapper = mount(WidgetWrapper, {
+      props: { widgetId: 'w1', widgetType: 'quote', isLocked: false, settings: {} },
+      attrs: { 'onUpdate-link-color': (c) => calls.push(c) },
+    })
     // Act
     await wrapper.find('.color-swatch--none').trigger('click')
-    await nextTick()
-    // NOTE: VTU 2.4.x inline template emit capture bug — use attrs pattern for real validation
-    // The inline @click="$emit('update-link-color', null)" does fire the event
-    // Verify the swatch exists and is clickable
-    expect(wrapper.find('.color-swatch--none').exists()).toBe(true)
+    // Assert
+    expect(calls).toContain(null)
+    wrapper.unmount()
   })
 
   test('with color swatch clicked expect update-link-color emitted', async () => {

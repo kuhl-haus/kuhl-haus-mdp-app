@@ -40,6 +40,15 @@ import TopGainers from '../TopGainers.vue'
 
 const defaultProps = { isLocked: true, linkColor: null, isMobile: false, settings: {} }
 
+const makeWsMock = () => ({
+  lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
+  feedName:     ref(''),   cacheKey:     ref(''),
+  wsUrl:        ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+  connect:      vi.fn(),   disconnect:   vi.fn(),
+  subscribe:    vi.fn(),   unsubscribe:  vi.fn(),
+  getCache:     vi.fn(),   cacheLimit:   ref(1000),
+})
+
 function makeMarketData(overrides = []) {
   const base = [
     { symbol: 'AAPL', close: 10, change: 5, pct_change: 100, pct_change_since_open: 30, accumulated_volume: 500_000, relative_volume: 6, free_float: 1_000_000, avg_volume: 100_000, prev_day_volume: 200_000, official_open_price: 7, prev_day_close: 5, aggregate_vwap: 8, prev_day_vwap: 5 },
@@ -98,21 +107,7 @@ describe('filteredData', () => {
 
   test('with onData callback called expect rows rendered', async () => {
     // Arrange
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null),
-      isConnected:  ref(true),
-      reconnecting: ref(false),
-      feedName:     ref(''),
-      cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'),
-      authKey:      ref('secret'),
-      connect:      vi.fn(),
-      disconnect:   vi.fn(),
-      subscribe:    vi.fn(),
-      unsubscribe:  vi.fn(),
-      getCache:     vi.fn(),
-      cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: defaultProps })
 
     // Act — simulate receiving data
@@ -129,12 +124,7 @@ describe('filteredData', () => {
   test('with minPrice filter expect items below filtered out', async () => {
     // Arrange — settings with minPrice=8 excludes TSLA (close=5)
     const settings = { volumeThreshold: '100', relVolumeThreshold: '5', minPriceThreshold: 8, maxPriceThreshold: 1000000000, minChangePercent: 10, hiddenCols: [] }
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
-      feedName:     ref(''), cacheKey:     ref(''), wsUrl:        ref('ws://localhost:4202/ws'),
-      authKey:      ref('secret'), connect: vi.fn(), disconnect: vi.fn(),
-      subscribe:    vi.fn(), unsubscribe:  vi.fn(), getCache:     vi.fn(), cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: { ...defaultProps, settings } })
     const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
     onData(makeMarketData())
@@ -154,12 +144,7 @@ describe('getRowClass', () => {
 
   async function mountWithData(data, settings = {}) {
     const defaultSettings = { volumeThreshold: '0', relVolumeThreshold: '0', minPriceThreshold: 0, maxPriceThreshold: 1000000000, minChangePercent: 0, hiddenCols: [] }
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
-      feedName:     ref(''), cacheKey:     ref(''), wsUrl:        ref('ws://localhost:4202/ws'),
-      authKey:      ref('secret'), connect: vi.fn(), disconnect: vi.fn(),
-      subscribe:    vi.fn(), unsubscribe:  vi.fn(), getCache:     vi.fn(), cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: { ...defaultProps, settings: { ...defaultSettings, ...settings } } })
     const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
     onData(data)
@@ -219,14 +204,20 @@ describe('getRowClass', () => {
 describe('settings prop sync', () => {
   beforeEach(() => { vi.mocked(useWebSocketClient).mockClear() })
 
-  test('with settings prop expect filters initialized from settings', () => {
-    // Arrange
-    const settings = { volumeThreshold: '250', relVolumeThreshold: '3', minPriceThreshold: 5,
-                       maxPriceThreshold: 100, minChangePercent: 20, hiddenCols: ['pct_change'] }
-    // Act
+  test('with settings prop expect filters initialized from settings', async () => {
+    // Arrange — minPriceThreshold:8 excludes TSLA (close=5); maxPriceThreshold:1B keeps AAPL and NVDA
+    const settings = { volumeThreshold: '100', relVolumeThreshold: '5', minPriceThreshold: 8,
+                       maxPriceThreshold: 1_000_000_000, minChangePercent: 10, hiddenCols: [] }
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: { ...defaultProps, settings } })
-    // Assert — no crash, component mounts with settings applied
-    expect(w.find('.scanner-widget').exists()).toBe(true)
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    // Act — feed data including TSLA (close=5) which should be filtered out by minPriceThreshold:8
+    onData(makeMarketData())
+    await w.vm.$nextTick()
+    // Assert — TSLA (close=5) is excluded; AAPL (10) and NVDA (30) pass the price filter
+    const symbols = w.findAll('tbody tr').map(r => r.text())
+    expect(symbols.some(t => t.includes('TSLA'))).toBe(false)
+    expect(symbols.some(t => t.includes('AAPL'))).toBe(true)
     w.unmount()
   })
 
@@ -256,14 +247,7 @@ describe('column format and cellClass', () => {
   async function mountWithAllData(data) {
     const settings = { volumeThreshold: '0', relVolumeThreshold: '0', minPriceThreshold: 0,
                        maxPriceThreshold: 1000000000, minChangePercent: 0, hiddenCols: [] }
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
-      feedName:     ref(''), cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'), authKey:      ref('secret'),
-      connect:      vi.fn(), disconnect:   vi.fn(),
-      subscribe:    vi.fn(), unsubscribe:  vi.fn(),
-      getCache:     vi.fn(), cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: { ...defaultProps, settings } })
     const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
     onData(data)
@@ -319,14 +303,7 @@ describe('column format and cellClass', () => {
     // Arrange — mount with data to have the component active
     const settings = { volumeThreshold: '0', relVolumeThreshold: '0', minPriceThreshold: 0,
                        maxPriceThreshold: 1000000000, minChangePercent: 0, hiddenCols: [] }
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
-      feedName:     ref(''), cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'), authKey:      ref('secret'),
-      connect:      vi.fn(), disconnect:   vi.fn(),
-      subscribe:    vi.fn(), unsubscribe:  vi.fn(),
-      getCache:     vi.fn(), cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: { ...defaultProps, settings } })
     // Act — click sort on 'symbol' header twice
     const headers = w.findAll('th')
@@ -344,14 +321,7 @@ describe('column format and cellClass', () => {
     // Arrange
     const settings = { volumeThreshold: '0', relVolumeThreshold: '0', minPriceThreshold: 0,
                        maxPriceThreshold: 1000000000, minChangePercent: 0, hiddenCols: [] }
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null), isConnected:  ref(true), reconnecting: ref(false),
-      feedName:     ref(''), cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'), authKey:      ref('secret'),
-      connect:      vi.fn(), disconnect:   vi.fn(),
-      subscribe:    vi.fn(), unsubscribe:  vi.fn(),
-      getCache:     vi.fn(), cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const w = mount(TopGainers, { props: { ...defaultProps, settings } })
     // Act — open column menu and toggle a column off
     await w.find('.col-menu-btn').trigger('click')

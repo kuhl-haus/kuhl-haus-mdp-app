@@ -53,6 +53,24 @@ import Quote from '../Quote.vue'
 
 const defaultProps = { isLocked: true, linkColor: null, isMobile: false, settings: {} }
 
+// Helper: build a default WS mock (override individual fields as needed)
+const makeWsMock = (overrides = {}) => ({
+  lastDataAt:   ref(null),
+  isConnected:  ref(true),
+  reconnecting: ref(false),
+  feedName:     ref(''),
+  cacheKey:     ref(''),
+  wsUrl:        ref('ws://localhost:4202/ws'),
+  authKey:      ref('secret'),
+  connect:      vi.fn(),
+  disconnect:   vi.fn(),
+  subscribe:    vi.fn(),
+  unsubscribe:  vi.fn(),
+  getCache:     vi.fn(),
+  cacheLimit:   ref(1000),
+  ...overrides,
+})
+
 // Helper: get the onData callback captured from useWebSocketClient
 function getOnData() {
   return vi.mocked(useWebSocketClient).mock.calls[0][0].onData
@@ -131,24 +149,9 @@ describe('empty states', () => {
 
   test('with activeTicker set but no data expect waiting state', async () => {
     // Arrange
-    const isConnectedRef = ref(true)
     const subscribeMock = vi.fn()
     const getCacheMock = vi.fn()
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null),
-      isConnected:  isConnectedRef,
-      reconnecting: ref(false),
-      feedName:     ref(''),
-      cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'),
-      authKey:      ref('secret'),
-      connect:      vi.fn(),
-      disconnect:   vi.fn(),
-      subscribe:    subscribeMock,
-      unsubscribe:  vi.fn(),
-      getCache:     getCacheMock,
-      cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock({ subscribe: subscribeMock, getCache: getCacheMock }))
     const wrapper = mount(Quote, { props: defaultProps })
 
     // Act — simulate entering a ticker
@@ -183,22 +186,7 @@ describe('applyInput', () => {
 
   test('with non-empty input expect manualTicker set uppercased', async () => {
     // Arrange
-    const isConnectedRef = ref(true)
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null),
-      isConnected:  isConnectedRef,
-      reconnecting: ref(false),
-      feedName:     ref(''),
-      cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'),
-      authKey:      ref('secret'),
-      connect:      vi.fn(),
-      disconnect:   vi.fn(),
-      subscribe:    vi.fn(),
-      unsubscribe:  vi.fn(),
-      getCache:     vi.fn(),
-      cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const wrapper = mount(Quote, { props: defaultProps })
 
     // Act
@@ -233,22 +221,7 @@ describe('applyInput', () => {
 
   test('with enter keypress expect same behavior as click', async () => {
     // Arrange
-    const isConnectedRef = ref(true)
-    vi.mocked(useWebSocketClient).mockReturnValueOnce({
-      lastDataAt:   ref(null),
-      isConnected:  isConnectedRef,
-      reconnecting: ref(false),
-      feedName:     ref(''),
-      cacheKey:     ref(''),
-      wsUrl:        ref('ws://localhost:4202/ws'),
-      authKey:      ref('secret'),
-      connect:      vi.fn(),
-      disconnect:   vi.fn(),
-      subscribe:    vi.fn(),
-      unsubscribe:  vi.fn(),
-      getCache:     vi.fn(),
-      cacheLimit:   ref(1000),
-    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
     const wrapper = mount(Quote, { props: defaultProps })
 
     // Act — type and press Enter
@@ -264,23 +237,6 @@ describe('applyInput', () => {
 
 // ── Quote data rendering ─────────────────────────────────────────────────────
 describe('quote data rendering', () => {
-  const makeWsMock = (overrides = {}) => ({
-    lastDataAt:   ref(null),
-    isConnected:  ref(true),
-    reconnecting: ref(false),
-    feedName:     ref(''),
-    cacheKey:     ref(''),
-    wsUrl:        ref('ws://localhost:4202/ws'),
-    authKey:      ref('secret'),
-    connect:      vi.fn(),
-    disconnect:   vi.fn(),
-    subscribe:    vi.fn(),
-    unsubscribe:  vi.fn(),
-    getCache:     vi.fn(),
-    cacheLimit:   ref(1000),
-    ...overrides,
-  })
-
   beforeEach(() => {
     vi.mocked(useWebSocketClient).mockClear()
     vi.mocked(useConfig).mockClear()
