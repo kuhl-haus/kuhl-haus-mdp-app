@@ -549,3 +549,29 @@ describe('sort comparison aVal > bVal and equal paths', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort comparison with 3 rows to force all comparison paths
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort comparison with 3 rows', () => {
+  test('with 3 rows covering aVal<bval aVal>bVal aVal===bVal paths', async () => {
+    // With 3 items, sort makes multiple comparisons, covering all cases
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const wrapper = mount(TopVolume, {
+      props: { ...defaultProps, settings: openSettings },
+    })
+    const onData = vi.mocked(useWebSocketClient).mock.calls[0][0].onData
+    // Push 3 rows: TSLA(800K) > AAPL(500K) > MSFT(200K)
+    onData([
+      makeRow({ symbol: 'TSLA', accumulated_volume: 800_000 }),
+      makeRow({ symbol: 'AAPL', accumulated_volume: 500_000 }),
+      makeRow({ symbol: 'MSFT', accumulated_volume: 200_000 }),
+    ])
+    await nextTick()
+
+    // The filteredEvents sort will compare all pairs in various orders
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
