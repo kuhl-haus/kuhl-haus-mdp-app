@@ -606,3 +606,59 @@ describe('filteredArticles sort by title (desc)', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticker watcher: ticker changes to null → if(t) FALSE path (line 167)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ticker changed to null', () => {
+  test('with ticker changed to null expect fetchNews NOT called', async () => {
+    // Arrange — start with ticker, then change to null
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+    const callsBefore = global.fetch.mock.calls.length
+
+    // Act — change ticker to null (triggers watcher with t=null)
+    await wrapper.setProps({ ticker: null })
+    await nextTick()
+
+    // Assert — no additional fetch call (if(t) FALSE path)
+    expect(global.fetch.mock.calls.length).toBe(callsBefore)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredArticles sort: equal timestamps → return 0 (line 207/208)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredArticles sort: equal timestamps', () => {
+  test('with two articles having same timestamp expect no reordering', async () => {
+    // Arrange — same publishDate → av === bv → return 0
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [
+          { title: 'Article A', publishDate: '2024-01-01T00:00:00Z' },
+          { title: 'Article B', publishDate: '2024-01-01T00:00:00Z' },  // same timestamp
+        ],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Sort by time (both have same time → return 0 from compare)
+    state.sortKey = 'time'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — both articles present (equal timestamps → return 0 preserves order)
+    expect(state.filteredArticles.length).toBe(2)
+    wrapper.unmount()
+  })
+})
