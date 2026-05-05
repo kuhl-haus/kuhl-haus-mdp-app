@@ -1257,3 +1257,65 @@ describe('usCompanies with null companies', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews: sort by title, force equal comparison → return 0 (line 379)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews title sort equal comparison', () => {
+  test('with two articles having same title expect return 0 in sort', async () => {
+    // Arrange — same title → av === bv → return 0 path
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    onData([
+      makeArticle({ title: 'Identical Title', link: 'https://a.com/1' }),
+      makeArticle({ title: 'Identical Title', link: 'https://a.com/2' }),  // same title
+    ])
+    await nextTick()
+
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'title'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Assert — 2 articles sorted (equal titles → return 0 from comparator)
+    expect(state.filteredNews.length).toBe(2)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews: searchQuery filter active (line 382)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews with searchQuery active', () => {
+  test('with searchQuery set expect filtered count shown', async () => {
+    // Arrange
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    onData([
+      makeArticle({ title: 'Apple News', link: 'https://a.com/a' }),
+      makeArticle({ title: 'Tesla News', link: 'https://a.com/b' }),
+    ])
+    await nextTick()
+
+    // Act — set search query (triggers the filteredNews.length !== newsItems.length path)
+    const state = wrapper.vm.$.setupState
+    state.searchQuery = 'apple'
+    await nextTick()
+
+    // Assert — filtered count is 1 (search active)
+    expect(state.filteredNews.length).toBe(1)
+    wrapper.unmount()
+  })
+})
