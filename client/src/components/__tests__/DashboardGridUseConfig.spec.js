@@ -36,7 +36,7 @@ import DashboardGrid from '../DashboardGrid.vue'
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function mountGrid(propsOverrides = {}) {
   return mount(DashboardGrid, {
-    props: { isMobile: false, ...propsOverrides },
+    props: { ...propsOverrides },
     global: { stubs: { Teleport: true } },
   })
 }
