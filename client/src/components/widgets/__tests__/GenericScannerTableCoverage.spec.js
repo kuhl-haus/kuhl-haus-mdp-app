@@ -335,3 +335,32 @@ describe('formatCell NaN decimals fallback', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v-if="col.render": column with render function → TRUE path (line 33)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('column with render function', () => {
+  test('with column having render function expect custom component shown', async () => {
+    // Arrange — column with render function (triggers v-if="col.render" TRUE)
+    const customColumns = [
+      {
+        key: 'symbol',
+        label: 'Symbol',
+        render: (row) => ({ template: `<span class="custom">${row.symbol}</span>` }),
+      },
+    ]
+    const wrapper = mount(GenericScannerTable, {
+      props: {
+        ...defaultProps,
+        columns: customColumns,
+        data: [{ symbol: 'AAPL', price: 10 }],
+      },
+    })
+    await nextTick()
+
+    // Assert — custom component rendered (col.render truthy → v-if=true path)
+    expect(wrapper.find('.custom').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
