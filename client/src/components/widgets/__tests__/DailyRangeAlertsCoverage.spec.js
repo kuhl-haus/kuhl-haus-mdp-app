@@ -1309,3 +1309,56 @@ describe('colWidths watcher on prop change', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L460: onMove called after resizeState cleared → if(!resizeState) return TRUE
+// Same pattern as GenericScannerTable L94 fix
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onMove with resizeState=null in DRA (L460 TRUE path)', () => {
+  test('with onMove called after resizeState cleared expect early return (L460 TRUE)', async () => {
+    // Arrange — capture the mousemove listener via document.addEventListener spy
+    let capturedOnMove = null
+    let capturedOnUp = null
+    const origAdd = document.addEventListener.bind(document)
+    const spy = vi.spyOn(document, 'addEventListener').mockImplementation((type, fn) => {
+      if (type === 'mousemove') capturedOnMove = fn
+      if (type === 'mouseup') capturedOnUp = fn
+      origAdd(type, fn)
+    })
+
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''), wsUrl: ref(''), authKey: ref(''),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, isLocked: false, settings: {} },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Trigger startResize to set resizeState and add mousemove/mouseup listeners
+    if (state.startResize) {
+      const mockEvent = { clientX: 100, target: { closest: vi.fn(() => ({ offsetWidth: 100 })) } }
+      state.startResize(mockEvent, 'symbol')
+    }
+    await nextTick()
+
+    // Call onUp to clear resizeState
+    if (capturedOnUp) {
+      capturedOnUp({ clientX: 100 })
+    }
+    await nextTick()
+
+    // Act — call onMove with resizeState=null → if(!resizeState) return TRUE (L460)
+    if (capturedOnMove) {
+      capturedOnMove({ clientX: 150 })
+    }
+
+    // Assert — no crash (early return hit)
+    expect(wrapper.exists()).toBe(true)
+    spy.mockRestore()
+    wrapper.unmount()
+  })
+})

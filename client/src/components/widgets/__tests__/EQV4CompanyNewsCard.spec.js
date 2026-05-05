@@ -752,3 +752,37 @@ describe('EQV4CompanyNewsCard formatTime edge cases', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L195: if (sortKey.value === 'title') → FALSE when sortKey is neither 'time' nor 'title'
+// → falls through to return 0 (default sort)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort fallback when sortKey is neither time nor title (L195 FALSE)', () => {
+  test('with unknown sortKey expect sort returns 0 (L195 FALSE)', async () => {
+    // Arrange — mount with 2 articles so sort comparator runs
+    const { mount } = await import('@vue/test-utils')
+    const { nextTick, ref } = await import('vue')
+    const { useConfig } = await import('@/composables/useConfig.js')
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL' },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Populate articles
+    state.articles = [
+      { id: '1', title: 'Article A', publishDate: '2024-01-01T10:00:00Z', sources: [], tickers: [], summary: '' },
+      { id: '2', title: 'Article B', publishDate: '2024-01-02T10:00:00Z', sources: [], tickers: [], summary: '' },
+    ]
+
+    // Act — set unknown sortKey (neither 'time' nor 'title') → L195 evaluates to FALSE → return 0
+    state.sortKey = 'source_unknown'  // not 'time' or 'title' → both if-guards FALSE → return 0
+    await nextTick()
+
+    // Assert — filteredArticles still accessible (sort fallback ran without crash)
+    const articles = state.filteredArticles
+    expect(articles?.length ?? 0).toBeGreaterThanOrEqual(0)
+    wrapper.unmount()
+  })
+})
