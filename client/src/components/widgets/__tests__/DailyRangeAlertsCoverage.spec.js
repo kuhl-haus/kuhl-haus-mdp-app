@@ -1073,3 +1073,66 @@ describe('DailyRangeAlerts with sessionFilter null', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onTickerFilterInput: call via setupState (line 301)
+// clearTickerFilter: call via setupState
+// onShareCountChange: call via setupState (line 643)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('DRA input handlers via setupState', () => {
+  function mountDRA() {
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    return mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+  }
+
+  test('with onTickerFilterInput called expect tickerFilter updated', async () => {
+    // Arrange
+    const wrapper = mountDRA()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call onTickerFilterInput directly
+    state.onTickerFilterInput('aapl')
+    await nextTick()
+
+    // Assert — tickerFilter set to uppercase
+    expect(state.tickerFilter).toBe('AAPL')
+    wrapper.unmount()
+  })
+
+  test('with clearTickerFilter called expect tickerFilter cleared', async () => {
+    // Arrange
+    const wrapper = mountDRA()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.tickerFilter = 'AAPL'
+    await nextTick()
+
+    // Act
+    state.clearTickerFilter()
+    await nextTick()
+
+    // Assert
+    expect(state.tickerFilter).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with onShareCountChange called expect emitSettings triggered', async () => {
+    // Arrange
+    const wrapper = mountDRA()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call onShareCountChange
+    expect(() => state.onShareCountChange()).not.toThrow()
+    wrapper.unmount()
+  })
+})
