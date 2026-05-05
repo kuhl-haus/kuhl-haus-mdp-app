@@ -240,3 +240,24 @@ describe('filteredData thresholds', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toggleCol('symbol') → early return (line 166)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toggleCol with symbol key', () => {
+  test('with toggleCol(symbol) expect early return, no state change', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    const hiddenBefore = [...state.hiddenCols]
+
+    // Act — calling with 'symbol' triggers early return guard
+    state.toggleCol('symbol', false)
+    await nextTick()
+
+    // Assert — hiddenCols unchanged (symbol guard)
+    expect([...state.hiddenCols]).toEqual(hiddenBefore)
+    wrapper.unmount()
+  })
+})

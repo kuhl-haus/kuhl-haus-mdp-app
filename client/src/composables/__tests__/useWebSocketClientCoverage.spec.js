@@ -440,3 +440,38 @@ describe('onUnmounted with no feedName', () => {
     expect(() => wrapper.unmount()).not.toThrow()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// disconnect while WS is open (line 167 if(ws.value) TRUE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('disconnect while WS is open', () => {
+  test('with active connection expect disconnect closes the WS', async () => {
+    // Arrange — connect and don't close (WS stays open)
+    let capturedClose = null
+    global.WebSocket = class MockWS {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { capturedClose = true; this.onclose?.({ code: 1000 }) }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    const ws = useWebSocketClient({
+      wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '',
+    })
+    ws.connect()
+    await new Promise(r => setTimeout(r, 20))  // let connection open
+
+    // Act — disconnect while connected
+    ws.disconnect()
+    await nextTick()
+
+    // Assert — close was called (if(ws.value) body executed)
+    expect(capturedClose).toBe(true)
+  })
+})
