@@ -66,9 +66,6 @@ function mountWrapper(propsOverrides = {}) {
   })
 }
 
-function ss(wrapper) {
-  return wrapper.vm.$.setupState
-}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -96,7 +93,7 @@ describe('inline label editing', () => {
     await wrapper.find('.widget-title').trigger('dblclick')
     await nextTick()
 
-    // Assert — input now visible
+    // Assert — input now visible (isEditingTitle=true → input rendered)
     expect(wrapper.find('.widget-title--input').exists()).toBe(true)
     wrapper.unmount()
   })
@@ -110,7 +107,7 @@ describe('inline label editing', () => {
     await wrapper.find('.widget-title').trigger('dblclick')
     await nextTick()
 
-    // Assert — locked: dblclick condition `!isLocked && startEditLabel()` → no-op
+    // Assert — locked: dblclick condition `!isLocked && startEditLabel()` → no-op (isEditingTitle stays false)
     expect(wrapper.find('.widget-title--input').exists()).toBe(false)
     wrapper.unmount()
   })
@@ -134,8 +131,8 @@ describe('inline label editing', () => {
     await input.trigger('keyup.enter')
     await nextTick()
 
-    // Assert
-    expect(ss(wrapper).isEditingTitle).toBe(false)
+    // Assert — input gone (isEditingTitle=false), label emitted
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
     expect(labelCalls).toContain('New Label')
     wrapper.unmount()
   })
@@ -157,8 +154,8 @@ describe('inline label editing', () => {
     await input.trigger('blur')
     await nextTick()
 
-    // Assert
-    expect(ss(wrapper).isEditingTitle).toBe(false)
+    // Assert — input gone (isEditingTitle=false), label emitted
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
     expect(labelCalls).toContain('Via Blur')
     wrapper.unmount()
   })
@@ -180,8 +177,8 @@ describe('inline label editing', () => {
     await input.trigger('keyup.escape')
     await nextTick()
 
-    // Assert — editing closed, no label emitted
-    expect(ss(wrapper).isEditingTitle).toBe(false)
+    // Assert — editing closed (isEditingTitle=false), no label emitted
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
     expect(labelCalls).toHaveLength(0)
     wrapper.unmount()
   })
@@ -203,7 +200,8 @@ describe('inline label editing', () => {
     await input.trigger('keyup.enter')
     await nextTick()
 
-    // Assert — no emit (value unchanged)
+    // Assert — input closed (isEditingTitle=false), no emit (value unchanged)
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
     expect(labelCalls).toHaveLength(0)
     wrapper.unmount()
   })
@@ -225,8 +223,8 @@ describe('long-press rename', () => {
     vi.advanceTimersByTime(600)
     await nextTick()
 
-    // Assert — editing mode started
-    expect(ss(wrapper).isEditingTitle).toBe(true)
+    // Assert — editing mode started (isEditingTitle=true → input rendered)
+    expect(wrapper.find('.widget-title--input').exists()).toBe(true)
 
     vi.useRealTimers()
     wrapper.unmount()
@@ -243,8 +241,8 @@ describe('long-press rename', () => {
     vi.advanceTimersByTime(600)
     await nextTick()
 
-    // Assert — not editing (isLocked returns early)
-    expect(ss(wrapper).isEditingTitle).toBe(false)
+    // Assert — not editing (isLocked returns early → isEditingTitle stays false)
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
 
     vi.useRealTimers()
     wrapper.unmount()
@@ -262,8 +260,8 @@ describe('long-press rename', () => {
     vi.advanceTimersByTime(600)
     await nextTick()
 
-    // Assert — timer cancelled, not editing
-    expect(ss(wrapper).isEditingTitle).toBe(false)
+    // Assert — timer cancelled, not editing (isEditingTitle stays false)
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
 
     vi.useRealTimers()
     wrapper.unmount()
@@ -280,8 +278,8 @@ describe('freshnessIcon', () => {
     const wrapper = mountWrapper()
     await nextTick()
 
-    // Assert — oscillating icon (default when no data)
-    const icon = ss(wrapper).freshnessIcon
+    // Assert — oscillating icon rendered in DOM (lastDataAt=null path)
+    const icon = wrapper.find('.freshness-icon').text()
     expect(['🔵', '🟣']).toContain(icon)
     wrapper.unmount()
   })
@@ -296,8 +294,8 @@ describe('freshnessIcon', () => {
     sharedReconnecting.value = false
     await nextTick()
 
-    // Assert
-    expect(ss(wrapper).freshnessIcon).toBe('❌')
+    // Assert — ❌ rendered in DOM
+    expect(wrapper.find('.freshness-icon').text()).toBe('❌')
     wrapper.unmount()
   })
 
@@ -312,64 +310,72 @@ describe('freshnessIcon', () => {
     sharedReconnecting.value = true
     await nextTick()
 
-    // Assert — oscillating (reconnecting path)
-    const icon = ss(wrapper).freshnessIcon
+    // Assert — oscillating icon rendered in DOM (reconnecting path)
+    const icon = wrapper.find('.freshness-icon').text()
     expect(['🔵', '🟣']).toContain(icon)
     wrapper.unmount()
   })
 
   test('with lastDataAt 3s ago expect 🟢 (elapsed < 5s)', async () => {
-    // Arrange
+    // Arrange — use fake timers so setInterval(now update) fires deterministically
+    vi.useFakeTimers()
+    const baseTime = Date.now()
     const wrapper = mountWrapper()
     await nextTick()
 
-    // Act — set lastDataAt to 3 seconds ago
-    const threeSecondsAgo = Date.now() - 3_000
-    sharedLastDataAt.value  = threeSecondsAgo
-    sharedIsConnected.value = true
+    // Act — set lastDataAt to 3 seconds before fake "now"
+    sharedLastDataAt.value   = baseTime - 3_000
+    sharedIsConnected.value  = true
     sharedReconnecting.value = false
-    // Also update 'now' in the component to current time
-    ss(wrapper).now = Date.now()
+    vi.advanceTimersByTime(1001)  // fires setInterval → now.value = baseTime + 1001
     await nextTick()
+    // elapsedMs = (baseTime+1001) - (baseTime-3000) = 4001ms → s ≈ 4s → 🟢
 
-    // Assert
-    expect(ss(wrapper).freshnessIcon).toBe('🟢')
+    // Assert — 🟢 rendered in DOM
+    expect(wrapper.find('.freshness-icon').text()).toBe('🟢')
+    vi.useRealTimers()
     wrapper.unmount()
   })
 
   test('with lastDataAt 30s ago expect 🟡 (5 ≤ elapsed < 60s)', async () => {
-    // Arrange
+    // Arrange — use fake timers so setInterval(now update) fires deterministically
+    vi.useFakeTimers()
+    const baseTime = Date.now()
     const wrapper = mountWrapper()
     await nextTick()
 
-    // Act — 30 seconds ago
-    const thirtySecondsAgo = Date.now() - 30_000
-    sharedLastDataAt.value   = thirtySecondsAgo
+    // Act — 30 seconds before fake "now"
+    sharedLastDataAt.value   = baseTime - 30_000
     sharedIsConnected.value  = true
     sharedReconnecting.value = false
-    ss(wrapper).now = Date.now()
+    vi.advanceTimersByTime(1001)  // fires setInterval → now.value = baseTime + 1001
     await nextTick()
+    // elapsedMs = (baseTime+1001) - (baseTime-30000) = 31001ms → s ≈ 31s → 🟡
 
-    // Assert
-    expect(ss(wrapper).freshnessIcon).toBe('🟡')
+    // Assert — 🟡 rendered in DOM
+    expect(wrapper.find('.freshness-icon').text()).toBe('🟡')
+    vi.useRealTimers()
     wrapper.unmount()
   })
 
   test('with lastDataAt 2min ago expect 🔴 (elapsed ≥ 60s)', async () => {
-    // Arrange
+    // Arrange — use fake timers so setInterval(now update) fires deterministically
+    vi.useFakeTimers()
+    const baseTime = Date.now()
     const wrapper = mountWrapper()
     await nextTick()
 
-    // Act — 2 minutes ago
-    const twoMinutesAgo = Date.now() - 120_000
-    sharedLastDataAt.value   = twoMinutesAgo
+    // Act — 2 minutes before fake "now"
+    sharedLastDataAt.value   = baseTime - 120_000
     sharedIsConnected.value  = true
     sharedReconnecting.value = false
-    ss(wrapper).now = Date.now()
+    vi.advanceTimersByTime(1001)  // fires setInterval → now.value = baseTime + 1001
     await nextTick()
+    // elapsedMs = (baseTime+1001) - (baseTime-120000) = 121001ms → s ≈ 121s → 🔴
 
-    // Assert
-    expect(ss(wrapper).freshnessIcon).toBe('🔴')
+    // Assert — 🔴 rendered in DOM
+    expect(wrapper.find('.freshness-icon').text()).toBe('🔴')
+    vi.useRealTimers()
     wrapper.unmount()
   })
 })
@@ -507,13 +513,16 @@ describe('title tooltip with isLocked=false', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('linkColorHex with no linkColor', () => {
-  test('with linkColor=null expect linkColorHex=null', async () => {
+  test('with linkColor=null expect no border/shadow on widget-header', async () => {
     // Arrange
     const wrapper = mountWrapper({ widgetType: 'quote', linkColor: null })
     await nextTick()
 
-    // Assert — null linkColor → linkColorHex = null
-    expect(wrapper.vm.$.setupState.linkColorHex).toBeNull()
+    // Assert — null linkColor → linkColorHex=null → no inline border style applied
+    // Template: :style="linkColor ? { borderBottom: ... } : {}"
+    const header = wrapper.find('.widget-header')
+    expect(header.element.style.borderBottom).toBeFalsy()
+    expect(header.element.style.boxShadow).toBeFalsy()
     wrapper.unmount()
   })
 })
@@ -523,14 +532,18 @@ describe('linkColorHex with no linkColor', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('onTitleTouchEnd with no timer', () => {
-  test('with onTitleTouchEnd called without prior touchStart expect no crash', async () => {
+  test('with touchend on title without prior touchStart expect no crash', async () => {
     // Arrange
     const wrapper = mountWrapper({ widgetType: 'quote', isLocked: false })
     await nextTick()
-    const state = wrapper.vm.$.setupState
 
-    // Act — call touchEnd without touchStart (longPressTimer is null)
-    expect(() => state.onTitleTouchEnd()).not.toThrow()
+    // Act — trigger touchend without a prior touchstart (longPressTimer is null → early return)
+    await wrapper.find('.widget-title').trigger('touchend')
+    await nextTick()
+
+    // Assert — no crash, editing not started
+    expect(wrapper.exists()).toBe(true)
+    expect(wrapper.find('.widget-title--input').exists()).toBe(false)
     wrapper.unmount()
   })
 })
@@ -540,14 +553,15 @@ describe('onTitleTouchEnd with no timer', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('elapsedMs with no lastDataAt', () => {
-  test('with no widget data expect elapsedMs=null (lastDataAt=null path)', async () => {
-    // Arrange — no widget attached (activeWidget=null → lastDataAt=null)
+  test('with no widget data expect oscillating icon (lastDataAt=null path)', async () => {
+    // Arrange — Quote stub has no lastDataAt → activeWidget.lastDataAt=undefined → null
+    // elapsedMs=null → freshnessIcon shows oscillating 🔵/🟣
     const wrapper = mountWrapper({ widgetType: 'quote' })
     await nextTick()
-    const state = wrapper.vm.$.setupState
 
-    // With no widget ref, lastDataAt=null → elapsedMs=null
-    expect(state.elapsedMs).toBeNull()
+    // Assert — oscillating icon confirms elapsedMs=null code path was taken
+    const icon = wrapper.find('.freshness-icon').text()
+    expect(['🔵', '🟣']).toContain(icon)
     wrapper.unmount()
   })
 })
