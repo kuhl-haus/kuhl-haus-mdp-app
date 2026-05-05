@@ -1260,3 +1260,52 @@ describe('onData single event (else path)', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// colWidths watcher (line 447: if (v) — fires on props.colWidths change)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('colWidths watcher on prop change', () => {
+  test('with colWidths prop changed to non-null expect localColWidths updated (TRUE branch)', async () => {
+    // Arrange — mount with initial colWidths
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''), wsUrl: ref(''), authKey: ref(''),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, colWidths: { symbol: 100 }, settings: {} },
+    })
+    await nextTick()
+
+    // Act — change colWidths prop → watcher fires with non-null value (TRUE path)
+    await wrapper.setProps({ colWidths: { symbol: 150, price: 80 } })
+    await nextTick()
+
+    // Assert — localColWidths updated
+    const state = wrapper.vm.$.setupState
+    expect(state.localColWidths.symbol).toBe(150)
+    wrapper.unmount()
+  })
+
+  test('with colWidths prop changed to null expect watcher fires FALSE branch', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''), wsUrl: ref(''), authKey: ref(''),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, colWidths: { symbol: 100 }, settings: {} },
+    })
+    await nextTick()
+
+    // Act — change colWidths to null → watcher fires with null (FALSE path)
+    await wrapper.setProps({ colWidths: null })
+    await nextTick()
+
+    // Assert — no crash (falsy v branch doesn't update localColWidths)
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

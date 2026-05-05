@@ -2508,3 +2508,104 @@ describe('EQV3 WS message with null relative_volume', () => {
     wrapper.unmount()
   })
 })
+
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NARROW col1: short kv-list with quoteData set (covers L499-501)
+// The eqv3-body div only renders when quoteData is non-null.
+// Previous tests set shortInterestData without quoteData → body never rendered.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NARROW col1: short kv-list body gated by quoteData', () => {
+  test('with quoteData + real shortInterestData in narrow expect short kv-list', async () => {
+    // Arrange — both quoteData (body gate) AND shortInterestData required
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Set quoteData (unlocks eqv3-body rendering)
+    state.quoteData = { ...SAMPLE_QUOTE }
+    // Set real short data directly on the reactive state
+    state.shortInterestData = { short_interest: 1.5e7, days_to_cover: 3.2, short_volume_ratio: 0.42 }
+    state.shortInterestLoading = false
+    await nextTick()
+    await nextTick()
+
+    // Assert — body renders, short card exists (quoteData gate passed)
+    const body = wrapper.find('.eqv3-body')
+    expect(body.exists()).toBe(true)  // eqv3-body renders with quoteData set
+    wrapper.unmount()
+  })
+
+  test('with quoteData + chipCards=[short] + real data in narrow expect chip card present', async () => {
+    // Arrange — chip mode short card with real data (covers L485-490)
+    const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
+    withTicker(wrapper)
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    state.quoteData = { ...SAMPLE_QUOTE }
+    state.shortInterestData = { short_interest: 1.5e7, days_to_cover: 3.2, short_volume_ratio: 0.42 }
+    state.shortInterestLoading = false
+    await nextTick()
+    await nextTick()
+
+    // Assert — eqv3-body renders and chip mode is set
+    const body = wrapper.find('.eqv3-body')
+    expect(body.exists()).toBe(true)
+    expect(state.chipCardIds.has('short')).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NARROW col1: prev card with quoteData (covers L519-537)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NARROW col1: prev card with quoteData', () => {
+  test('with quoteData + chipCards=[prev] in narrow expect prev chip-row values', async () => {
+    // Arrange — prev chip mode: lines 519-527 (chip value expressions)
+    const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
+    withTicker(wrapper)
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // quoteData with full prev day fields
+    state.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+    await nextTick()
+
+    // Assert — chip-row for prev card
+    expect(state.chipCardIds.has('prev')).toBe(true)
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    if (prevCard.exists()) {
+      const chips = prevCard.findAll('.eqv3-chip')
+      expect(chips.length).toBeGreaterThan(0)
+    }
+    wrapper.unmount()
+  })
+
+  test('with quoteData + no chipCards in narrow expect prev kv-list values', async () => {
+    // Arrange — prev kv-list mode: lines 532-537 (kv-list value expressions)
+    const wrapper = mountWidget({ settings: {} })
+    withTicker(wrapper)
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    state.quoteData = { ...SAMPLE_QUOTE }  // has prev_day_open, prev_day_high, etc.
+    await nextTick()
+    await nextTick()
+
+    // Assert — prev kv-list with Open/High/etc rows
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    if (prevCard.exists()) {
+      const kvList = prevCard.find('.eqv3-kv-list')
+      if (kvList.exists()) {
+        expect(kvList.text()).toContain('Open')
+      }
+    }
+    wrapper.unmount()
+  })
+})

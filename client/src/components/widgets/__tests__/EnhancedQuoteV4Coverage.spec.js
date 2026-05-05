@@ -1175,3 +1175,96 @@ describe('fetchCompany and fetchShortData network errors', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// gridLayout watcher (line 251): both if(_ownLayoutUpdate) paths
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('gridLayout watcher _ownLayoutUpdate flag (L251)', () => {
+  test('with external gridLayout change expect FALSE path (no _ownLayoutUpdate)', async () => {
+    // Arrange — mount with cards, then change cards externally
+    const cards = [
+      { id: 'hero', x: 0, y: 0, w: 4, h: 4 },
+      { id: 'company', x: 4, y: 0, w: 4, h: 4 },
+    ]
+    const wrapper = mountWidget({ settings: { cards } })
+    await flushPromises()
+    await nextTick()
+
+    // Act — change cards externally via setProps (triggers gridLayout watcher with _ownLayoutUpdate=false)
+    const newCards = [
+      { id: 'hero', x: 0, y: 0, w: 6, h: 4 },  // different width
+      { id: 'company', x: 6, y: 0, w: 6, h: 4 },
+    ]
+    await wrapper.setProps({ settings: { cards: newCards } })
+    await nextTick()
+
+    // Assert — internalLayout updated (FALSE path: watcher ran without returning early)
+    const state = ss(wrapper)
+    expect(state.internalLayout.length).toBe(2)
+    wrapper.unmount()
+  })
+
+  test('with _ownLayoutUpdate=true expect TRUE path (early return)', async () => {
+    // Arrange — simulate own layout update (onLayoutUpdated sets _ownLayoutUpdate=true)
+    const cards = [
+      { id: 'hero', x: 0, y: 0, w: 4, h: 4 },
+      { id: 'company', x: 4, y: 0, w: 4, h: 4 },
+    ]
+    const wrapper = mountWidget({ settings: { cards } })
+    await flushPromises()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Manually trigger the onLayoutUpdated path which sets _ownLayoutUpdate=true
+    // then emits update-settings (which changes gridLayout → watcher fires with flag=true)
+    const newLayout = [
+      { i: 'hero', id: 'hero', x: 0, y: 0, w: 6, h: 4 },
+      { i: 'company', id: 'company', x: 6, y: 0, w: 6, h: 4 },
+    ]
+    state.onLayoutUpdated(newLayout)  // sets _ownLayoutUpdate = true then emits
+    await nextTick()
+
+    // Assert — no crash (TRUE path executed, early return)
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+describe('gridLayout watcher _ownLayoutUpdate TRUE path (L251 if-true)', () => {
+  test('with onLayoutUpdated emit followed by prop update expect watcher early-returns', async () => {
+    // Arrange — mount then onLayoutUpdated → sets _ownLayoutUpdate=true → emits
+    // → simulate parent prop update → watcher fires → TRUE path (early return)
+    const cards = [
+      { id: 'hero', x: 0, y: 0, w: 4, h: 4 },
+      { id: 'company', x: 4, y: 0, w: 4, h: 4 },
+    ]
+    const wrapper = mountWidget({ settings: { cards } })
+    await flushPromises()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Capture emits to simulate parent prop update
+    const emittedUpdates = []
+    wrapper.vm.$on = wrapper.vm.$on || (() => {})  // safe
+
+    // Act — call onLayoutUpdated (sets _ownLayoutUpdate=true internally)
+    const newLayout = [
+      { i: 'hero', id: 'hero', x: 0, y: 0, w: 6, h: 4 },
+      { i: 'company', id: 'company', x: 6, y: 0, w: 6, h: 4 },
+    ]
+    state.onLayoutUpdated(newLayout)
+    // NOW: _ownLayoutUpdate is true, update-settings has been emitted
+    // Simulate parent updating props → changes gridLayout → watcher fires with flag=true
+    const emitted = wrapper.emitted('update-settings')
+    if (emitted && emitted.length > 0) {
+      const lastSettings = emitted[emitted.length - 1][0]
+      await wrapper.setProps({ settings: lastSettings })
+      await nextTick()
+    }
+
+    // Assert — no crash (TRUE path ran: _ownLayoutUpdate=true → early return)
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

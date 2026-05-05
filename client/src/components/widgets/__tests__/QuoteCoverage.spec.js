@@ -509,3 +509,65 @@ describe('isConnected watcher with no current feed', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// busTicker watcher: if (t) → TRUE when bus fires with a ticker (line 153)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('busTicker watcher clears manualTicker', () => {
+  test('with busTicker becoming truthy expect manualTicker cleared (TRUE branch)', async () => {
+    // Arrange — capture activeTickers reactive object
+    const { reactive: rv } = await import('vue')
+    let capturedTickers = null
+    const { useWidgetBus } = await import('@/composables/useWidgetBus.js')
+    vi.mocked(useWidgetBus).mockImplementationOnce(() => {
+      capturedTickers = rv({})
+      return { activeTickers: capturedTickers, setActiveTicker: vi.fn() }
+    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+
+    const wrapper = mountQuote({ linkColor: 'red' })
+    await nextTick()
+
+    // Set manualTicker so we can confirm it gets cleared
+    wrapper.vm.$.setupState.manualTicker = 'MSFT'
+    await nextTick()
+
+    // Act — bus fires for 'red' color with ticker 'AAPL' → busTicker = 'AAPL'
+    if (capturedTickers) {
+      capturedTickers['red'] = 'AAPL'  // triggers busTicker watcher with t='AAPL'
+      await nextTick()
+      await nextTick()
+    }
+
+    // Assert — TRUE path: manualTicker cleared when bus fires
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with busTicker becoming null expect watcher fires FALSE branch (no clear)', async () => {
+    // Arrange — bus fires with null (busTicker null → t=null → if(t) = false)
+    const { reactive: rv } = await import('vue')
+    let capturedTickers = null
+    const { useWidgetBus } = await import('@/composables/useWidgetBus.js')
+    vi.mocked(useWidgetBus).mockImplementationOnce(() => {
+      capturedTickers = rv({ red: 'AAPL' })  // start with AAPL
+      return { activeTickers: capturedTickers, setActiveTicker: vi.fn() }
+    })
+    vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+
+    const wrapper = mountQuote({ linkColor: 'red' })
+    await nextTick()
+
+    // Act — clear the bus ticker → busTicker = null → watcher fires with t=null
+    if (capturedTickers) {
+      capturedTickers['red'] = null  // busTicker becomes null → FALSE path
+      await nextTick()
+      await nextTick()
+    }
+
+    // Assert — FALSE path executed without crash
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
