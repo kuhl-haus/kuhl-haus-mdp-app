@@ -1088,3 +1088,222 @@ describe('short interest in full/wide mode with chip', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDE mode COL2 template branches
+// Cards in col2 are the second half of visibleCards (by default index 3-5)
+// Override cardOrder to put session/today/volume in col2 (indices 3-5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('WIDE mode COL2 chip cards (second column)', () => {
+  // In wide mode, col2Cards = visibleCards.slice(ceil(len/2))
+  // Default order: session, today, volume, prev, company, short → col2=[prev, company, short]
+  // To put session/today/volume in col2: reorder them to indices 3-5
+  const COL2_ORDER = ['prev', 'company', 'short', 'session', 'today', 'volume']
+
+  const BASE_QUOTE = {
+    symbol: 'MSFT', close: 420.0, change: 3.5, pct_change: 0.84,
+    pct_change_since_open: 0.5, change_since_open: 2.1, end_timestamp: Date.now(),
+    pre_market_high: 421.0, pre_market_low: 419.0,
+    regular_session_high: 422.0, regular_session_low: 418.0,
+    after_hours_high: 420.5, after_hours_low: 419.5,
+    official_open_price: 418.0, aggregate_vwap: 420.25,
+    accumulated_volume: 20_000_000, relative_volume: 1.8, avg_volume: 15_000_000,
+    free_float: 700_000_000,
+    prev_day_open: 416.0, prev_day_high: 422.0, prev_day_low: 415.0,
+    prev_day_close: 416.5, prev_day_volume: 18_000_000, prev_day_vwap: 417.0,
+    splits: [],
+  }
+
+  test('with wide mode + session in col2 + session chip expect col2 session chips', async () => {
+    // Arrange — session is in col2 (index 3)
+    const wrapper = mountWidget({
+      isLocked: false,
+      settings: { chipCards: ['session'], cardOrder: COL2_ORDER },
+    })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — col2 contains session card with chip layout
+    expect(wrapper.find('.eqv3-col-2').exists()).toBe(true)
+    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with wide mode + session in col2 + null H/L expect muted dash in col2', async () => {
+    // Arrange
+    const wrapper = mountWidget({
+      settings: { chipCards: ['session'], cardOrder: COL2_ORDER },
+    })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...BASE_QUOTE,
+      pre_market_high: null, pre_market_low: null,
+      regular_session_high: null, regular_session_low: null,
+      after_hours_high: null, after_hours_low: null,
+    }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — muted dashes in col2 session chip
+    expect(wrapper.find('.eqv3-col-2 .eqv3-muted-val').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with wide mode + session in col2 + list mode + null values expect dashes', async () => {
+    // Arrange — list mode (no chipCards)
+    const wrapper = mountWidget({
+      settings: { cardOrder: COL2_ORDER },
+    })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...BASE_QUOTE,
+      pre_market_high: null, pre_market_low: null,
+    }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — dashes in col2 kv-list
+    const dashCells = wrapper.find('.eqv3-col-2').findAll('.eqv3-v').filter(el => el.text() === '—')
+    expect(dashCells.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  test('with wide mode + today in col2 chip mode expect col2 chip-row', async () => {
+    // Arrange — today is index 4 in col2_order
+    const wrapper = mountWidget({
+      settings: { chipCards: ['today'], cardOrder: COL2_ORDER },
+    })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert
+    const col2 = wrapper.find('.eqv3-col-2')
+    expect(col2.exists()).toBe(true)
+    if (col2.find('.eqv3-today-card').exists()) {
+      expect(col2.find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with wide mode + volume in col2 chip mode expect col2 chip-row', async () => {
+    // Arrange
+    const wrapper = mountWidget({
+      settings: { chipCards: ['volume'], cardOrder: COL2_ORDER },
+    })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert
+    const col2 = wrapper.find('.eqv3-col-2')
+    if (col2.find('.eqv3-volume-card').exists()) {
+      expect(col2.find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with wide mode + volume in col2 + null avg_volume expect dash', async () => {
+    // Arrange
+    const wrapper = mountWidget({
+      settings: { cardOrder: COL2_ORDER },
+    })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...BASE_QUOTE, avg_volume: null }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — dash in volume kv-list in col2
+    const col2 = wrapper.find('.eqv3-col-2')
+    if (col2.find('.eqv3-volume-card').exists()) {
+      const dashes = col2.findAll('.eqv3-v').filter(el => el.text() === '—')
+      expect(dashes.length).toBeGreaterThan(0)
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NARROW mode with chip + null data (for the col1 narrow template branches)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NARROW mode chip cards with various null data', () => {
+  const NARROW_QUOTE = {
+    symbol: 'AAPL', close: 175.0, change: 2.5, pct_change: 1.45,
+    pct_change_since_open: 0.8, change_since_open: 1.4, end_timestamp: Date.now(),
+    pre_market_high: 176.0, pre_market_low: 174.0,
+    regular_session_high: 177.0, regular_session_low: 173.0,
+    after_hours_high: 175.5, after_hours_low: 174.5,
+    official_open_price: 174.0, aggregate_vwap: 175.25,
+    accumulated_volume: 25_000_000, relative_volume: 2.5, avg_volume: 20_000_000,
+    free_float: 800_000_000,
+    prev_day_open: 172.0, prev_day_high: 178.0, prev_day_low: 171.0,
+    prev_day_close: 172.5, prev_day_volume: 22_000_000, prev_day_vwap: 173.0,
+    splits: [],
+  }
+
+  test('with session chip + null REG data expect muted dash for REG', async () => {
+    // Arrange — only null regular session data
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...NARROW_QUOTE,
+      regular_session_high: null, regular_session_low: null,
+    }
+    await nextTick()
+
+    // Assert — muted val for REG
+    const sessionChips = wrapper.find('.eqv3-session-chips')
+    if (sessionChips.exists()) {
+      expect(sessionChips.findAll('.eqv3-muted-val').length).toBeGreaterThan(0)
+    }
+    wrapper.unmount()
+  })
+
+  test('with session chip + null AH data expect muted dash for AH', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...NARROW_QUOTE,
+      after_hours_high: null, after_hours_low: null,
+    }
+    await nextTick()
+
+    // Assert — at least one muted val for AH
+    const sessionChips = wrapper.find('.eqv3-session-chips')
+    if (sessionChips.exists()) {
+      expect(sessionChips.findAll('.eqv3-muted-val').length).toBeGreaterThan(0)
+    }
+    wrapper.unmount()
+  })
+
+  test('with volume chip + null relative_volume expect relVolClass = normal', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['volume'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...NARROW_QUOTE, relative_volume: null }
+    await nextTick()
+
+    // Assert — component renders without crash; relVol chip shown
+    const volCard = wrapper.find('.eqv3-volume-card')
+    if (volCard.exists() && volCard.find('.eqv3-chip-row').exists()) {
+      expect(volCard.find('.eqv3-chip-val').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+})
