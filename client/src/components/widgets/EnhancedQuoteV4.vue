@@ -577,6 +577,20 @@ defineExpose({
   toggleCardChips,
   toggleHeroMode,
   activeCardIds,
+  // branding
+  activeBrandingUrl,
+  toggleBranding,
+  brandingMode,
+  iconUrl,
+  logoUrl,
+  // card helpers
+  cardLabel,
+  // event handlers
+  onNewsArticleCountChange,
+  onSecEdgarFilingCountChange,
+  onLayoutUpdated,
+  onGridColsChange,
+  onGridRowHeightChange,
 })
 </script>
 

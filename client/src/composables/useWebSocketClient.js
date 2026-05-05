@@ -1,4 +1,4 @@
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted, getCurrentInstance } from 'vue'
 
 export function useWebSocketClient(config = {}) {
   const {
@@ -187,14 +187,19 @@ export function useWebSocketClient(config = {}) {
     }
   })
 
-  // Cleanup on unmount
-  onUnmounted(() => {
-    if (reconnectTimer) clearTimeout(reconnectTimer)
-    if (feedName.value) {
-      unsubscribe()
-    }
-    disconnect()
-  })
+  // Cleanup on unmount — only register when called inside a component setup().
+  // When invoked bare (tests, utilities), getCurrentInstance() is null and
+  // onUnmounted would throw a Vue warning. Callers outside a component are
+  // responsible for calling disconnect() themselves.
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (feedName.value) {
+        unsubscribe()
+      }
+      disconnect()
+    })
+  }
 
   // Auto-connect if requested
   if (autoConnect) {

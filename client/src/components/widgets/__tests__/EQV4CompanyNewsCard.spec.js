@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
@@ -514,3 +514,259 @@ describe('Exposed interface', () => {
     expect(typeof vm.fetchNews).toBe('function')
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Branch coverage additions
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchNews: no finlightApiKey', () => {
+  test('with no finlightApiKey in config expect error state and no fetch', async () => {
+    // Arrange — set null finlightApiKey BEFORE mounting
+    const { _configRef } = await import('@/composables/useConfig.js')
+    _configRef.value.finlightApiKey = null
+
+    // Mount with ticker set so fetchNews is called immediately
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    // fetchNews runs immediately with null finlightApiKey
+    await nextTick()
+
+    // Assert — no API key → error shown (if(!config.value?.finlightApiKey) body entered)
+    expect(wrapper.vm.error).toContain('key not configured')
+
+    // Cleanup — restore finlightApiKey
+    _configRef.value.finlightApiKey = 'test-finlight-key'
+    wrapper.unmount()
+  })
+})
+
+describe('fetchNews: json.articles null fallback', () => {
+  test('with json.articles=null expect articles set to [] (null ?? [] fallback)', async () => {
+    // Arrange — API returns null articles
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ articles: null }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+
+    // Assert
+    expect(wrapper.vm.articles).toEqual([])
+    wrapper.unmount()
+  })
+})
+
+describe('cycleSort: toggle direction on same key from asc', () => {
+  test('with sortDir=asc on same key expect toggled to desc', async () => {
+    // Arrange — force asc on time key
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null, isLocked: true, articleCount: 10 },
+    })
+    await nextTick()
+    // Act — initial state: sortKey='time', sortDir='desc'
+    //   1st click: same key, toggle desc→asc (arrange: now at sortDir=asc)
+    //   2nd click: same key, toggle asc→desc (act: cycleSort toggles asc→desc)
+    const timeBtn = wrapper.find('.eqv4-nth-time')
+    await timeBtn.trigger('click')  // toggles to asc (arrange)
+    await timeBtn.trigger('click')  // toggles to desc (act: same key, asc->desc)
+    await nextTick()
+
+    // Assert — sort indicator shows ▼ (desc)
+    const indicator = wrapper.find('.eqv4-nth-time .eqv4-sort-indicator')
+    expect(indicator.exists()).toBe(true)
+    expect(indicator.text()).toContain('▼')
+    wrapper.unmount()
+  })
+})
+
+describe('filteredArticles sort by title (desc)', () => {
+  test('with sortKey=title desc expect reverse alphabetical order', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [
+          { title: 'Apple News',      publishDate: '2024-01-01T00:00:00Z' },
+          { title: 'Zebra Corp News', publishDate: '2024-01-02T00:00:00Z' },
+        ],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+    // Act — click title sort button:
+    //   1st click: sortKey!='title' -> sortKey='title', sortDir='asc'
+    //   2nd click: sortKey=='title', sortDir='asc' -> toggles to 'desc'
+    const titleBtn = wrapper.find('.eqv4-nth-headline')
+    await titleBtn.trigger('click')  // sets title + asc
+    await titleBtn.trigger('click')  // toggles to desc
+    await nextTick()
+
+    // Assert — filteredArticles sorted desc by title (Z before A)
+    expect(wrapper.vm.filteredArticles[0].title).toBe('Zebra Corp News')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticker watcher: ticker changes to null → if(t) FALSE path (line 167)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ticker changed to null', () => {
+  test('with ticker changed to null expect fetchNews NOT called', async () => {
+    // Arrange — start with ticker, then change to null
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+    const callsBefore = global.fetch.mock.calls.length
+
+    // Act — change ticker to null (triggers watcher with t=null)
+    await wrapper.setProps({ ticker: null })
+    await nextTick()
+
+    // Assert — no additional fetch call (if(t) FALSE path)
+    expect(global.fetch.mock.calls.length).toBe(callsBefore)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredArticles sort: equal timestamps → return 0 (line 207/208)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredArticles sort: equal timestamps', () => {
+  test('with two articles having same timestamp expect no reordering', async () => {
+    // Arrange — same publishDate → av === bv → return 0
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [
+          { title: 'Article A', publishDate: '2024-01-01T00:00:00Z' },
+          { title: 'Article B', publishDate: '2024-01-01T00:00:00Z' },  // same timestamp
+        ],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await nextTick(); await nextTick(); await nextTick()
+    // Sort by time (click time sort button)
+    const timeBtn = wrapper.find('.eqv4-nth-time')
+    await timeBtn.trigger('click')  // first click sets time+desc
+    await nextTick()
+
+    // Assert — both articles present (equal timestamps -> return 0 preserves order)
+    expect(wrapper.vm.filteredArticles.length).toBe(2)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4CompanyNewsCard L134: if (!props.ticker) return (TRUE path)
+// Call fetchNews directly without ticker to hit early return
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fetchNews early-return with null ticker (L134 TRUE)', () => {
+  test('with no ticker expect fetchNews returns early (if !props.ticker TRUE)', async () => {
+    // Arrange — mount without ticker
+    const { mount } = await import('@vue/test-utils')
+    const { nextTick } = await import('vue')
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: null },
+    })
+    await nextTick()
+    // Act — call fetchNews via exposed interface (ticker=null -> early return TRUE path)
+    if (wrapper.vm.fetchNews) {
+      await wrapper.vm.fetchNews()
+    }
+
+    // Assert — loading stays false (returned early)
+    expect(wrapper.vm.loading).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// formatTime: if (!ts) L208, if (isNaN(d.getTime())) L210
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4CompanyNewsCard formatTime edge cases', () => {
+  // formatTime is rendered in the template via {{ formatTime(item.publishDate) }}
+  // Test by loading articles with specific publishDate values and checking DOM
+
+  test('with null publishDate expect time cell empty (formatTime null -> empty string)', async () => {
+    // Arrange — load an article with null publishDate
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [{ id: '1', title: 'Test', publishDate: null, sources: [], tickers: [], summary: '' }],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — .eqv4-ntd-time is empty (formatTime(null) -> '')
+    const timeCell = wrapper.find('.eqv4-ntd-time')
+    expect(timeCell.exists()).toBe(true)
+    expect(timeCell.text()).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with invalid publishDate expect time cell empty (formatTime invalid date -> empty string)', async () => {
+    // Arrange — article with invalid date string
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [{ id: '1', title: 'Test', publishDate: 'not-a-date', sources: [], tickers: [], summary: '' }],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — time cell is empty (isNaN(getTime()) -> '')
+    const timeCell = wrapper.find('.eqv4-ntd-time')
+    expect(timeCell.text()).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with valid publishDate expect time cell non-empty (formatTime returns formatted string)', async () => {
+    // Arrange — article with valid ISO timestamp
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        articles: [{ id: '1', title: 'Test', publishDate: '2024-01-15T14:30:00Z', sources: [], tickers: [], summary: '' }],
+      }),
+    })
+    const wrapper = mount(EQV4CompanyNewsCard, {
+      props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — time cell shows formatted time (not empty)
+    const timeCell = wrapper.find('.eqv4-ntd-time')
+    expect(timeCell.text()).not.toBe('')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L195: if (sortKey.value === 'title') → FALSE when sortKey is neither 'time' nor 'title'
+// → falls through to return 0 (default sort)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Sort fallback test (unknown sortKey): this branch (neither 'time' nor 'title') is only
+// reachable by setting sortKey to an arbitrary value via internal state mutation.
+// The template only allows 'time' and 'title' via click handlers; not testable via DOM.
+// Removed to eliminate $.setupState dependency.

@@ -122,3 +122,27 @@ describe('useConfig', () => {
     expect(loading.value).toBe(false)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Singleton: second call finds config already loaded → skips fetchConfig (line 44)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('singleton already-loaded path', () => {
+  test('with config already loaded expect second useConfig call does not refetch', async () => {
+    // Arrange — first call loads config
+    const { useConfig } = await import('../useConfig.js')
+    const { flushPromises } = await import('@vue/test-utils')
+    const first = useConfig()
+    await flushPromises()
+    const fetchCallsAfterFirst = global.fetch.mock.calls.length
+
+    // Act — second call (singleton: config.value is set → should skip fetchConfig)
+    const second = useConfig()
+    await flushPromises()
+
+    // Assert — no additional fetch calls (FALSE path of if(!config.value && !loading))
+    expect(global.fetch.mock.calls.length).toBe(fetchCallsAfterFirst)
+    // Both refs point to same singleton
+    expect(first.config).toBe(second.config)
+  })
+})

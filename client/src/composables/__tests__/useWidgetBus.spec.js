@@ -273,3 +273,19 @@ describe('getFlameTooltip', () => {
     expect(tooltip).toContain('2d ago')
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getFlameVariant: all thresholds exceeded → 'dark' fallback (line 69)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('getFlameVariant: dark fallback when very old', () => {
+  test('with very old news timestamp expect dark variant', () => {
+    // Arrange — set a very old timestamp (days ago, exceeds all thresholds)
+    const { setNewsTimestamp, getFlameVariant } = require('../useWidgetBus.js')
+    // Set timestamp to 1 week ago (well beyond any threshold)
+    setNewsTimestamp('OLD', Date.now() - 7 * 24 * 3600_000)
+
+    // Assert — all thresholds exceeded → dark fallback
+    expect(getFlameVariant('OLD')).toBe('dark')
+  })
+})
