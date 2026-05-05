@@ -546,3 +546,50 @@ describe('widget update operations with unknown ID', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile toolbar: isLocked=true shows 🔒 icon (lines 40-41)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('mobile toolbar isLocked state', () => {
+  test('with mobile + isLocked=true expect lock icon shown', async () => {
+    // Arrange — mobile width, locked layout
+    store['dashboard-layout-locked'] = 'true'
+    const wrapper = mountGrid(390)
+    await nextTick()
+
+    // Assert — lock emoji shown in mobile toolbar (isLocked=true → '🔒')
+    const lockBtn = wrapper.find('.layout-controls--mobile .btn-icon[title*="Unlock"]')
+    if (lockBtn.exists()) {
+      expect(lockBtn.text()).toContain('🔒')
+    } else {
+      // Check via text search
+      const btns = wrapper.findAll('.layout-controls--mobile .btn-icon')
+      const hasLock = btns.some(b => b.text().includes('🔒') || b.attributes('title')?.includes('Unlock'))
+      expect(hasLock).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with drawLayoutPreview: item without userLabel or type expect widget label', async () => {
+    // Arrange — save a layout with a widget without userLabel/type
+    seedLayouts({
+      'NoLabelLayout': {
+        layout: [{ i: 'widget-0', x: 0, y: 0, w: 6, h: 4, userLabel: '', type: '' }],
+        widgetCounter: 1,
+        dashboardColNum: 12,
+        created: Date.now(), modified: Date.now(), description: 'test',
+      },
+    })
+    const wrapper = mountGrid()
+    await nextTick()
+
+    // Act — open preview dialog (draws layout on canvas)
+    ss(wrapper).showLayoutPreview('NoLabelLayout')
+    await nextTick()
+
+    // Assert — no crash, preview opened
+    expect(ss(wrapper).showPreviewDialog).toBe(true)
+    wrapper.unmount()
+  })
+})

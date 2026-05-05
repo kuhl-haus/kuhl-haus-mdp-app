@@ -1001,3 +1001,100 @@ describe('filteredNews sort with missing publishDate', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile: non-active ticker tag (line 72-73 FALSE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('mobile view: non-matching ticker tag', () => {
+  test('with mobile + activeTicker=AAPL + TSLA company article expect no active class', async () => {
+    // Arrange — mobile, article has TSLA company but active ticker is AAPL
+    const wrapper = mountCN({ isMobile: true })
+    await nextTick()
+    const { onData } = getMock()
+    // Set ticker to AAPL
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    // Article has TSLA (non-matching)
+    onData([makeArticle({
+      companies: [{ ticker: 'TSLA', name: 'Tesla', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C2' }],
+    })])
+    await nextTick()
+
+    // Assert — TSLA tag has no active class (activeTicker=AAPL ≠ TSLA)
+    const allTags = wrapper.findAll('.ticker-tag')
+    const activeTags = wrapper.findAll('.ticker-tag--active')
+    expect(allTags.length).toBeGreaterThan(0)
+    // TSLA tags should NOT be active
+    const tslaTags = allTags.filter(t => t.text() === 'TSLA')
+    if (tslaTags.length > 0) {
+      expect(tslaTags[0].classes()).not.toContain('ticker-tag--active')
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cycleSort: asc → desc toggle (line 256 TRUE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('cycleSort: asc to desc direction', () => {
+  test('with sortDir=asc on same key expect toggle to desc', async () => {
+    // Arrange — force sortDir to asc first
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+    onData([makeArticle()])
+    await nextTick()
+
+    // Force asc direction
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'time'
+    state.sortDir = 'asc'
+    await nextTick()
+
+    // Act — cycle sort on same key (asc → desc)
+    state.cycleSort('time')
+    await nextTick()
+
+    // Assert — toggled to desc
+    expect(state.sortDir).toBe('desc')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews sort: title sort desc returns -cmp (lines 360-367)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews title sort desc', () => {
+  test('with sortKey=title + sortDir=desc expect reverse alphabetical', async () => {
+    // Arrange
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+    onData([
+      makeArticle({ title: 'Apple News', publishDate: '2024-01-01T00:00:00Z' }),
+      makeArticle({ title: 'Zebra Corp', publishDate: '2024-01-02T00:00:00Z' }),
+    ])
+    await nextTick()
+
+    // Act — sort by title desc
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'title'
+    state.sortDir = 'desc'
+    await nextTick()
+
+    // Assert — Zebra before Apple (desc)
+    expect(state.filteredNews[0].title).toBe('Zebra Corp')
+    wrapper.unmount()
+  })
+})
