@@ -290,3 +290,48 @@ describe('colWidths prop watch', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toNum with NaN value → 0 fallback (line 146)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toNum NaN fallback', () => {
+  test('with non-numeric volume value expect toNum returns 0 (NaN fallback)', async () => {
+    // Arrange — access toNum directly via setupState with non-numeric value
+    const wrapper = mountTable()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — call toNum with non-numeric value (NaN path → returns 0)
+    const result = state.toNum('not-a-number')
+
+    // Assert — NaN → 0 fallback
+    expect(result).toBe(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// formatCell: NaN decimals → '' (line 173)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('formatCell NaN decimals fallback', () => {
+  test('with non-numeric decimals value expect formatCell returns empty string', async () => {
+    // Arrange — add a column with decimals and non-finite value
+    const customColumns = [
+      { key: 'price', label: 'Price', decimals: 2 },
+    ]
+    const wrapper = mount(GenericScannerTable, {
+      props: { ...defaultProps, columns: customColumns, settings: { hiddenCols: [] } },
+    })
+    await nextTick()
+
+    // Act — access formatCell directly via setupState
+    const state = wrapper.vm.$.setupState
+    const col = { key: 'price', decimals: 2 }
+    // Non-finite number → returns ''
+    const result = state.formatCell(col, { price: NaN })
+    expect(result).toBe('')
+    wrapper.unmount()
+  })
+})

@@ -385,3 +385,84 @@ describe('NewsArticleModal', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4SecEdgarCard — missing branches
+// ─────────────────────────────────────────────────────────────────────────────
+import EQV4SecEdgarCard from '../EQV4SecEdgarCard.vue'
+
+describe('EQV4SecEdgarCard', () => {
+  test('with ticker but no filings returned expect no-filings state shown', async () => {
+    // Arrange — fetch returns empty results (no filings found)
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ results: [] }),
+    })
+    const { flushPromises } = await import('@vue/test-utils')
+    const wrapper = mount(EQV4SecEdgarCard, {
+      props: { ticker: 'AAPL', isLocked: true, filingCount: 10 },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — "No filings found" state rendered
+    const empty = wrapper.find('.eqv4-edgar-empty')
+    expect(empty.exists()).toBe(true)
+    expect(empty.text()).toContain('No filings')
+    wrapper.unmount()
+  })
+
+  test('with HTTP error response expect error state shown', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: vi.fn() })
+    const { flushPromises } = await import('@vue/test-utils')
+    const wrapper = mount(EQV4SecEdgarCard, {
+      props: { ticker: 'AAPL', isLocked: true, filingCount: 10 },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — error section shown
+    expect(wrapper.find('.eqv4-edgar-error').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with form_type in FORM_IMPACT expect impact badge shown', async () => {
+    // Arrange — return a filing with form_type that has an impact badge
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        results: [{
+          filing_date: '2025-01-15',
+          form_type:   '8-K',
+          filing_url:  'https://sec.gov/raw',
+          accession_number: '0001234567-25-000001',
+          cik: '320193',
+        }],
+      }),
+    })
+    const { flushPromises } = await import('@vue/test-utils')
+    const wrapper = mount(EQV4SecEdgarCard, {
+      props: { ticker: 'AAPL', isLocked: true, filingCount: 10 },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — impact badge shown for 8-K
+    expect(wrapper.find('.eqv4-impact-badge').exists()).toBe(true)
+    expect(wrapper.find('.eqv4-impact-badge').text()).toContain('Material')
+    wrapper.unmount()
+  })
+
+  test('with isLocked=false expect remove button shown', async () => {
+    // Arrange
+    const wrapper = mount(EQV4SecEdgarCard, {
+      props: { ticker: null, isLocked: false, filingCount: 10 },
+    })
+    await nextTick()
+
+    // Assert — remove button visible when unlocked
+    expect(wrapper.find('.eqv4-edgar-remove').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})

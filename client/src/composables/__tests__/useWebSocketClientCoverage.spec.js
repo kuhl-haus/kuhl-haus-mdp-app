@@ -351,3 +351,92 @@ describe('connect with empty wsUrl', () => {
     expect(MockWebSocket.instances.length).toBe(0)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Message handler: data without .data field (else if path, line 136)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('message handler: data without .data field', () => {
+  test('with message having no .data field expect onData called with full message', async () => {
+    // Arrange — message has no .data field (bare object)
+    const onData = vi.fn()
+    let capturedOnMessage = null
+    global.WebSocket = class MockWS {
+      constructor(url) {
+        this.url = url; this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+      set onmessage(fn) { capturedOnMessage = fn }
+    }
+
+    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    const { connect } = useWebSocketClient({ wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '', onData })
+    connect()
+    await new Promise(r => setTimeout(r, 20)) // wait for open
+
+    // Act — send a bare object without .data field
+    capturedOnMessage?.({ data: JSON.stringify({ type: 'quote', symbol: 'AAPL', close: 180 }) })
+    await nextTick()
+
+    // Assert — onData called with the full message (else if branch)
+    expect(onData).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'AAPL' }))
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// scheduleReconnect with autoReconnect=false (line 90)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('scheduleReconnect with autoReconnect=false', () => {
+  test('with autoReconnect=false expect no reconnect attempted', async () => {
+    // Arrange — create WS that immediately closes
+    let closeHandler = null
+    global.WebSocket = class MockWS {
+      constructor() { this.readyState = 0; setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0) }
+      send() {}
+      close() { this.onclose?.({ code: 1006 }) }  // abnormal close triggers reconnect
+      set onclose(fn) { closeHandler = fn }
+    }
+
+    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    const ws = useWebSocketClient({
+      wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '',
+      autoReconnect: false,
+    })
+    ws.connect()
+    await new Promise(r => setTimeout(r, 20))
+
+    // Act — trigger close (should NOT reconnect since autoReconnect=false)
+    closeHandler?.({ code: 1006 })
+    await nextTick()
+
+    // Assert — reconnecting stays false (no reconnect attempt)
+    expect(ws.reconnecting.value).toBe(false)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onUnmounted: feedName empty → unsubscribe not called (line 192)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onUnmounted with no feedName', () => {
+  test('with no feedName on unmount expect no error', async () => {
+    // Arrange — mount a component that uses useWebSocketClient with no feedName
+    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    const { mount } = await import('@vue/test-utils')
+    const { defineComponent } = await import('vue')
+
+    const TestComp = defineComponent({
+      setup() {
+        useWebSocketClient({ wsUrl: '', authKey: '', feedName: '', cacheKey: '', autoConnect: false })
+      },
+      template: '<div />',
+    })
+
+    const wrapper = mount(TestComp)
+    // Act — unmount (triggers onUnmounted with no feedName)
+    expect(() => wrapper.unmount()).not.toThrow()
+  })
+})
