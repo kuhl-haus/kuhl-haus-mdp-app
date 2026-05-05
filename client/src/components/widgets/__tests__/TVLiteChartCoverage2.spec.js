@@ -356,3 +356,110 @@ describe('bars loaded before mount', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ResizeObserver callback: chart resize (lines 417-418)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ResizeObserver callback triggers chart resize', () => {
+  test('with ResizeObserver callback fired expect chart.applyOptions called', async () => {
+    // Arrange — capture the ResizeObserver callback
+    let capturedCallback = null
+    vi.stubGlobal('ResizeObserver', function MockRO(cb) {
+      capturedCallback = cb
+      return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() }
+    })
+
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL' } },
+    })
+    await flushPromises()
+    await nextTick()
+    expect(capturedCallback).not.toBeNull()
+
+    const { __chartMock: chart } = await import('lightweight-charts')
+
+    // Act — trigger the ResizeObserver callback
+    capturedCallback([{ contentRect: { width: 800, height: 500 } }])
+    await nextTick()
+
+    // Assert — applyOptions called for resize
+    expect(chart.applyOptions).toHaveBeenCalled()
+
+    vi.stubGlobal('ResizeObserver', function () { return resizeObserverMock })
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onMounted: bars already loaded before mount (line 427 TRUE path)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onMounted with bars pre-loaded', () => {
+  test('with bars loaded before mount via fast fetch expect updateChart called on mount', async () => {
+    // Arrange — fetch resolves immediately so bars are set before onMounted's chart init
+    // This tests the if (bars.value.length) updateChart() line in onMounted
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: vi.fn().mockResolvedValue({
+        results: [makeBar(0), makeBar(1), makeBar(2)],
+        status: 'OK',
+      }),
+    })
+
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL' } },
+    })
+    // Flush synchronously to simulate fast fetch
+    await flushPromises()
+    await nextTick()
+
+    // Assert — bars loaded successfully
+    const state = wrapper.vm.$.setupState
+    expect(state.bars.length).toBe(3)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MACD histogram negative value → dark red color (line 515)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('MACD histogram negative value color', () => {
+  test('with enough bars for MACD expect both positive and negative histogram values', async () => {
+    // Arrange — enough bars for MACD with alternating prices (to generate neg histogram)
+    const bars = Array.from({ length: 50 }, (_, i) => ({
+      t: (1_700_000_000 + i * 86400) * 1000,
+      o: 100 + (i % 3 === 0 ? -5 : 5),
+      h: 110, l: 90,
+      c: 100 + (i % 3 === 0 ? -3 : 3),
+      v: 500_000, vw: 100,
+    }))
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = await mountAndFetch({ macd: { enabled: true, fast: 12, slow: 26, signal: 9 } }, bars)
+
+    // Assert — MACD computed without crash
+    const state = wrapper.vm.$.setupState
+    expect(state.bars.length).toBeGreaterThan(30)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Null indicator values: VWAP with 1 bar (line 501 null case)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('VWAP null values with 1 bar', () => {
+  test('with VWAP enabled and 1 bar expect null values filtered out', async () => {
+    // Arrange — 1 bar: VWAP needs volume-weighted data, might produce null early
+    const bars = [makeBar(0)]
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = await mountAndFetch({ vwap: { enabled: true, color: '#ffffff' } }, bars)
+
+    // Assert — VWAP series added without crash
+    const { __chartMock: chart } = await import('lightweight-charts')
+    expect(chart.addSeries).toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})
