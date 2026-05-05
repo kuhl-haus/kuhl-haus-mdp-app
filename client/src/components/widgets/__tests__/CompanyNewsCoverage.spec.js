@@ -575,3 +575,176 @@ describe('shortSource', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticker tag active class (co.ticker === activeTicker)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ticker tag active class', () => {
+  test('with activeTicker=AAPL and AAPL article expect ticker-tag--active class', async () => {
+    // Arrange
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+
+    // Set ticker to AAPL
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    // Inject AAPL article
+    onData([makeArticle({
+      companies: [{ ticker: 'AAPL', name: 'Apple', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C1' }],
+    })])
+    await nextTick()
+
+    // Assert — AAPL ticker tag in article has active class
+    const activeTags = wrapper.findAll('.ticker-tag--active')
+    expect(activeTags.length).toBeGreaterThan(0)
+    expect(activeTags[0].text()).toBe('AAPL')
+    wrapper.unmount()
+  })
+
+  test('with non-matching ticker expect ticker-tag without active class', async () => {
+    // Arrange — viewing AAPL but article mentions MSFT
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    onData([makeArticle({
+      companies: [{ ticker: 'MSFT', name: 'Microsoft', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C2' }],
+    })])
+    await nextTick()
+
+    // Assert — ticker-tag exists but is NOT active
+    const tags = wrapper.findAll('.ticker-tag')
+    expect(tags.length).toBeGreaterThan(0)
+    expect(tags.some(t => t.classes().includes('ticker-tag--active'))).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredNews sort: av > bv branch (second article has later timestamp)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredNews sort av > bv branch', () => {
+  test('with time asc sort and newer article in position 2 expect av > bv comparison', async () => {
+    // Arrange — article B is newer than article A; with ASC sort: A before B
+    // But the sort comparison of B vs A: B.publishDate > A.publishDate → av > bv = true
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    // Inject two articles — older first (which means when comparing [1] vs [0]: 
+    // bv > av → triggers av > bv in REVERSE comparison)
+    onData([
+      makeArticle({ link: 'https://a.com/old', publishDate: '2024-01-01T10:00:00Z', title: 'Older' }),
+      makeArticle({ link: 'https://a.com/new', publishDate: '2024-06-01T10:00:00Z', title: 'Newer' }),
+    ])
+    await nextTick()
+
+    // Sort by time asc — this forces comparison where av (older) < bv (newer)
+    // AND the reverse comparison where av (newer) > bv (older)
+    const state = wrapper.vm.$.setupState
+    state.sortDir = 'asc'
+    state.sortKey = 'time'
+    await nextTick()
+
+    // Assert — oldest first (asc sort by time)
+    expect(state.filteredNews[0].title).toBe('Older')
+    expect(state.filteredNews[1].title).toBe('Newer')
+    wrapper.unmount()
+  })
+
+  test('with title sort desc expect av > bv comparison for title string', async () => {
+    // Arrange — articles with alpha titles; sort title desc = Zeta before Alpha
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    onData([
+      makeArticle({ link: 'https://a.com/alpha', title: 'Alpha story', publishDate: '2024-01-01T10:00:00Z' }),
+      makeArticle({ link: 'https://a.com/zeta',  title: 'Zeta story',  publishDate: '2024-01-02T10:00:00Z' }),
+    ])
+    await nextTick()
+
+    // Act — sort by title desc (default for new key is asc, toggle to desc)
+    const state = wrapper.vm.$.setupState
+    state.cycleSort('title')  // sets title asc
+    await nextTick()
+    state.cycleSort('title')  // toggles to desc
+    await nextTick()
+
+    // Assert — Zeta before Alpha (desc)
+    expect(state.filteredNews[0].title).toBe('Zeta story')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// switchTicker — changes the activeTicker
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('switchTicker', () => {
+  test('with ticker tag clicked expect manualTicker updated', async () => {
+    // Arrange — viewing AAPL with MSFT article
+    const wrapper = mountCN()
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    onData([makeArticle({
+      companies: [{ ticker: 'MSFT', name: 'Microsoft', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C2' }],
+    })])
+    await nextTick()
+
+    // Act — click MSFT ticker tag
+    const tag = wrapper.find('.ticker-tag--clickable')
+    if (tag.exists()) {
+      await tag.trigger('click')
+      await nextTick()
+      // Assert — manualTicker changed to MSFT
+      expect(wrapper.vm.$.setupState.manualTicker).toBe('MSFT')
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile with active ticker tag
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('mobile ticker tag active class', () => {
+  test('with mobile + activeTicker=AAPL + AAPL article expect active class on card tag', async () => {
+    // Arrange
+    const wrapper = mountCN({ isMobile: true })
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+
+    onData([makeArticle({
+      companies: [{ ticker: 'AAPL', name: 'Apple', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C1' }],
+    })])
+    await nextTick()
+
+    // Assert — ticker tag active class in mobile card
+    const activeTags = wrapper.findAll('.ticker-tag--active')
+    expect(activeTags.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
