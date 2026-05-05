@@ -431,3 +431,60 @@ describe('busTicker watcher fires with non-null ticker', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onData callback: receive quote data for activeTicker
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onData callback receives quote message', () => {
+  test('with quote for activeTicker expect quoteData updated', async () => {
+    // Arrange
+    const wrapper = mountQuote({ settings: {} })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.manualTicker = 'AAPL'
+    await nextTick()
+
+    // Act — trigger onData with AAPL quote
+    triggerData(wrapper, { symbol: 'AAPL', close: 180, pct_change: 1.5 })
+    await nextTick()
+
+    // Assert — quoteData updated
+    expect(state.quoteData?.symbol).toBe('AAPL')
+    wrapper.unmount()
+  })
+
+  test('with quote for wrong symbol expect quoteData not updated', async () => {
+    // Arrange
+    const wrapper = mountQuote({ settings: {} })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.manualTicker = 'AAPL'
+    state.quoteData = null
+    await nextTick()
+
+    // Act — trigger onData with wrong symbol
+    triggerData(wrapper, { symbol: 'TSLA', close: 200 })
+    await nextTick()
+
+    // Assert — quoteData stays null
+    expect(state.quoteData).toBeNull()
+    wrapper.unmount()
+  })
+
+  test('with null data expect early return', async () => {
+    // Arrange
+    const wrapper = mountQuote({ settings: {} })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.quoteData = null
+
+    // Act — trigger onData with null (exercises if(!data) return)
+    triggerData(wrapper, null)
+    await nextTick()
+
+    // Assert — quoteData stays null
+    expect(state.quoteData).toBeNull()
+    wrapper.unmount()
+  })
+})
