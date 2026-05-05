@@ -490,3 +490,47 @@ describe('filteredData filter thresholds', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toggleCol('symbol') → early return (line 165)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toggleCol with symbol key', () => {
+  test('with toggleCol(symbol) expect early return, no state change', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    const hiddenBefore = [...state.hiddenCols]
+
+    // Act — calling with 'symbol' should return early (if (key === 'symbol') return)
+    state.toggleCol('symbol', false)
+    await nextTick()
+
+    // Assert — hiddenCols unchanged (symbol guard triggered)
+    expect([...state.hiddenCols]).toEqual(hiddenBefore)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sortBy with 'pct_change' key → 'desc' default direction (line 251)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sortBy with pct_change sets desc direction', () => {
+  test('with sortBy(pct_change) on new key expect sortDir=desc', async () => {
+    // Arrange — start with default sort (relative_volume or pct_change)
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'symbol'  // set to something else first
+    state.sortDir = 'asc'
+
+    // Act — switch to pct_change (in the list → 'desc' default)
+    state.sortBy('pct_change')
+    await nextTick()
+
+    // Assert — sortDir defaults to 'desc' for pct_change
+    expect(state.sortKey).toBe('pct_change')
+    expect(state.sortDir).toBe('desc')
+    wrapper.unmount()
+  })
+})

@@ -418,3 +418,55 @@ describe('filteredData filter thresholds', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// toggleCol('symbol') → early return (line 168)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('toggleCol with symbol key', () => {
+  test('with toggleCol(symbol) expect early return, no state change', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    const hiddenBefore = [...state.hiddenCols]
+
+    // Act — calling with 'symbol' should return early
+    state.toggleCol('symbol', false)
+    await nextTick()
+
+    // Assert — hiddenCols unchanged
+    expect([...state.hiddenCols]).toEqual(hiddenBefore)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getRelVolClass with rv >= 5 → extreme (line 199)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('getRelVolClass extreme relative volume', () => {
+  test('with relative_volume >= 5 expect extreme class', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+
+    // Assert — rv=5.5 → extreme
+    expect(state.getRelVolClass(5.5)).toBe('extreme')
+    wrapper.unmount()
+  })
+
+  test('with sortBy relative_volume expect desc default direction', async () => {
+    // Arrange
+    const wrapper = await mountWithData([])
+    const state = wrapper.vm.$.setupState
+    state.sortKey = 'symbol'
+
+    // Act — switch to relative_volume (in the list → 'desc')
+    state.sortBy('relative_volume')
+    await nextTick()
+
+    // Assert
+    expect(state.sortDir).toBe('desc')
+    wrapper.unmount()
+  })
+})

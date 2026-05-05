@@ -312,3 +312,89 @@ describe('template negative values', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// quoteFlame: no activeTicker → returns null (line 123)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('quoteFlame with no activeTicker', () => {
+  test('with no activeTicker expect quoteFlame=null', async () => {
+    // Arrange — no ticker set
+    const wrapper = mountQuote()
+    await nextTick()
+
+    // Assert — no ticker → quoteFlame is null
+    expect(wrapper.vm.$.setupState.quoteFlame).toBeNull()
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// changeClass and relVolClass: quoteData=null (lines 235, 240)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('changeClass and relVolClass with null quoteData', () => {
+  test('with quoteData=null expect changeClass=""', async () => {
+    // Arrange
+    const wrapper = mountQuote()
+    await nextTick()
+    // quoteData is null by default (no WS data)
+    wrapper.vm.$.setupState.quoteData = null
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.changeClass).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with quoteData=null expect relVolClass=""', async () => {
+    // Arrange
+    const wrapper = mountQuote()
+    await nextTick()
+    wrapper.vm.$.setupState.quoteData = null
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.$.setupState.relVolClass).toBe('')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// watch(activeTicker): isConnected=false → no subscribe (line 187)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('activeTicker watch: not connected path', () => {
+  test('with ticker set and isConnected=false expect subscribe not called', async () => {
+    // Arrange — create WS that stays disconnected
+    class DisconnectedWS {
+      constructor() { this.readyState = 0 }
+      send() {} close() {}
+    }
+    global.WebSocket = DisconnectedWS
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    const wrapper = mountQuote({ settings: {} })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Act — set ticker (activeTicker watcher fires with isConnected=false)
+    state.manualTicker = 'AAPL'
+    await nextTick()
+
+    // Assert — currentFeed set but subscribe not called
+    expect(state.currentFeed).toContain('AAPL')
+
+    // Restore
+    class RestoreWS {
+      constructor() { this.readyState = 0; setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0) }
+      send() {} close() {}
+    }
+    global.WebSocket = RestoreWS
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    wrapper.unmount()
+  })
+})
