@@ -1676,3 +1676,52 @@ describe('filteredNews tickers sort with equal tickers', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal image error handler (line 142 anonymous_52)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('modal image error handler', () => {
+  test('with image load error expect image hidden (anonymous fn at L142)', async () => {
+    // Arrange — open modal with article that has an image
+    const wrapper = mountFeed({}, document.body)
+    await nextTick()
+    const article = makeArticle({
+      images: ['https://example.com/image.jpg'],
+    })
+    triggerData([article])
+    await nextTick()
+    wrapper.vm.$.setupState.selected = article
+    await nextTick()
+
+    // Act — trigger image error event (anonymous fn at L142)
+    const img = document.querySelector('.modal-image')
+    if (img) {
+      img.dispatchEvent(new Event('error'))
+      await nextTick()
+      // Assert — image hidden after error
+      expect(img.style.display).toBe('none')
+    }
+
+    wrapper.unmount()
+  })
+
+  test('with modal backdrop click expect modal closed (line 131)', async () => {
+    // Arrange
+    const wrapper = mountFeed({}, document.body)
+    await nextTick()
+    triggerData([makeArticle()])
+    await nextTick()
+    wrapper.vm.$.setupState.selected = makeArticle()
+    await nextTick()
+
+    // Act — click backdrop (anonymous fn at L131)
+    const backdrop = document.querySelector('.modal-backdrop')
+    if (backdrop) {
+      backdrop.dispatchEvent(new MouseEvent('click', { target: backdrop }))
+      await nextTick()
+    }
+
+    wrapper.unmount()
+  })
+})

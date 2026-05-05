@@ -507,3 +507,51 @@ describe('WebSocket onerror callback', () => {
     expect(() => capturedOnError?.({ message: 'test error' })).not.toThrow()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// disconnect with active WS (alternate approach)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('disconnect while WS active (alternate)', () => {
+  test('with simulated connect+disconnect expect close called', async () => {
+    // Arrange
+    let closeCalled = false
+    let capturedClose = null
+    global.WebSocket = class MockWS2 {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() {
+        closeCalled = true
+        this.onclose?.({ code: 1000 })
+      }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    // Create a new isolated useWebSocketClient instance
+    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    const ws = useWebSocketClient({
+      wsUrl: 'ws://localhost:4202/ws',
+      authKey: '',
+      feedName: 'testfeed',  // set feedName so onUnmounted unsubscribes
+      cacheKey: '',
+    })
+
+    // Connect
+    ws.connect()
+    await new Promise(r => setTimeout(r, 20))  // wait for open
+
+    // Verify connected
+    expect(ws.isConnected.value).toBe(true)
+
+    // Disconnect while connected
+    ws.disconnect()
+    await new Promise(r => setTimeout(r, 5))
+
+    // Assert — close was called
+    expect(closeCalled).toBe(true)
+  })
+})

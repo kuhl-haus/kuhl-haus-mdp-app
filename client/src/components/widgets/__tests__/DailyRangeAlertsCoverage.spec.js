@@ -1225,3 +1225,38 @@ describe('controls panel filter input interactions', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onData: single event (else path - RAF buffer) (line ~252)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onData single event (else path)', () => {
+  test('with onData called with single event expect RAF buffer path', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+
+    // Get the onData callback from the WS mock config
+    const mockCalls = vi.mocked(useWebSocketClient).mock.calls
+    const lastConfig = mockCalls[mockCalls.length - 1][0]
+    const onData = lastConfig.onData
+
+    // Act — call onData with a SINGLE event (NOT array → else path)
+    const singleEvent = makeEvent({ symbol: 'AAPL' })
+    onData(singleEvent)  // else: _rafPending.push + requestAnimationFrame
+    await nextTick()
+
+    // Assert — event in pending buffer (RAF not fired in test env)
+    const state = wrapper.vm.$.setupState
+    expect(state._rafPending.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
