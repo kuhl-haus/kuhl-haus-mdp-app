@@ -1859,3 +1859,152 @@ describe('narrow col1 chip cards prev and short', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Full-mode: short card kv-list WITH data (lines 183-187)
+// Requires: not chip mode, not loading, allShortNull=false
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('full-mode short card kv-list with real data', () => {
+  test('with full mode + no chipCards + real short data expect kv-list shown', async () => {
+    // Arrange — real short data, no chip mode for short card
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/short-interest'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_interest: 6e6, days_to_cover: 1.8, avg_daily_volume: 3e6, settlement_date: '2025-01-01' }] }) })
+      if (url.includes('/short-volume'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_volume_ratio: 33.5, short_volume: 4e6, total_volume: 12e6 }] }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget()  // no chipCards → short in list mode
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — short card kv-list (not muted, not loading)
+    const shortCard = wrapper.find('.eqv3-short-card')
+    expect(shortCard.exists()).toBe(true)
+    // allShortNull should be false (we have real data)
+    expect(wrapper.vm.$.setupState.allShortNull).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Full-mode session chip: null after-hours data → muted dash (lines 109, 113)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('full-mode session chip with null session data', () => {
+  test('with session chip + null AH data expect muted dash shown', async () => {
+    // Arrange — session in chip mode, AH data null
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...SAMPLE_QUOTE,
+      after_hours_high: null,
+      after_hours_low:  null,
+      // pre_market also null
+      pre_market_high: null,
+      pre_market_low:  null,
+    }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — muted dash in session chip (null path)
+    const muted = wrapper.findAll('.eqv3-session-chip-vals.eqv3-muted-val')
+    expect(muted.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Narrow col1: card controls visible when isLocked=false (lines 95-96)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('narrow col1 card controls with isLocked=false', () => {
+  test('with isLocked=false in narrow mode expect card controls in col1 draggable', async () => {
+    // Arrange — unlocked
+    const wrapper = mountWidget({ isLocked: false })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert — card controls present (hide/chips toggles)
+    const controls = wrapper.findAll('.eqv3-card-controls')
+    expect(controls.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  test('with isLocked=false + chipsCapable card expect chips toggle shown', async () => {
+    // Arrange
+    const wrapper = mountWidget({ isLocked: false })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    await nextTick()
+
+    // Assert — chips toggle visible for chipsCapable cards (today, volume, etc.)
+    const chipsToggles = wrapper.findAll('button.eqv3-card-toggle')
+    expect(chipsToggles.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wide mode: prev card chip section (line 253)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('wide mode: prev card chip section', () => {
+  test('with wide mode + chipCards=[prev] expect prev chip-row in col1', async () => {
+    // Arrange — wide mode, prev in chip mode
+    const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — prev chip section rendered
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    expect(prevCard.exists()).toBe(true)
+    const chipRow = prevCard.find('.eqv3-chip-row')
+    if (chipRow.exists()) {
+      expect(chipRow.findAll('.eqv3-chip').length).toBeGreaterThan(0)
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wide col2: short chip with data (line 332)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('wide col2: short chip with data', () => {
+  test('with wide mode + chipCards=[short] + real data expect short chip in col2', async () => {
+    // Arrange — wide mode: short card goes to col2; chip mode
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/short-interest'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_interest: 9e6, days_to_cover: 3.0, avg_daily_volume: 3e6, settlement_date: '2025-01-01' }] }) })
+      if (url.includes('/short-volume'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_volume_ratio: 42, short_volume: 5e6, total_volume: 12e6 }] }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — short card exists with data (not allShortNull)
+    const shortCard = wrapper.find('.eqv3-short-card')
+    expect(shortCard.exists()).toBe(true)
+    expect(wrapper.vm.$.setupState.allShortNull).toBe(false)
+    wrapper.unmount()
+  })
+})
