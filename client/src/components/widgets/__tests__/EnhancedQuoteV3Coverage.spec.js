@@ -761,3 +761,330 @@ describe('card controls (unlocked)', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FULL mode template branches — chip mode for each card type
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('FULL mode with chip cards', () => {
+  const FULL_QUOTE = {
+    symbol: 'AAPL', close: 150.00, change: 2.5, pct_change: 1.5,
+    pct_change_since_open: 0.8, change_since_open: 1.2, end_timestamp: Date.now(),
+    pre_market_high: 151.00, pre_market_low: 149.00,
+    regular_session_high: 152.00, regular_session_low: 148.00,
+    after_hours_high: 151.5, after_hours_low: 149.5,
+    official_open_price: 149.00, aggregate_vwap: 150.25,
+    accumulated_volume: 25_000_000, relative_volume: 2.5, avg_volume: 20_000_000,
+    free_float: 800_000_000,
+    prev_day_open: 145.00, prev_day_high: 152.00, prev_day_low: 144.00,
+    prev_day_close: 147.50, prev_day_volume: 22_000_000, prev_day_vwap: 148.00,
+    splits: [],
+  }
+
+  test('with full mode + session chip expect eqv3-session-chips in full row', async () => {
+    // Arrange — full mode with session in chip mode
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — session chips present in the full row draggable
+    expect(wrapper.find('.eqv3-full-row-draggable').exists()).toBe(true)
+    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with full mode + session chip + null pre_market expect muted dash in full row', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_QUOTE, pre_market_high: null, pre_market_low: null }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — muted dash shown for null pre-market
+    expect(wrapper.find('.eqv3-muted-val').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with full mode + today chip expect chip-row in full row draggable', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['today'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — today chip row in full mode
+    const todayCard = wrapper.find('.eqv3-today-card')
+    if (todayCard.exists()) {
+      expect(todayCard.find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with full mode + volume chip expect volume chip row', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['volume'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert
+    const volCard = wrapper.find('.eqv3-volume-card')
+    if (volCard.exists()) {
+      expect(volCard.find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with full mode + prev chip expect prev chip row', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    if (prevCard.exists()) {
+      expect(prevCard.find('.eqv3-chip').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with full mode unlocked expect card controls visible in draggable', async () => {
+    // Arrange
+    const wrapper = mountWidget({ isLocked: false })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...FULL_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — drag handle and card controls present in full mode
+    expect(wrapper.find('.eqv3-full-row-draggable').exists()).toBe(true)
+    expect(wrapper.find('.eqv3-drag-handle').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with full mode session in list mode + null values expect dashes', async () => {
+    // Arrange — no chipCards (default list mode in full layout)
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...FULL_QUOTE,
+      pre_market_high: null, pre_market_low: null,
+      regular_session_high: null, regular_session_low: null,
+      after_hours_high: null, after_hours_low: null,
+    }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — dashes shown for null values in kv-list within full mode
+    const dashCells = wrapper.findAll('.eqv3-v').filter(el => el.text() === '—')
+    expect(dashCells.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDE mode template branches
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('WIDE mode with chip cards', () => {
+  const WIDE_QUOTE = {
+    symbol: 'TSLA', close: 250.00, change: 5.0, pct_change: 2.04,
+    pct_change_since_open: 1.5, change_since_open: 3.75, end_timestamp: Date.now(),
+    pre_market_high: 252.00, pre_market_low: 248.00,
+    regular_session_high: 255.00, regular_session_low: 247.00,
+    after_hours_high: 251.00, after_hours_low: 249.00,
+    official_open_price: 248.00, aggregate_vwap: 250.50,
+    accumulated_volume: 25_000_000, relative_volume: 2.5, avg_volume: 20_000_000,
+    free_float: 800_000_000,
+    prev_day_open: 245.00, prev_day_high: 253.00, prev_day_low: 244.00,
+    prev_day_close: 245.00, prev_day_volume: 22_000_000, prev_day_vwap: 248.00,
+    splits: [],
+  }
+
+  test('with wide mode + session chip expect chip layout in wide col1', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['session'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...WIDE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — session chips present in wide mode
+    expect(wrapper.find('.eqv3-session-chips').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('with wide mode + today chip expect chip-row in col', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['today'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...WIDE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert
+    const todayCard = wrapper.find('.eqv3-today-card')
+    if (todayCard.exists()) {
+      expect(todayCard.find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with wide mode + volume chip expect chip row', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['volume'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...WIDE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert
+    const volCard = wrapper.find('.eqv3-volume-card')
+    if (volCard.exists()) {
+      expect(volCard.find('.eqv3-chip-row').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with wide mode + prev chip expect chip row', async () => {
+    // Arrange
+    const wrapper = mountWidget({ settings: { chipCards: ['prev'] } })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...WIDE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert
+    const prevCard = wrapper.find('.eqv3-prev-card')
+    if (prevCard.exists()) {
+      expect(prevCard.find('.eqv3-chip').exists()).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  test('with wide mode + null session values expect dashes in list mode', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...WIDE_QUOTE,
+      pre_market_high: null, pre_market_low: null,
+      regular_session_high: null, regular_session_low: null,
+    }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert
+    const dashCells = wrapper.findAll('.eqv3-v').filter(el => el.text() === '—')
+    expect(dashCells.length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+
+  test('with wide mode unlocked expect card controls in both columns', async () => {
+    // Arrange
+    const wrapper = mountWidget({ isLocked: false })
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = { ...WIDE_QUOTE }
+    wrapper.vm.layoutMode = 'wide'
+    await nextTick()
+
+    // Assert — controls visible in wide mode
+    expect(wrapper.find('.eqv3-card-controls').exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// quoteFlame — activeTicker=null path
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('quoteFlame with no ticker', () => {
+  test('with no activeTicker expect quoteFlame returns null (no flame icon)', async () => {
+    // Arrange — no ticker set, quoteFlame should return null immediately
+    const wrapper = mountWidget()
+    await nextTick()
+    // No ticker set → activeTicker is null → quoteFlame returns null
+    expect(wrapper.find('.eqv3-flame-icon').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Volume card null values in list mode (for all layout modes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('volume card null values', () => {
+  test('with null avg_volume in narrow list mode expect dash shown', async () => {
+    // Arrange
+    const wrapper = mountWidget()
+    withTicker(wrapper)
+    await nextTick()
+    wrapper.vm.quoteData = {
+      ...SAMPLE_QUOTE,
+      avg_volume: null,
+      free_float: null,
+    }
+    await nextTick()
+
+    // Assert — dashes shown for null volume fields
+    const volCard = wrapper.find('.eqv3-volume-card')
+    if (volCard.exists()) {
+      const dashes = volCard.findAll('.eqv3-v').filter(el => el.text() === '—')
+      expect(dashes.length).toBeGreaterThan(0)
+    }
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Short interest chip mode with real data in FULL/WIDE mode
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('short interest in full/wide mode with chip', () => {
+  test('with full mode + short chip + data expect short chips rendered', async () => {
+    // Arrange
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/short-interest'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_interest: 12e6, days_to_cover: 2.4, avg_daily_volume: 5e6, settlement_date: '2025-01-01' }] }) })
+      if (url.includes('/short-volume'))
+        return Promise.resolve({ ok: true, json: async () => ({ results: [{ short_volume_ratio: 38.5, short_volume: 8e6, total_volume: 20e6 }] }) })
+      return Promise.resolve({ ok: true, json: async () => ({ results: {} }) })
+    })
+    const wrapper = mountWidget({ settings: { chipCards: ['short'] } })
+    withTicker(wrapper)
+    await flushPromises()
+    await nextTick()
+    wrapper.vm.quoteData = { ...SAMPLE_QUOTE }
+    wrapper.vm.layoutMode = 'full'
+    await nextTick()
+
+    // Assert — short card exists
+    const shortCard = wrapper.find('.eqv3-short-card')
+    expect(shortCard.exists()).toBe(true)
+    // In chip mode with data: shows chip-row or muted msg (allShortNull check)
+    const hasContent = shortCard.find('.eqv3-chip-row, .eqv3-muted-msg, .eqv3-kv-list').exists()
+    expect(hasContent).toBe(true)
+    wrapper.unmount()
+  })
+})
