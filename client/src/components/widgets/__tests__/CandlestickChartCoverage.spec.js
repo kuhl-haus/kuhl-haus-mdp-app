@@ -20,7 +20,7 @@
  */
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
 
 // ── Same mocks as existing spec ───────────────────────────────────────────────
 vi.mock('vue-echarts', () => ({
@@ -1156,22 +1156,18 @@ describe('settings panel MACD param inputs', () => {
 describe('activeTicker bus watcher with null (bus cleared)', () => {
   test('with activeTicker becoming null expect if(t) FALSE path', async () => {
     // Arrange — use static import of useScannerLink
+    const activeTickerRef = ref('AAPL')
     vi.mocked(useScannerLink).mockReturnValueOnce({
-      activeTicker: { value: 'AAPL' },  // starts with AAPL
+      activeTicker: activeTickerRef,
       onRowClick: vi.fn(),
     })
     global.fetch = mockFetch({ results: [ONE_BAR] })
     const wrapper = mountChart({ ticker: 'AAPL' })
     await nextTick()
 
-    // Get the activeTicker ref from the mock results
-    const mockResults = vi.mocked(useScannerLink).mock.results
-    const lastResult = mockResults[mockResults.length - 1]
-    if (lastResult?.value?.activeTicker) {
-      // Set to null → watch fires with t=null → if(t) = FALSE
-      lastResult.value.activeTicker.value = null
-      await nextTick()
-    }
+    // Act — set to null → watch fires with t=null → if(t) = FALSE
+    activeTickerRef.value = null
+    await nextTick()
 
     // Assert — no crash, headerTickerInput unchanged by null
     expect(wrapper.exists()).toBe(true)
