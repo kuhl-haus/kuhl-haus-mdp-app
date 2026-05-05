@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ubuntu:latest
+ARG BASE_IMAGE=ubuntu:24.04
 FROM ${BASE_IMAGE}
 
 RUN apt update && \
