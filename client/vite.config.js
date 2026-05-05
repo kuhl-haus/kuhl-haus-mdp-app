@@ -9,6 +9,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    pool: 'forks',  // avoids coverage temp-file race condition with thread pool
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
@@ -25,9 +26,10 @@ export default defineConfig({
       //   - NewsFeed.vue (49%): complex real-time feed with virtual scrolling, sorting,
       //     WebSocket subscription management
       //   - EnhancedQuoteV3.vue (59%): multi-feature quote widget with many sub-components
-      // Threshold set to current achievable level; raise incrementally as coverage improves.
+      // Threshold reflects coverage achieved in issue #150 + #151 first pass.
+      // Raise incrementally as coverage improves toward 95% (issue #151 comprehensive pass).
       thresholds: {
-        branches: 65,
+        branches: 82,
       },
     },
   },
