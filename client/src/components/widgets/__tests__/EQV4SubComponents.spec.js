@@ -714,3 +714,56 @@ describe('EQV4CompanyCard allNull with null data', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4ShortCard: render with NaN short_interest → fmtVol(NaN) = '—'
+// This exercises eqv3Utils.js line 34
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4ShortCard with NaN short_interest', () => {
+  test('with short_interest=NaN expect fmtVol returns dash', async () => {
+    // Arrange
+    const wrapper = mount(EQV4ShortCard, {
+      props: {
+        shortInterestData: { short_interest: NaN, days_to_cover: NaN, short_volume_ratio: NaN },
+        loading:   false,
+        chipsMode: true,  // chip mode to show the data
+      },
+    })
+    await nextTick()
+
+    // Assert — fmtVol(NaN) should render '—' (exercises if(!isFinite(v)) return '—')
+    const chipVals = wrapper.findAll('.eqv4-chip-val')
+    const hasDash = chipVals.some(c => c.text() === '—')
+    expect(hasDash).toBe(true)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4TickerEventsCard: fetchEvents HTTP error → error state (line 90 FALSE)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4TickerEventsCard: ticker null → fetchEvents early return (L90)', () => {
+  test('with ticker=null after initial mount expect no fetchEvents call', async () => {
+    // Arrange — start with ticker, then clear
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ results: { events: [], name: 'Corp' } }),
+    })
+    const { flushPromises } = await import('@vue/test-utils')
+    const wrapper = mount(EQV4TickerEventsCard, {
+      props: { ticker: 'AAPL', isLocked: true },
+    })
+    await flushPromises()
+    const callsBefore = global.fetch.mock.calls.length
+
+    // Act — change ticker to null (watcher fires with t=null → if(t) FALSE → no fetch)
+    await wrapper.setProps({ ticker: null })
+    await nextTick()
+
+    // Assert — no additional fetch
+    expect(global.fetch.mock.calls.length).toBe(callsBefore)
+    wrapper.unmount()
+  })
+})
