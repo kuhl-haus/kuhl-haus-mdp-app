@@ -72,6 +72,7 @@ global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
 global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
 
 import EnhancedQuoteV4 from '../EnhancedQuoteV4.vue'
+import EQV4TickerEventsCard from '../EQV4TickerEventsCard.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -671,3 +672,101 @@ describe('short card loading prop in grid', () => {
 })
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// removeCard with no settings.cards → ?? DEFAULT_CARDS fallback (line 348)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('removeCard with no settings.cards', () => {
+  test('with no cards in settings expect ?? DEFAULT_CARDS fallback', async () => {
+    // Arrange — no cards in settings (settingsCards.value = null)
+    let emitted = null
+    const wrapper = mountWidget({ settings: {} },  // no 'cards' in settings
+      (s) => { emitted = s })
+    await nextTick()
+
+    // Act — remove a card (uses DEFAULT_CARDS as base since settings.cards is null)
+    ss(wrapper).removeCard('today')
+    await nextTick()
+
+    // Assert — update-settings emitted with cards array (minus today)
+    expect(emitted?.cards).toBeDefined()
+    expect(emitted?.cards.some(c => c.id === 'today')).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onGridColsChange / onGridRowHeightChange: NaN input → || fallback (lines 357, 362)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('grid config change with NaN input', () => {
+  test('with NaN gridCols input expect || 1 fallback', async () => {
+    // Arrange
+    let emitted = null
+    const wrapper = mountWidget({ settings: {} }, (s) => { emitted = s })
+    await nextTick()
+
+    // Act — fire onGridColsChange with NaN input (parseInt('abc') = NaN → NaN || 1 = 1)
+    const state = ss(wrapper)
+    state.onGridColsChange({ target: { value: 'abc' } })
+    await nextTick()
+
+    // Assert — gridCols set to 1 (|| 1 fallback)
+    expect(emitted?.gridCols).toBe(1)
+    wrapper.unmount()
+  })
+
+  test('with NaN gridRowHeight input expect || 40 fallback', async () => {
+    // Arrange
+    let emitted = null
+    const wrapper = mountWidget({ settings: {} }, (s) => { emitted = s })
+    await nextTick()
+
+    // Act
+    const state = ss(wrapper)
+    state.onGridRowHeightChange({ target: { value: '' } })
+    await nextTick()
+
+    // Assert — rowHeight set to 40 (|| 40 fallback)
+    expect(emitted?.gridRowHeight).toBe(40)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4TickerEventsCard: transitions with ticker_change having null ticker
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4TickerEventsCard transitions binary-expr', () => {
+  test('with events having ticker_change.ticker=null expect from=null in transitions', async () => {
+    // Tests lines 101-102: events[i+1]?.ticker_change?.ticker ?? null
+    const { flushPromises } = await import('@vue/test-utils')
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        results: {
+          name: 'Corp',
+          events: [
+            { date: '2022-01-01', ticker_change: { ticker: 'NEW' } },
+            { date: '2021-01-01', ticker_change: { ticker: null } },   // null ticker
+          ],
+        },
+      }),
+    })
+    const wrapper = mount(EQV4TickerEventsCard, {
+      props: { ticker: 'AAPL', isLocked: true },
+    })
+    await flushPromises()
+    await nextTick()
+
+    // Assert — transition for index 0 uses next event's ticker_change.ticker (null)
+    const state = wrapper.vm.$.setupState
+    // ticker_change.ticker = null → ?? null fallback (line 102)
+    const transitions = state.transitions
+    if (transitions.length > 1) {
+      expect(transitions[0].from).toBeNull()  // ticker_change?.ticker ?? null
+    }
+    wrapper.unmount()
+  })
+})

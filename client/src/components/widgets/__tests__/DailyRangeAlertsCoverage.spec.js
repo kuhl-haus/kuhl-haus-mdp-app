@@ -964,3 +964,31 @@ describe('isRowActive with null symbol row', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings watcher: rowClickMode=null → ?? 'link' fallback (line ~587)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('settings watcher rowClickMode null', () => {
+  test('with settings.rowClickMode=null expect ?? link fallback', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null, rowClickMode: 'filter' } },
+    })
+    await nextTick()
+
+    // Act — change settings to include null rowClickMode
+    await wrapper.setProps({ settings: { minPrice: 0, maxPrice: null, rowClickMode: null } })
+    await nextTick()
+
+    // Assert — ?? 'link' fallback used
+    expect(wrapper.vm.$.setupState.rowClickModeLocal).toBe('link')
+    wrapper.unmount()
+  })
+})
