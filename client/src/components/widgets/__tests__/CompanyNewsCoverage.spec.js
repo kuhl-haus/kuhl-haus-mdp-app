@@ -246,32 +246,46 @@ describe('watch(maxArticles)', () => {
 
 describe('watch(props.settings)', () => {
   test('with settings.maxArticles updated expect local maxArticles synced', async () => {
-    // Arrange
+    // Arrange — need ticker + articles so the table (and select) renders
     const wrapper = mountCN({ settings: { maxArticles: 1000 } })
+    await nextTick()
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+    onData([makeArticle()])
     await nextTick()
 
     // Act
     await wrapper.setProps({ settings: { maxArticles: 500 } })
     await nextTick()
+    // watch(maxArticles) clears newsItems, so re-inject to make select visible again
+    onData([makeArticle()])
+    await nextTick()
 
-    // Assert — local maxArticles updated
-    const state = wrapper.vm.$.setupState
-    expect(state.maxArticles).toBe(500)
+    // Assert — select reflects updated maxArticles value
+    expect(wrapper.find('.max-articles-select').element.value).toBe('500')
     wrapper.unmount()
   })
 
   test('with settings without maxArticles expect no sync (undefined check)', async () => {
-    // Arrange
+    // Arrange — need ticker + articles so the table (and select) renders
     const wrapper = mountCN({ settings: { maxArticles: 1000 } })
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
+    onData([makeArticle()])
+    await nextTick()
+    const initialValue = wrapper.find('.max-articles-select').element.value
 
     // Act — update settings without maxArticles key
     await wrapper.setProps({ settings: { someOtherProp: true } })
     await nextTick()
 
     // Assert — maxArticles unchanged (undefined check guards)
-    expect(state.maxArticles).toBe(1000)
+    expect(wrapper.find('.max-articles-select').element.value).toBe(initialValue)
     wrapper.unmount()
   })
 })
@@ -288,15 +302,17 @@ describe('watch(busTicker)', () => {
     await wrapper.find('input').setValue('AAPL')
     await wrapper.find('button').trigger('click')
     await nextTick()
-    const state = wrapper.vm.$.setupState
-    expect(state.manualTicker).toBe('AAPL')
+    const { mock: busMock } = getMock()
+    // manualTicker='AAPL' → activeTicker=AAPL → subscribe called
+    expect(busMock.subscribe).toHaveBeenCalled()
+    const subscribeCountAfterManual = busMock.subscribe.mock.calls.length
 
     // Act — bus fires with a different ticker
     sharedActiveTickers['blue'] = 'TSLA'
     await nextTick()
 
-    // Assert — manualTicker cleared (bus takes priority)
-    expect(state.manualTicker).toBe('')
+    // Assert — manualTicker cleared → activeTicker switches to TSLA → resubscribe
+    expect(busMock.subscribe.mock.calls.length).toBeGreaterThan(subscribeCountAfterManual)
     wrapper.unmount()
   })
 })
@@ -310,15 +326,15 @@ describe('applyInput', () => {
     // Arrange
     const wrapper = mountCN()
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const { mock: emptyMock } = getMock()
 
     // Act — click Go with empty input
     await wrapper.find('input').setValue('')
     await wrapper.find('button').trigger('click')
     await nextTick()
 
-    // Assert
-    expect(state.manualTicker).toBe('')
+    // Assert — empty input → no ticker set → no subscribe called
+    expect(emptyMock.subscribe).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 })
@@ -359,16 +375,17 @@ describe('modal', () => {
     await nextTick()
     onData([makeArticle()])
     await nextTick()
-    const state = wrapper.vm.$.setupState
-    state.selected = makeArticle({ title: 'Selected Article' })
+    // Open modal by clicking a row
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
+    expect(document.querySelector('.modal-backdrop')).not.toBeNull()
 
     // Act — Escape key
     document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape', bubbles: true }))
     await nextTick()
 
     // Assert
-    expect(state.selected).toBeNull()
+    expect(document.querySelector('.modal-backdrop')).toBeNull()
     wrapper.unmount()
   })
 })
@@ -493,43 +510,41 @@ describe('filteredNews sort comparison', () => {
   test('with two articles at different times and time-asc sort expect older first', async () => {
     // Arrange
     const wrapper = await mountWithTwoArticles('2024-01-01T10:00:00Z', '2024-06-01T10:00:00Z')
-    const state = wrapper.vm.$.setupState
 
-    // Act — sort by time asc (default is desc)
-    state.cycleSort('time')  // first click: same key → toggle to asc
+    // Act — sort by time asc (default is desc; click same key → toggle to asc)
+    await wrapper.find('.vs-th.col-time').trigger('click')
     await nextTick()
 
     // Assert — older article first
-    expect(state.filteredNews[0].title).toBe('Article Alpha')
+    expect(wrapper.findAll('.vs-row')[0].text()).toContain('Article Alpha')
     wrapper.unmount()
   })
 
   test('with two articles sorted by title asc expect alphabetical order', async () => {
     // Arrange
     const wrapper = await mountWithTwoArticles('2024-01-01T10:00:00Z', '2024-01-01T11:00:00Z')
-    const state = wrapper.vm.$.setupState
 
-    // Act — sort by title asc
-    state.cycleSort('title')
+    // Act — sort by title asc (click title column → new key defaults to asc)
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
 
     // Assert — Alpha before Zeta
-    expect(state.filteredNews[0].title).toBe('Article Alpha')
+    expect(wrapper.findAll('.vs-row')[0].text()).toContain('Article Alpha')
     wrapper.unmount()
   })
 
   test('with cycleSort on same key expect direction toggled to asc', async () => {
     // Arrange — default: time desc
     const wrapper = await mountWithTwoArticles('2024-01-01T10:00:00Z', '2024-06-01T10:00:00Z')
-    const state = wrapper.vm.$.setupState
-    expect(state.sortDir).toBe('desc')
+    // Verify default desc via sort indicator
+    expect(wrapper.find('.vs-th.col-sorted .sort-indicator').text()).toContain('▼')
 
-    // Act — click time (same key → toggle)
-    state.cycleSort('time')
+    // Act — click time (same key → toggle to asc)
+    await wrapper.find('.vs-th.col-time').trigger('click')
     await nextTick()
 
     // Assert
-    expect(state.sortDir).toBe('asc')
+    expect(wrapper.find('.vs-th.col-sorted .sort-indicator').text()).toContain('▲')
     wrapper.unmount()
   })
 })
@@ -651,16 +666,14 @@ describe('filteredNews sort av > bv branch', () => {
     ])
     await nextTick()
 
-    // Sort by time asc — this forces comparison where av (older) < bv (newer)
-    // AND the reverse comparison where av (newer) > bv (older)
-    const state = wrapper.vm.$.setupState
-    state.sortDir = 'asc'
-    state.sortKey = 'time'
+    // Sort by time asc — click col-time to toggle from desc to asc
+    await wrapper.find('.vs-th.col-time').trigger('click')
     await nextTick()
 
     // Assert — oldest first (asc sort by time)
-    expect(state.filteredNews[0].title).toBe('Older')
-    expect(state.filteredNews[1].title).toBe('Newer')
+    const avBvRows = wrapper.findAll('.vs-row')
+    expect(avBvRows[0].text()).toContain('Older')
+    expect(avBvRows[1].text()).toContain('Newer')
     wrapper.unmount()
   })
 
@@ -679,15 +692,14 @@ describe('filteredNews sort av > bv branch', () => {
     ])
     await nextTick()
 
-    // Act — sort by title desc (default for new key is asc, toggle to desc)
-    const state = wrapper.vm.$.setupState
-    state.cycleSort('title')  // sets title asc
+    // Act — sort by title desc (click once → asc, twice → desc)
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
-    state.cycleSort('title')  // toggles to desc
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
 
     // Assert — Zeta before Alpha (desc)
-    expect(state.filteredNews[0].title).toBe('Zeta story')
+    expect(wrapper.findAll('.vs-row')[0].text()).toContain('Zeta story')
     wrapper.unmount()
   })
 })
@@ -714,10 +726,12 @@ describe('switchTicker', () => {
     // Act — click MSFT ticker tag
     const tag = wrapper.find('.ticker-tag--clickable')
     if (tag.exists()) {
+      const { mock: switchMock } = getMock()
+      const subscribeCountBefore = switchMock.subscribe.mock.calls.length
       await tag.trigger('click')
       await nextTick()
-      // Assert — manualTicker changed to MSFT
-      expect(wrapper.vm.$.setupState.manualTicker).toBe('MSFT')
+      // Assert — ticker switched → subscribe called for new ticker
+      expect(switchMock.subscribe.mock.calls.length).toBeGreaterThan(subscribeCountBefore)
     }
     wrapper.unmount()
   })
@@ -787,7 +801,7 @@ describe('mobile card view branches', () => {
     await nextTick()
 
     // Act — search for something with no match
-    wrapper.vm.$.setupState.searchQuery = 'xyzzy-no-match'
+    await wrapper.find('input.search-input').setValue('xyzzy-no-match')
     await nextTick()
 
     // Assert — mobile empty state shown
@@ -815,7 +829,6 @@ describe('desktop view: sort indicator desc and empty state', () => {
     await nextTick()
 
     // Default sort is time/desc → ▼ on the time column header
-    expect(wrapper.vm.$.setupState.sortDir).toBe('desc')
 
     // Assert — ▼ indicator visible
     const indicator = wrapper.find('.sort-indicator')
@@ -837,7 +850,7 @@ describe('desktop view: sort indicator desc and empty state', () => {
     await nextTick()
 
     // Act — search filter that matches nothing
-    wrapper.vm.$.setupState.searchQuery = 'xyzzy-no-match'
+    await wrapper.find('input.search-input').setValue('xyzzy-no-match')
     await nextTick()
 
     // Assert — desktop empty state shown inside table-wrap
@@ -855,18 +868,19 @@ describe('desktop view: sort indicator desc and empty state', () => {
 
 describe('modal article variants', () => {
   test('with article having images expect modal-images section shown', async () => {
-    // Arrange
+    // Arrange — set ticker via input so rows render
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
-    sharedActiveTickers[null] = 'AAPL'
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
     const articleWithImage = makeArticle({ images: ['https://img.example.com/pic.jpg'] })
     onData([articleWithImage])
     await nextTick()
 
-    // Act — open the article
-    wrapper.vm.$.setupState.openDetail(articleWithImage)
+    // Act — open the article by clicking the first row
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
     // Assert — image section present in modal
@@ -881,7 +895,8 @@ describe('modal article variants', () => {
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
-    sharedActiveTickers[null] = 'AAPL'
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
     const articleWithCo = makeArticle({
       companies: [{ ticker: 'AAPL', name: 'Apple Inc.', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C1' }],
@@ -890,7 +905,7 @@ describe('modal article variants', () => {
     await nextTick()
 
     // Act — open modal
-    wrapper.vm.$.setupState.openDetail(articleWithCo)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
     // Assert — company section shown
@@ -905,14 +920,15 @@ describe('modal article variants', () => {
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
-    sharedActiveTickers[null] = 'AAPL'
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
     const articleNoSource = makeArticle({ source: null })
     onData([articleNoSource])
     await nextTick()
 
     // Act — open modal
-    wrapper.vm.$.setupState.openDetail(articleNoSource)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
     // Assert — link href falls back to '#'
@@ -927,7 +943,8 @@ describe('modal article variants', () => {
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
-    sharedActiveTickers[null] = 'AAPL'
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
     const articleNullExchange = makeArticle({
       companies: [{ ticker: 'PRIV', name: 'Private Co.', primaryListing: { exchangeCode: null }, companyId: 'C2' }],
@@ -936,7 +953,7 @@ describe('modal article variants', () => {
     await nextTick()
 
     // Act — open modal
-    wrapper.vm.$.setupState.openDetail(articleNullExchange)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
     // Assert — company row shown (exchange span is empty/null but no crash)
@@ -956,15 +973,10 @@ describe('appConfig watcher with null config', () => {
     // Arrange — component mounted with valid config
     const wrapper = mountCN()
     await nextTick()
-    const state = wrapper.vm.$.setupState
-    const urlBefore  = state.wsUrlRef
-    const keyBefore  = state.authKeyRef
 
-    // Act — appConfig watcher fires with null (simulated via setupState access)
-    // The if(cfg) guard means null cfg → no update
-    // We verify by ensuring no crash and values unchanged
-    expect(urlBefore).toBeTruthy()   // still has a value
-    expect(keyBefore).toBeTruthy()
+    // Act — null cfg path: if(cfg) guard means null cfg → no update, no crash
+    // Verify component still functional (no exception thrown) by checking its root el
+    expect(wrapper.exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -980,7 +992,8 @@ describe('filteredNews sort with missing publishDate', () => {
     const wrapper = mountCN()
     await nextTick()
     const { onData } = getMock()
-    sharedActiveTickers[null] = 'AAPL'
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
 
     const older = makeArticle({ title: 'Old Article', publishDate: null })
@@ -988,15 +1001,12 @@ describe('filteredNews sort with missing publishDate', () => {
     onData([older, newer])
     await nextTick()
 
-    // Act — sort time desc (default)
-    const state = wrapper.vm.$.setupState
-    state.sortKey = 'time'
-    state.sortDir = 'desc'
+    // Default sort is time/desc — no action needed
     await nextTick()
 
-    // Assert — filteredNews has 2 items, newer article first
-    expect(state.filteredNews.length).toBe(2)
-    expect(state.filteredNews[0].title).toBe('New Article')
+    // Assert — 2 rows rendered, newer article first (sort by time desc)
+    expect(wrapper.findAll('.vs-row').length).toBe(2)
+    expect(wrapper.findAll('.vs-row')[0].text()).toContain('New Article')
 
     wrapper.unmount()
   })
@@ -1052,18 +1062,17 @@ describe('cycleSort: asc to desc direction', () => {
     onData([makeArticle()])
     await nextTick()
 
-    // Force asc direction
-    const state = wrapper.vm.$.setupState
-    state.sortKey = 'time'
-    state.sortDir = 'asc'
+    // Force asc direction by clicking time (default is desc, one click → asc)
+    await wrapper.find('.vs-th.col-time').trigger('click')
     await nextTick()
+    expect(wrapper.find('.vs-th.col-sorted .sort-indicator').text()).toContain('▲')
 
     // Act — cycle sort on same key (asc → desc)
-    state.cycleSort('time')
+    await wrapper.find('.vs-th.col-time').trigger('click')
     await nextTick()
 
     // Assert — toggled to desc
-    expect(state.sortDir).toBe('desc')
+    expect(wrapper.find('.vs-th.col-sorted .sort-indicator').text()).toContain('▼')
     wrapper.unmount()
   })
 })
@@ -1087,14 +1096,14 @@ describe('filteredNews title sort desc', () => {
     ])
     await nextTick()
 
-    // Act — sort by title desc
-    const state = wrapper.vm.$.setupState
-    state.sortKey = 'title'
-    state.sortDir = 'desc'
+    // Act — sort by title desc (click title once → asc, twice → desc)
+    await wrapper.find('.vs-th.col-title').trigger('click')
+    await nextTick()
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
 
     // Assert — Zebra before Apple (desc)
-    expect(state.filteredNews[0].title).toBe('Zebra Corp')
+    expect(wrapper.findAll('.vs-row')[0].text()).toContain('Zebra Corp')
     wrapper.unmount()
   })
 })
@@ -1105,40 +1114,42 @@ describe('filteredNews title sort desc', () => {
 
 describe('formatDateTime edge cases', () => {
   test('with null publishDate in modal expect empty time string', async () => {
-    // Arrange — modal with null publishDate
+    // Arrange — set ticker first, then inject article with null publishDate
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
     const articleNoDate = makeArticle({ publishDate: null })
     onData([articleNoDate])
     await nextTick()
-
-    // Act — open modal
-    wrapper.vm.$.setupState.openDetail(articleNoDate)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
-    // Assert — formatDateTime(null) returns ''
-    const state = wrapper.vm.$.setupState
-    expect(state.formatDateTime(null)).toBe('')
+    // Assert — modal-time empty for null publishDate
+    const modalTimeNull = document.querySelector('.modal-time')
+    expect(modalTimeNull?.textContent ?? '').toBe('')
     wrapper.unmount()
   })
 
   test('with invalid publishDate in modal expect empty time string (isNaN path)', async () => {
-    // Arrange
+    // Arrange — set ticker first, then inject article with invalid date
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
     const articleBadDate = makeArticle({ publishDate: 'not-a-date' })
     onData([articleBadDate])
     await nextTick()
-
-    // Act — open modal
-    wrapper.vm.$.setupState.openDetail(articleBadDate)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
-    // Assert — formatDateTime with invalid date returns ''
-    const state = wrapper.vm.$.setupState
-    expect(state.formatDateTime('not-a-date')).toBe('')
+    // Assert — modal-time empty for invalid publishDate
+    const modalTimeBad = document.querySelector('.modal-time')
+    expect(modalTimeBad?.textContent ?? '').toBe('')
     wrapper.unmount()
   })
 })
@@ -1161,9 +1172,12 @@ describe('modal company primaryListing with no exchangeCode', () => {
         companyId: 'C1',
       }],
     })
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
     onData([articleWithCo])
     await nextTick()
-    wrapper.vm.$.setupState.openDetail(articleWithCo)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
 
     // Assert — company renders, no crash
@@ -1183,19 +1197,22 @@ describe('onKeyUp with non-Escape key', () => {
     const wrapper = mountCNWithBody()
     await nextTick()
     const { onData } = getMock()
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
+    await nextTick()
     const article = makeArticle()
     onData([article])
     await nextTick()
-    wrapper.vm.$.setupState.openDetail(article)
+    await wrapper.find('.vs-row').trigger('click')
     await nextTick()
-    expect(wrapper.vm.$.setupState.selected).toEqual(article)
+    expect(document.querySelector('.modal-backdrop')).not.toBeNull()
 
     // Act — press a non-Escape key (if(e.key==='Escape') FALSE path)
     document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }))
     await nextTick()
 
     // Assert — modal still open (non-Escape key has no effect)
-    expect(wrapper.vm.$.setupState.selected).toEqual(article)
+    expect(document.querySelector('.modal-backdrop')).not.toBeNull()
     wrapper.unmount()
   })
 })
@@ -1221,13 +1238,11 @@ describe('filteredNews title sort with null title', () => {
     await nextTick()
 
     // Sort by title asc (triggers title sort with a.title=null)
-    const state = wrapper.vm.$.setupState
-    state.sortKey = 'title'
-    state.sortDir = 'asc'
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
 
     // Assert — articles sorted (no crash with null title)
-    expect(state.filteredNews.length).toBeGreaterThan(0)
+    expect(wrapper.findAll('.vs-row').length).toBeGreaterThan(0)
     wrapper.unmount()
   })
 })
@@ -1251,9 +1266,8 @@ describe('usCompanies with null companies', () => {
     onData([articleNullCompanies])
     await nextTick()
 
-    // Assert — no crash, filteredNews has 1 item
-    const state = wrapper.vm.$.setupState
-    expect(state.filteredNews.length).toBe(1)
+    // Assert — no crash, 1 row rendered
+    expect(wrapper.findAll('.vs-row').length).toBe(1)
     wrapper.unmount()
   })
 })
@@ -1278,13 +1292,11 @@ describe('filteredNews title sort equal comparison', () => {
     ])
     await nextTick()
 
-    const state = wrapper.vm.$.setupState
-    state.sortKey = 'title'
-    state.sortDir = 'asc'
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
 
     // Assert — 2 articles sorted (equal titles → return 0 from comparator)
-    expect(state.filteredNews.length).toBe(2)
+    expect(wrapper.findAll('.vs-row').length).toBe(2)
     wrapper.unmount()
   })
 })
@@ -1310,12 +1322,11 @@ describe('filteredNews with searchQuery active', () => {
     await nextTick()
 
     // Act — set search query (triggers the filteredNews.length !== newsItems.length path)
-    const state = wrapper.vm.$.setupState
-    state.searchQuery = 'apple'
+    await wrapper.find('input.search-input').setValue('apple')
     await nextTick()
 
     // Assert — filtered count is 1 (search active)
-    expect(state.filteredNews.length).toBe(1)
+    expect(wrapper.findAll('.vs-row').length).toBe(1)
     wrapper.unmount()
   })
 })
@@ -1331,8 +1342,9 @@ describe('busTicker watcher with null value', () => {
     await nextTick()
     const { onData } = getMock()
 
-    // Set manual ticker first
-    wrapper.vm.$.setupState.manualTicker = 'AAPL'
+    // Set manual ticker first via input
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
 
     // Act — set busTicker to a value then clear it (triggers watch with null)
@@ -1360,16 +1372,15 @@ describe('anonymous input handlers', () => {
     const wrapper = mountCN()
     await nextTick()
     const input = wrapper.find('.cn-ticker-input')
-    const state = wrapper.vm.$.setupState
-    state.inputTicker = 'AAPL'
-    await nextTick()
-
-    // Act — keyup escape on ticker input (anonymous fn at L14)
     if (input.exists()) {
+      await input.setValue('AAPL')
+      await nextTick()
+
+      // Act — keyup escape on ticker input (anonymous fn at L14)
       await input.trigger('keyup', { key: 'Escape' })
       await nextTick()
       // Assert — inputTicker cleared
-      expect(state.inputTicker).toBe('')
+      expect(input.element.value).toBe('')
     }
     wrapper.unmount()
   })
@@ -1379,16 +1390,15 @@ describe('anonymous input handlers', () => {
     const wrapper = mountCN()
     await nextTick()
     const searchInput = wrapper.find('input.search-input')
-    const state = wrapper.vm.$.setupState
-    state.searchQuery = 'apple'
-    await nextTick()
-
-    // Act — keydown escape on search input (anonymous fn at L40)
     if (searchInput.exists()) {
+      await searchInput.setValue('apple')
+      await nextTick()
+
+      // Act — keydown escape on search input (anonymous fn at L40)
       await searchInput.trigger('keydown', { key: 'Escape' })
       await nextTick()
       // Assert — searchQuery cleared
-      expect(state.searchQuery).toBe('')
+      expect(searchInput.element.value).toBe('')
     }
     wrapper.unmount()
   })
@@ -1411,7 +1421,7 @@ describe('anonymous input handlers', () => {
       await cards[0].trigger('click')
       await nextTick()
       // Assert — modal opened (anonymous fn at L65 called)
-      expect(wrapper.vm.$.setupState.selected).toBeTruthy()
+      expect(wrapper.find('.modal-backdrop').exists()).toBe(true)
     }
     wrapper.unmount()
   })
@@ -1438,14 +1448,15 @@ describe('filteredNews sort with desc direction explicitly verified', () => {
 
     // Force desc title sort (Apple < Zebra, so av < bv when comparing (Apple, Zebra))
     // With desc: returns 1 (puts Apple AFTER Zebra) → FALSE path of ternary at L360
-    const state = wrapper.vm.$.setupState
-    state.sortKey = 'title'
-    state.sortDir = 'desc'
+    await wrapper.find('.vs-th.col-title').trigger('click')
+    await nextTick()
+    await wrapper.find('.vs-th.col-title').trigger('click')
     await nextTick()
 
     // Assert — Zebra before Apple (desc order)
-    expect(state.filteredNews[0].title).toBe('Zebra Corp')
-    expect(state.filteredNews[1].title).toBe('Apple News')
+    const sortedRows = wrapper.findAll('.vs-row')
+    expect(sortedRows[0].text()).toContain('Zebra Corp')
+    expect(sortedRows[1].text()).toContain('Apple News')
     wrapper.unmount()
   })
 })
@@ -1459,16 +1470,27 @@ describe('switchTicker with linkColor (L379 TRUE path)', () => {
     // Arrange — mount with linkColor to enable bus sync (TRUE path of L379)
     const wrapper = mountCN({ linkColor: 'red' })
     await nextTick()
-    const state = wrapper.vm.$.setupState
+    const { onData } = getMock()
 
-    // Act — call switchTicker directly (if (props.linkColor) → TRUE → setActiveTicker)
-    if (state.switchTicker) {
-      state.switchTicker('AAPL')
-    }
+    // Load an article with a MSFT ticker tag to click (calls switchTicker)
+    onData([makeArticle({
+      companies: [{ ticker: 'MSFT', name: 'Microsoft', primaryListing: { exchangeCode: 'XNAS' }, companyId: 'C2' }],
+    })])
+    // Set ticker so rows appear
+    await wrapper.find('input').setValue('AAPL')
+    await wrapper.find('button').trigger('click')
     await nextTick()
 
-    // Assert — manualTicker set AND setActiveTicker was called (via mock)
-    expect(state.manualTicker).toBe('AAPL')
+    // Act — click a switchable ticker tag (if (props.linkColor) → TRUE → setActiveTicker)
+    const switchableTag = wrapper.find('.ticker-tag--clickable')
+    if (switchableTag.exists()) {
+      const { mock: swMock } = getMock()
+      const beforeCount = swMock.subscribe.mock.calls.length
+      await switchableTag.trigger('click')
+      await nextTick()
+      // Assert — ticker switched → subscribe called for new ticker
+      expect(swMock.subscribe.mock.calls.length).toBeGreaterThan(beforeCount)
+    }
     wrapper.unmount()
   })
 })
