@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import EQV3CompanyCard from '../EQV3CompanyCard.vue'
+import { truncateUrl, fmtVol } from '../eqv3Utils.js'
 
 // Sample company data for tests
 const SAMPLE_DATA = {
@@ -171,7 +172,7 @@ describe('EQV3CompanyCard', () => {
 describe('eqv3Utils edge cases', () => {
   test('with truncateUrl(null) expect empty string', async () => {
     // Arrange — call truncateUrl with null (if (!url) return '' guard)
-    const { truncateUrl } = await import('../eqv3Utils.js')
+    // using static import from file top
     expect(truncateUrl(null)).toBe('')
     expect(truncateUrl(undefined)).toBe('')
     expect(truncateUrl('')).toBe('')
@@ -179,7 +180,7 @@ describe('eqv3Utils edge cases', () => {
 
   test('with fmtVol(NaN) expect dash', async () => {
     // Arrange — call fmtVol with non-finite (if (!isFinite(v)) return '—')
-    const { fmtVol } = await import('../eqv3Utils.js')
+    // using static import from file top
     expect(fmtVol(NaN)).toBe('—')
     expect(fmtVol(null)).toBe('—')
     expect(fmtVol(undefined)).toBe('—')

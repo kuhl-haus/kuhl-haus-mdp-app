@@ -588,3 +588,26 @@ describe('EQV4HeroCard', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// eqv3Utils via component: fmtVol with NaN (line 34)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fmtVol via EQV4VolumeCard with NaN volume', () => {
+  test('with accumulated_volume=NaN expect fmtVol returns dash', async () => {
+    // Arrange — EQV4VolumeCard renders fmtVol in its template
+    const wrapper = mount(EQV4VolumeCard, {
+      props: {
+        quoteData: { accumulated_volume: NaN, avg_volume: NaN, free_float: null, relative_volume: NaN },
+        chipsMode: false,
+      },
+    })
+    await nextTick()
+
+    // Assert — fmtVol(NaN) renders '—' (if (!isFinite(v)) return '—')
+    const cells = wrapper.findAll('.eqv4-v')
+    const hasDash = cells.some(c => c.text() === '—')
+    expect(hasDash).toBe(true)
+    wrapper.unmount()
+  })
+})
