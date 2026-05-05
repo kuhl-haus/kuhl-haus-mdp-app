@@ -610,9 +610,9 @@ describe('drawLayoutPreview and drawMiniPreview with null colOverride', () => {
     state.previewLayoutName = 'Test'
     await nextTick()
 
-    // Act — call drawLayoutPreview with null colOverride (exercises ?? dashboardColNum)
+    // Act — call drawLayoutPreview with actual layout and null colOverride (exercises ?? dashboardColNum)
     expect(() => {
-      state.drawLayoutPreview([], null)
+      state.drawLayoutPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4, userLabel: 'My Widget', type: 'quote' }], null)
     }).not.toThrow()
 
     wrapper.unmount()
@@ -620,7 +620,7 @@ describe('drawLayoutPreview and drawMiniPreview with null colOverride', () => {
 
   test('with colOverride=undefined in drawMiniPreview expect no crash', async () => {
     // Arrange — hover preview shown so hoverPreviewCanvas ref is attached
-    seedLayouts({ 'Test': makeLayout() })
+    seedLayouts({ 'Test': makeLayout({ layout: [{ i: 'widget-1', x: 0, y: 0, w: 6, h: 4, type: 'quote', userLabel: 'My Widget' }] }) })
     const wrapper = mountGrid()
     await nextTick()
     const state = ss(wrapper)
@@ -631,9 +631,9 @@ describe('drawLayoutPreview and drawMiniPreview with null colOverride', () => {
     vi.runAllTimers()
     await nextTick()
 
-    // Act — call drawMiniPreview with undefined colOverride
+    // Act — call drawMiniPreview with actual layout data and undefined colOverride
     expect(() => {
-      state.drawMiniPreview([], undefined)
+      state.drawMiniPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4, userLabel: '', type: 'quote' }], undefined)
     }).not.toThrow()
 
     vi.useRealTimers()
