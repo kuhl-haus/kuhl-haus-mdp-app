@@ -1098,3 +1098,77 @@ describe('filteredNews title sort desc', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// formatDateTime: null and invalid date (lines 401-403)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('formatDateTime edge cases', () => {
+  test('with null publishDate in modal expect empty time string', async () => {
+    // Arrange — modal with null publishDate
+    const wrapper = mountCNWithBody()
+    await nextTick()
+    const { onData } = getMock()
+    const articleNoDate = makeArticle({ publishDate: null })
+    onData([articleNoDate])
+    await nextTick()
+
+    // Act — open modal
+    wrapper.vm.$.setupState.openDetail(articleNoDate)
+    await nextTick()
+
+    // Assert — formatDateTime(null) returns ''
+    const state = wrapper.vm.$.setupState
+    expect(state.formatDateTime(null)).toBe('')
+    wrapper.unmount()
+  })
+
+  test('with invalid publishDate in modal expect empty time string (isNaN path)', async () => {
+    // Arrange
+    const wrapper = mountCNWithBody()
+    await nextTick()
+    const { onData } = getMock()
+    const articleBadDate = makeArticle({ publishDate: 'not-a-date' })
+    onData([articleBadDate])
+    await nextTick()
+
+    // Act — open modal
+    wrapper.vm.$.setupState.openDetail(articleBadDate)
+    await nextTick()
+
+    // Assert — formatDateTime with invalid date returns ''
+    const state = wrapper.vm.$.setupState
+    expect(state.formatDateTime('not-a-date')).toBe('')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal company with primaryListing but no exchangeCode (line 169)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('modal company primaryListing with no exchangeCode', () => {
+  test('with company having primaryListing but null exchangeCode expect no crash', async () => {
+    // Arrange — company has primaryListing (truthy) but exchangeCode is null
+    const wrapper = mountCNWithBody()
+    await nextTick()
+    const { onData } = getMock()
+    const articleWithCo = makeArticle({
+      companies: [{
+        ticker: 'AAPL',
+        name: 'Apple',
+        primaryListing: { exchangeCode: null },  // null exchangeCode
+        companyId: 'C1',
+      }],
+    })
+    onData([articleWithCo])
+    await nextTick()
+    wrapper.vm.$.setupState.openDetail(articleWithCo)
+    await nextTick()
+
+    // Assert — company renders, no crash
+    const coSection = document.querySelector('.modal-companies')
+    expect(coSection).not.toBeNull()
+    wrapper.unmount()
+  })
+})

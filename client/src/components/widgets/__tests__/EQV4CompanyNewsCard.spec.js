@@ -521,21 +521,20 @@ describe('Exposed interface', () => {
 
 describe('fetchNews: no finlightApiKey', () => {
   test('with no finlightApiKey in config expect error state and no fetch', async () => {
-    // Arrange — config missing finlightApiKey
-    const { useConfig } = await import('@/composables/useConfig.js')
-    const { ref } = await import('vue')
-    vi.mocked(useConfig).mockReturnValueOnce({
-      config:  ref({ massiveApiKey: 'test-key', finlightApiKey: null }),
-      loading: ref(false), error: ref(null),
-    })
+    // Arrange — use the _configRef side-channel to set null finlightApiKey
+    const { _configRef } = await import('@/composables/useConfig.js')
+    _configRef.value.finlightApiKey = null
     const wrapper = mount(EQV4CompanyNewsCard, {
       props: { ticker: 'AAPL', isLocked: true, articleCount: 10 },
     })
     await nextTick(); await nextTick(); await nextTick()
 
-    // Assert — no API key → error shown, fetch not called
+    // Assert — no API key → error shown
     const state = wrapper.vm.$.setupState
     expect(state.error).toContain('key not configured')
+
+    // Cleanup — restore finlightApiKey
+    _configRef.value.finlightApiKey = 'test-finlight-key'
     wrapper.unmount()
   })
 })
