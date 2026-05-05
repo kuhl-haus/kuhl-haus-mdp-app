@@ -34,7 +34,7 @@ dependencies = [
     "requests",
     "uvicorn",
     "uvicorn-worker",
-    "kuhl-haus-mdp>=0.4.8"
+    "kuhl-haus-mdp>=0.4.17"
 ]
 
 [project.urls]
