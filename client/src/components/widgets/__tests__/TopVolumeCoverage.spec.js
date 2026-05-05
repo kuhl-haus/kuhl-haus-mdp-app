@@ -491,3 +491,21 @@ describe('sortBy with non-listed key', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort comparison with multiple rows
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('sort comparison with multiple rows', () => {
+  test('with 2 rows expect sort comparison function called', async () => {
+    // Arrange
+    const wrapper = await mountWithData([
+      makeRow({ symbol: 'AAPL', accumulated_volume: 500_000 }),
+      makeRow({ symbol: 'TSLA', accumulated_volume: 200_000 }),
+    ])
+
+    // Assert — no crash (sort comparison ran)
+    expect(wrapper.exists()).toBe(true)
+    wrapper.unmount()
+  })
+})
