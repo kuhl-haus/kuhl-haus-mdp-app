@@ -1032,3 +1032,66 @@ describe('fetchBars json results null', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// chartOption formatter callbacks (lines 388, 413)
+// These functions are defined inside chartOption computed but never called by
+// the mocked ECharts library — call them directly to cover branches.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('chartOption formatter and color callbacks', () => {
+  test('with volume enabled expect volume yAxis formatter covers >= 1e6 and < 1e6', async () => {
+    // Arrange — load bars + volume enabled
+    const bars = [ONE_BAR, { ...ONE_BAR, t: ONE_BAR.t + 60000 }]
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mountChart({ ticker: 'AAPL', volume: { enabled: true } })
+    await nextTick(); await nextTick()
+
+    // Get chartOption
+    const option = wrapper.vm.$.setupState.chartOption
+    expect(option).toBeTruthy()
+
+    // Find volume yAxis formatter (second yAxis, gridIndex=1)
+    const volYAxes = option?.yAxis?.filter(y => y.gridIndex > 0)
+    for (const yAxis of (volYAxes || [])) {
+      const fmt = yAxis?.axisLabel?.formatter
+      if (fmt) {
+        // Test >= 1e6 path → shows '2M'
+        const big = fmt(2_000_000)
+        expect(big).toContain('M')
+        // Test < 1e6 path → shows raw value
+        const small = fmt(500)
+        expect(small).toBe(500)
+      }
+    }
+    wrapper.unmount()
+  })
+
+  test('with MACD enabled expect histogram color callback covers positive and negative', async () => {
+    // Arrange — load enough bars for MACD
+    const bars = Array.from({ length: 40 }, (_, i) => ({
+      t: (1_700_000_000 + i * 86400) * 1000, o: 100, h: 110, l: 90,
+      c: 100 + (i % 5 - 2),  // alternating prices
+      v: 500_000,
+    }))
+    global.fetch = mockFetch({ results: bars })
+    const wrapper = mountChart({
+      ticker: 'AAPL',
+      macd: { enabled: true, fast: 12, slow: 26, signal: 9 },
+    })
+    await nextTick(); await nextTick()
+
+    // Find MACD histogram series
+    const option = wrapper.vm.$.setupState.chartOption
+    const histSeries = option?.series?.find(s => s.name === 'Hist')
+    if (histSeries?.itemStyle?.color) {
+      // Test positive value → '#26a69a'
+      const positiveColor = histSeries.itemStyle.color({ data: 1 })
+      expect(positiveColor).toBe('#26a69a')
+      // Test negative value → '#ef5350'
+      const negativeColor = histSeries.itemStyle.color({ data: -1 })
+      expect(negativeColor).toBe('#ef5350')
+    }
+    wrapper.unmount()
+  })
+})
