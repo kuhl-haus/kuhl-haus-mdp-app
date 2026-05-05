@@ -84,7 +84,7 @@ function mountWidget(props = {}, onUpdateSettings) {
   })
 }
 
-function ss(wrapper) { return wrapper.vm.$.setupState }
+function ss(wrapper) { return wrapper.vm }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -761,9 +761,8 @@ describe('EQV4TickerEventsCard transitions binary-expr', () => {
     await nextTick()
 
     // Assert — transition for index 0 uses next event's ticker_change.ticker (null)
-    const state = wrapper.vm.$.setupState
     // ticker_change.ticker = null → ?? null fallback (line 102)
-    const transitions = state.transitions
+    const transitions = wrapper.vm.transitions
     if (transitions.length > 1) {
       expect(transitions[0].from).toBeNull()  // ticker_change?.ticker ?? null
     }
