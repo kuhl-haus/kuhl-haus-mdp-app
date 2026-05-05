@@ -704,3 +704,44 @@ describe('drawLayoutPreview item.userLabel || item.type || widget fallback', () 
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// drawMiniPreview: canvas null → if(!canvas) return (line 725)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('drawMiniPreview with null canvas', () => {
+  test('with hoverPreviewVisible=false expect drawMiniPreview returns early (canvas null)', async () => {
+    // Arrange — hoverPreviewVisible=false means canvas not rendered
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // hoverPreviewVisible defaults to false → canvas not attached
+    // Calling drawMiniPreview directly exercises if(!canvas) return (line 725)
+    expect(() => {
+      state.drawMiniPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4, userLabel: 'Q', type: 'quote' }], 12)
+    }).not.toThrow()
+
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// drawLayoutPreview: canvas null → if(!canvas) return (line 610)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('drawLayoutPreview with null canvas', () => {
+  test('with showPreviewDialog=false expect drawLayoutPreview returns early', async () => {
+    // Arrange — showPreviewDialog=false means previewCanvas not attached
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+
+    // Direct call without dialog → previewCanvas.value = null → early return
+    expect(() => {
+      state.drawLayoutPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4, type: 'quote', userLabel: '' }], 12)
+    }).not.toThrow()
+
+    wrapper.unmount()
+  })
+})
