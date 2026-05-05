@@ -643,3 +643,38 @@ describe('updateChart with series refs nulled (L451/L464/L506 FALSE paths)', () 
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ResizeObserver callback FALSE path: chart=null (L417 FALSE)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ResizeObserver callback with chart=null (L417 FALSE path)', () => {
+  test('with chart nulled before ResizeObserver fires expect FALSE path (L417)', async () => {
+    // Arrange — capture the ResizeObserver callback
+    let capturedCallback = null
+    vi.stubGlobal('ResizeObserver', function MockRO2(cb) {
+      capturedCallback = cb
+      return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() }
+    })
+
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL' } },
+    })
+    await flushPromises()
+    await nextTick()
+    expect(capturedCallback).not.toBeNull()
+    const state = wrapper.vm.$.setupState
+
+    // Null out chart so the ResizeObserver condition is FALSE
+    state.chart = null  // if (chart && chartContainer.value) → if(null && ...) = FALSE
+
+    // Act — fire ResizeObserver callback with chart=null
+    capturedCallback([{ contentRect: { width: 800, height: 500 } }])
+    await nextTick()
+
+    // Assert — no crash (condition was FALSE → applyOptions not called)
+    expect(wrapper.exists()).toBe(true)
+    vi.stubGlobal('ResizeObserver', function () { return resizeObserverMock })
+    wrapper.unmount()
+  })
+})

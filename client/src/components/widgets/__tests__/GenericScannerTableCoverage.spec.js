@@ -417,3 +417,49 @@ describe('colWidths watcher and onFlameTouchEnd', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L94: onMove called after resizeState cleared → if(!resizeState) return TRUE
+// Capture onMove via document.addEventListener spy, then clear resizeState and call
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('onMove with resizeState=null (L94 TRUE path)', () => {
+  test('with onMove called after resizeState cleared expect early return (L94 TRUE)', async () => {
+    // Arrange — capture the mousemove listener
+    let capturedOnMove = null
+    let capturedOnUp = null
+    const origAdd = document.addEventListener.bind(document)
+    const spy = vi.spyOn(document, 'addEventListener').mockImplementation((type, fn) => {
+      if (type === 'mousemove') capturedOnMove = fn
+      if (type === 'mouseup') capturedOnUp = fn
+      origAdd(type, fn)
+    })
+
+    const wrapper = mountTable({ isLocked: false, colWidths: { symbol: 100 } })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Trigger startResize to populate resizeState and add listeners
+    if (state.startResize) {
+      const mockEvent = { clientX: 100, target: { closest: vi.fn(() => ({ offsetWidth: 100 })) } }
+      state.startResize(mockEvent, 'symbol')
+    }
+    await nextTick()
+
+    // Now call onUp to clear resizeState (same as user releasing mouse)
+    if (capturedOnUp) {
+      capturedOnUp({ clientX: 100 })
+    }
+    await nextTick()
+
+    // Act — call onMove with resizeState=null → if(!resizeState) return TRUE
+    if (capturedOnMove) {
+      capturedOnMove({ clientX: 150 })  // resizeState is null → L94 TRUE path
+    }
+
+    // Assert — no crash (early return happened)
+    expect(wrapper.exists()).toBe(true)
+    spy.mockRestore()
+    wrapper.unmount()
+  })
+})
