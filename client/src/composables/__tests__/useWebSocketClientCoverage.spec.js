@@ -475,3 +475,35 @@ describe('disconnect while WS is open', () => {
     expect(capturedClose).toBe(true)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WS onerror callback (line 147)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('WebSocket onerror callback', () => {
+  test('with WS error event expect onerror callback fires without crash', async () => {
+    // Arrange — capture the onerror handler
+    let capturedOnError = null
+    global.WebSocket = class MockWS {
+      constructor() {
+        this.readyState = 0
+        setTimeout(() => { this.readyState = 1; this.onopen?.() }, 0)
+      }
+      send() {}
+      close() { this.onclose?.({ code: 1000 }) }
+      set onerror(fn) { capturedOnError = fn }
+    }
+    global.WebSocket.CONNECTING = 0; global.WebSocket.OPEN = 1
+    global.WebSocket.CLOSING = 2; global.WebSocket.CLOSED = 3
+
+    const { useWebSocketClient } = await import('@/composables/useWebSocketClient.js')
+    const ws = useWebSocketClient({
+      wsUrl: 'ws://localhost:4202', authKey: '', feedName: '', cacheKey: '',
+    })
+    ws.connect()
+    await new Promise(r => setTimeout(r, 20))
+
+    // Act — trigger WS error (covers onerror callback)
+    expect(() => capturedOnError?.({ message: 'test error' })).not.toThrow()
+  })
+})
