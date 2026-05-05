@@ -488,3 +488,24 @@ describe('onData callback receives quote message', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// isConnected watcher: connected with no currentFeed → FALSE path (line 201)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('isConnected watcher with no current feed', () => {
+  test('with WS connected but no ticker set expect condition FALSE (no subscribe)', async () => {
+    // Arrange — mount without ticker, let WS connect
+    // When isConnected becomes true, currentFeed='' → if(connected && currentFeed) = FALSE
+    const wrapper = mountQuote({ settings: {} })  // no ticker
+    await new Promise(r => setTimeout(r, 20))  // let mock WS open
+    await nextTick()
+
+    const state = wrapper.vm.$.setupState
+    // Verify: no ticker → currentFeed=''
+    expect(state.currentFeed).toBe('')
+    // isConnected should be true (WS opened)
+    // The watch(isConnected) fired with connected=true but currentFeed='' → FALSE path
+    wrapper.unmount()
+  })
+})

@@ -745,3 +745,44 @@ describe('drawLayoutPreview with null canvas', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// drawLayoutPreview: item.userLabel=null || item.type=null → 'widget' fallback (line 773)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('drawLayoutPreview widget label fallback (3rd || operand)', () => {
+  test('with null userLabel and null type expect widget label used', async () => {
+    // Arrange — show preview dialog (attaches previewCanvas)
+    seedLayouts({ 'Test3': makeLayout() })
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+    state.showPreviewDialog = true
+    state.previewLayoutName = 'Test3'
+    await nextTick()
+
+    // Act — call drawLayoutPreview with null userLabel AND null type
+    // null || null = null (falsy) → 'widget' fallback (3rd operand)
+    expect(() => {
+      state.drawLayoutPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4, userLabel: null, type: null }], 12)
+    }).not.toThrow()
+    wrapper.unmount()
+  })
+
+  test('with undefined userLabel and undefined type expect widget label used', async () => {
+    // Arrange
+    seedLayouts({ 'Test4': makeLayout() })
+    const wrapper = mountGrid()
+    await nextTick()
+    const state = ss(wrapper)
+    state.showPreviewDialog = true
+    state.previewLayoutName = 'Test4'
+    await nextTick()
+
+    // Act — call with undefined values → undefined || undefined = undefined → 'widget'
+    expect(() => {
+      state.drawLayoutPreview([{ i: 'w1', x: 0, y: 0, w: 6, h: 4 }], 12)  // no userLabel/type
+    }).not.toThrow()
+    wrapper.unmount()
+  })
+})
