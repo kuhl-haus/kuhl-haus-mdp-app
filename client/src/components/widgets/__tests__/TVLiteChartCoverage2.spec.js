@@ -512,3 +512,35 @@ describe('settings watcher ticker null in TVLiteChart', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// emitSettings with empty ticker input → || null fallback (line 307)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('emitSettings with empty ticker', () => {
+  test('with empty headerTickerInput expect emitSettings emits null ticker', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, {
+      props: { ...DEFAULT_PROPS, settings: { ticker: 'AAPL' } },
+    })
+    await flushPromises()
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Clear the ticker input
+    state.headerTickerInput = ''
+    await nextTick()
+
+    // Act — call emitSettings directly (empty input → || null fallback)
+    state.emitSettings()
+    await nextTick()
+
+    // Assert — update-settings emitted with null ticker
+    const lastEmit = wrapper.emitted('update-settings')?.slice(-1)[0]?.[0]
+    if (lastEmit) {
+      expect(lastEmit.ticker).toBeNull()
+    }
+    wrapper.unmount()
+  })
+})

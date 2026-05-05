@@ -600,13 +600,17 @@ describe('mobile toolbar isLocked state', () => {
 
 describe('drawLayoutPreview and drawMiniPreview with null colOverride', () => {
   test('with colOverride=null in drawLayoutPreview expect dashboardColNum used as fallback', async () => {
-    // Arrange
+    // Arrange — show preview dialog so previewCanvas ref is attached
+    seedLayouts({ 'Test': makeLayout() })
     const wrapper = mountGrid()
     await nextTick()
     const state = ss(wrapper)
+    // Show dialog so canvas element is rendered and previewCanvas ref is set
+    state.showPreviewDialog = true
+    state.previewLayoutName = 'Test'
+    await nextTick()
 
-    // Act — call drawLayoutPreview directly with null colOverride
-    // This exercises the `cols = colOverride ?? dashboardColNum.value` path (line 615)
+    // Act — call drawLayoutPreview with null colOverride (exercises ?? dashboardColNum)
     expect(() => {
       state.drawLayoutPreview([], null)
     }).not.toThrow()
@@ -615,17 +619,24 @@ describe('drawLayoutPreview and drawMiniPreview with null colOverride', () => {
   })
 
   test('with colOverride=undefined in drawMiniPreview expect no crash', async () => {
-    // Arrange
+    // Arrange — hover preview shown so hoverPreviewCanvas ref is attached
+    seedLayouts({ 'Test': makeLayout() })
     const wrapper = mountGrid()
     await nextTick()
     const state = ss(wrapper)
 
+    vi.useFakeTimers()
+    const el = { getBoundingClientRect: () => ({ top: 100, right: 200 }) }
+    state.startHoverPreview('Test', { target: el })
+    vi.runAllTimers()
+    await nextTick()
+
     // Act — call drawMiniPreview with undefined colOverride
-    // This exercises `cols = colOverride ?? dashboardColNum.value` in drawMiniPreview (line 730)
     expect(() => {
       state.drawMiniPreview([], undefined)
     }).not.toThrow()
 
+    vi.useRealTimers()
     wrapper.unmount()
   })
 })

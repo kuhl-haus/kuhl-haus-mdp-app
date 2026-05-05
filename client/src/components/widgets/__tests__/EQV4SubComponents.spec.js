@@ -611,3 +611,57 @@ describe('fmtVol via EQV4VolumeCard with NaN volume', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQV4SecEdgarCard.edgarIndexUrl: null accession_number → ?? '' fallback
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('EQV4SecEdgarCard edgarIndexUrl with null accession', () => {
+  test('with null accession_number expect ?? "" fallback in URL', async () => {
+    // Arrange
+    const { flushPromises } = await import('@vue/test-utils')
+    const wrapper = mount(EQV4SecEdgarCard, {
+      props: { ticker: null, isLocked: true, filingCount: 10 },
+    })
+    await nextTick()
+
+    // Act — call edgarIndexUrl with null accession_number
+    const state = wrapper.vm.$.setupState
+    const url = state.edgarIndexUrl({ accession_number: null, cik: '320193' })
+
+    // Assert — null?.replace() = undefined, ?? '' gives empty accessionNodash
+    expect(url).toContain('/320193//')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NewsArticleModal: company without companyId → || ticker as key
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('NewsArticleModal company without companyId', () => {
+  test('with company missing companyId expect ticker used as fallback key', async () => {
+    // Arrange
+    const wrapper = mount(NewsArticleModal, {
+      props: {
+        article: {
+          title: 'Test Article',
+          link: 'https://example.com',
+          publishDate: '2024-01-15T14:30:00Z',
+          source: 'example.com',
+          sentiment: 'neutral',
+          summary: 'summary',
+          images: [],
+          companies: [{ ticker: 'TSLA', name: 'Tesla', primaryListing: { exchangeCode: 'XNAS' }, companyId: null }],
+        },
+      },
+      attachTo: document.body,
+    })
+    await nextTick()
+
+    // Assert — modal rendered with company (using ticker as key due to null companyId)
+    const coSection = document.querySelector('.modal-companies')
+    expect(coSection).not.toBeNull()
+    wrapper.unmount()
+  })
+})

@@ -900,3 +900,67 @@ describe('Feed watch with unknown feed name', () => {
     wrapper.unmount()
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// filteredEvents: event with null symbol → (e.symbol ?? '').toUpperCase() (line 287)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('filteredEvents with null symbol event', () => {
+  test('with event having null symbol expect ?? "" fallback used', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+
+    // Set a ticker filter to trigger the symbol comparison
+    state.tickerFilter = 'AAPL'
+    state._rafPending = [makeEvent({ symbol: null })]
+    state.flushLiveEvents()
+    await nextTick()
+
+    // Assert — event filtered out (null symbol → '' !== 'AAPL')
+    // ?? '' fallback exercised
+    expect(state.filteredEvents.length).toBe(0)
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// isRowActive: row with null symbol → ?? "" fallback (line 340)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('isRowActive with null symbol row', () => {
+  test('with rowClickMode=filter and row.symbol=null expect ?? "" fallback', async () => {
+    // Arrange
+    vi.mocked(useWebSocketClient).mockReturnValueOnce({
+      lastDataAt: ref(null), isConnected: ref(true), reconnecting: ref(false),
+      feedName: ref(''), cacheKey: ref(''),
+      wsUrl: ref('ws://localhost:4202/ws'), authKey: ref('secret'),
+      connect: vi.fn(), disconnect: vi.fn(),
+    })
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { minPrice: 0, maxPrice: null } },
+    })
+    await nextTick()
+    const state = wrapper.vm.$.setupState
+    state.rowClickModeLocal = 'filter'
+    state.filterSetByClick = true
+    state.tickerFilter = 'AAPL'
+    await nextTick()
+
+    // Act — call isRowActive with null symbol
+    const result = state.isRowActive({ symbol: null })
+
+    // Assert — '' !== 'AAPL' → not active
+    expect(result).toBe(false)
+    wrapper.unmount()
+  })
+})
