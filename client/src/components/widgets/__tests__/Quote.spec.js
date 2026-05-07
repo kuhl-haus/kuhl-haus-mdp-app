@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock useWebSocketClient ───────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -77,6 +78,10 @@ function getOnData() {
 }
 
 // ── useConfig integration ─────────────────────────────────────────────────────
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
+
 describe('useConfig integration', () => {
   beforeEach(() => {
     vi.mocked(useWebSocketClient).mockClear()

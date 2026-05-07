@@ -17,6 +17,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mocks (same as existing spec) ────────────────────────────────────────────
 vi.mock('@/composables/useWidgetBus.js', async () => {
@@ -69,6 +70,10 @@ beforeEach(() => { vi.clearAllMocks() })
 // ─────────────────────────────────────────────────────────────────────────────
 // startResize — full mouse event flow
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('startResize', () => {
   test('with mousedown → mousemove → mouseup expect update-col-widths emitted with new width', async () => {

@@ -8,6 +8,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/composables/useWebSocketClient.js', async () => {
   const { ref } = await import('vue')
@@ -55,6 +56,10 @@ beforeEach(() => { vi.clearAllMocks() })
 // ─────────────────────────────────────────────────────────────────────────────
 // settings prop watch
 // ─────────────────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
+
 describe('settings prop watch', () => {
   test('with props.settings updated expect all filter fields synced', async () => {
     const wrapper = await mountWithData([])

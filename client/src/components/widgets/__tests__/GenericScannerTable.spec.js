@@ -7,6 +7,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock useWidgetBus (only flame helpers are imported by GenericScannerTable) ─
 vi.mock('@/composables/useWidgetBus.js', async () => {
@@ -61,6 +62,10 @@ function mountTable(propsOverrides = {}) {
 }
 
 // ── Column rendering ──────────────────────────────────────────────────────────
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
+
 describe('column rendering', () => {
   test('with default columns expect all headers rendered', () => {
     // Arrange / Act

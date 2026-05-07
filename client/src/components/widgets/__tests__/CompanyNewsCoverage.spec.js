@@ -20,6 +20,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick, ref, reactive } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mocks (same setup as existing spec) ──────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -123,6 +124,10 @@ beforeEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // watch(activeTicker) — ticker change path
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('watch(activeTicker) — ticker lifecycle', () => {
   test('with ticker changed from AAPL to MSFT expect unsubscribe then resubscribe', async () => {

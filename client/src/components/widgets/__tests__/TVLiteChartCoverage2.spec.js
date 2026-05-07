@@ -14,6 +14,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Chart library mock ────────────────────────────────────────────────────────
 vi.mock('lightweight-charts', () => {
@@ -127,6 +128,10 @@ afterEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Bearish bar → red volume colour (b.c < b.o path)
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('bearish bar volume colour', () => {
   test('with bearish bar (c < o) expect red colour applied to volume series', async () => {

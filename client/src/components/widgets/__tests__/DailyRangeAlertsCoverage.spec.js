@@ -17,6 +17,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same mocks as existing spec ────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -93,6 +94,10 @@ beforeEach(() => { vi.clearAllMocks() })
 // ─────────────────────────────────────────────────────────────────────────────
 // onFlameTouchStart / onFlameTouchEnd
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('flame touch events', () => {
   test('with touchstart and 500ms elapsed expect alert with tooltip', async () => {
