@@ -17,6 +17,8 @@
     "@polygon.io/client-js": "^8.2.0",
     "echarts": "^6.0.0",
     "lightweight-charts": "^5.2.0",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "vue": "^3.5.18",
     "vue-echarts": "^8.0.1",
     "vue-virtual-scroller": "^2.0.0-beta.10",
@@ -28,7 +30,7 @@
     "@vitest/coverage-v8": "^4.1.4",
     "@vue/test-utils": "^2.4.6",
     "jsdom": "^29.0.2",
-    "vite": "^7.0.6",
+    "vite": "^7.3.3",
     "vite-plugin-vue-devtools": "^8.0.0",
     "vitest": "^4.1.4"
   }
