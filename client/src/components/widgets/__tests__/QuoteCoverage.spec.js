@@ -43,7 +43,6 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
 vi.mock('@/composables/useWidgetBus.js', async () => {
   const { reactive } = await import('vue')
   return {
-    useWidgetBus:    vi.fn(() => ({ activeTickers: reactive({}), setActiveTicker: vi.fn() })),
     getFlameVariant: vi.fn(() => null),
     getFlameTooltip: vi.fn(() => ''),
     newsTimestamps:  reactive({}),
@@ -63,6 +62,7 @@ vi.mock('@/composables/useConfig.js', async () => {
 
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import Quote from '../Quote.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -409,9 +409,6 @@ describe('activeTicker watch: not connected path', () => {
 describe('busTicker watcher fires with non-null ticker', () => {
   test('with linkColor set and bus ticker set expect manualTicker cleared', async () => {
     // Arrange — mount with linkColor so bus ticker tracking works
-    const { useWidgetBus } = await import('@/composables/useWidgetBus.js')
-    const { setActiveTicker } = vi.mocked(useWidgetBus).mock.results[0]?.value || useWidgetBus()
-    
     const wrapper = mountQuote({ linkColor: 'blue', settings: {} })
     await nextTick()
     
@@ -515,16 +512,8 @@ describe('isConnected watcher with no current feed', () => {
 
 describe('busTicker watcher clears manualTicker', () => {
   test('with busTicker becoming truthy expect manualTicker cleared (TRUE branch)', async () => {
-    // Arrange — capture activeTickers reactive object
-    const { reactive: rv } = await import('vue')
-    let capturedTickers = null
-    const { useWidgetBus } = await import('@/composables/useWidgetBus.js')
-    vi.mocked(useWidgetBus).mockImplementationOnce(() => {
-      capturedTickers = rv({})
-      return { activeTickers: capturedTickers, setActiveTicker: vi.fn() }
-    })
+    // Arrange — use store to simulate bus ticker change
     vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
-
     const wrapper = mountQuote({ linkColor: 'red' })
     await nextTick()
 
@@ -533,12 +522,11 @@ describe('busTicker watcher clears manualTicker', () => {
     await wrapper.find('.quote-go-btn').trigger('click')
     await nextTick()
 
-    // Act — bus fires for 'red' color with ticker 'AAPL' → busTicker = 'AAPL'
-    if (capturedTickers) {
-      capturedTickers['red'] = 'AAPL'  // triggers busTicker watcher with t='AAPL'
-      await nextTick()
-      await nextTick()
-    }
+    // Act — store fires for 'red' color with ticker 'AAPL' → busTicker = 'AAPL'
+    const store = useDashboardStore()
+    store.setActiveTicker('red', 'AAPL')  // triggers busTicker watcher with t='AAPL'
+    await nextTick()
+    await nextTick()
 
     // Assert — TRUE path: manualTicker cleared when bus fires
     expect(wrapper.exists()).toBe(true)
@@ -547,24 +535,17 @@ describe('busTicker watcher clears manualTicker', () => {
 
   test('with busTicker becoming null expect watcher fires FALSE branch (no clear)', async () => {
     // Arrange — bus fires with null (busTicker null → t=null → if(t) = false)
-    const { reactive: rv } = await import('vue')
-    let capturedTickers = null
-    const { useWidgetBus } = await import('@/composables/useWidgetBus.js')
-    vi.mocked(useWidgetBus).mockImplementationOnce(() => {
-      capturedTickers = rv({ red: 'AAPL' })  // start with AAPL
-      return { activeTickers: capturedTickers, setActiveTicker: vi.fn() }
-    })
     vi.mocked(useWebSocketClient).mockReturnValueOnce(makeWsMock())
+    const store = useDashboardStore()
+    store.setActiveTicker('red', 'AAPL')  // start with AAPL
 
     const wrapper = mountQuote({ linkColor: 'red' })
     await nextTick()
 
     // Act — clear the bus ticker → busTicker = null → watcher fires with t=null
-    if (capturedTickers) {
-      capturedTickers['red'] = null  // busTicker becomes null → FALSE path
-      await nextTick()
-      await nextTick()
-    }
+    store.setActiveTicker('red', null)  // busTicker becomes null → FALSE path
+    await nextTick()
+    await nextTick()
 
     // Assert — FALSE path executed without crash
     expect(wrapper.exists()).toBe(true)

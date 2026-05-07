@@ -20,7 +20,7 @@ vi.mock('@/composables/useScannerLink.js', async () => {
 })
 vi.mock('@/composables/useWidgetBus.js', async () => {
   const { reactive } = await import('vue')
-  return { useWidgetBus: vi.fn(() => ({ activeTickers: reactive({}), setActiveTicker: vi.fn() })), getFlameVariant: vi.fn(() => null), getFlameTooltip: vi.fn(() => ''), newsTimestamps: reactive({}) }
+  return { getFlameVariant: vi.fn(() => null), getFlameTooltip: vi.fn(() => ''), newsTimestamps: reactive({}) }
 })
 vi.mock('@/composables/useConfig.js', async () => {
   const { ref } = await import('vue')

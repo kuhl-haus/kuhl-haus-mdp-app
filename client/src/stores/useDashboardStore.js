@@ -6,7 +6,7 @@
  */
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
-import { LINK_COLORS } from '@/composables/useWidgetBus.js'
+import { LINK_COLORS } from '@/constants/linkColors.js'
 
 export const useDashboardStore = defineStore('dashboard', () => {
   // Active ticker per link color — null means no ticker selected for that color

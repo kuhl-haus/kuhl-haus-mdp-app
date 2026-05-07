@@ -67,7 +67,6 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
 })
 
 vi.mock('@/composables/useWidgetBus.js', () => ({
-  useWidgetBus: vi.fn(() => ({ activeTickers: {}, setActiveTicker: vi.fn() })),
 }))
 
 vi.mock('@/utils/chartIndicators.js', async () => {

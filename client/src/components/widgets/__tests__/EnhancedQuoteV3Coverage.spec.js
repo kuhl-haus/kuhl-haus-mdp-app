@@ -26,6 +26,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same global setup as existing spec ────────────────────────────────────────
 global.ResizeObserver = class ResizeObserver {
@@ -105,6 +106,7 @@ const SAMPLE_QUOTE = {
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia())
   vi.clearAllMocks()
   global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) })
 })

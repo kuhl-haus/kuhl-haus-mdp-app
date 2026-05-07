@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 
 // ── Mock useWebSocketClient ───────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -33,13 +34,8 @@ vi.mock('@/composables/useConfig.js', async () => {
 
 // ── Mock useWidgetBus ─────────────────────────────────────────────────────────
 vi.mock('@/composables/useWidgetBus.js', async () => {
-  const { reactive, ref } = await import('vue')
-  const activeTickers = reactive({})
   return {
-    useWidgetBus:       vi.fn(() => ({ setActiveTicker: vi.fn(), activeTickers })),
     setNewsTimestamp:   vi.fn(),
-    activeTickers,
-    setActiveTicker:    vi.fn(),
   }
 })
 
@@ -53,7 +49,7 @@ vi.mock('vue-virtual-scroller', () => ({
 }))
 
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
-import { useWidgetBus, setActiveTicker, activeTickers } from '@/composables/useWidgetBus.js'
+
 import { useConfig } from '@/composables/useConfig.js'
 import NewsFeed from '../NewsFeed.vue'
 
@@ -64,10 +60,7 @@ const triggerData = (data) => {
   lastCall[0].onData(data)
 }
 
-// Reset shared activeTickers reactive object between tests to prevent state leakage
-beforeEach(() => {
-  Object.keys(activeTickers).forEach(k => delete activeTickers[k])
-})
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const defaultProps = {
@@ -209,10 +202,7 @@ describe('Filter mode — ticker tag click', () => {
   })
 
   test('filter mode: ticker tag click broadcasts via setActiveTicker', async () => {
-    const { useWidgetBus: busMock } = await import('@/composables/useWidgetBus.js')
-    const mockSet = vi.fn()
-    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: mockSet, activeTickers: {} })
-
+    const store = useDashboardStore()
     const wrapper = mountFeed({ linkColor: 'blue' })
     triggerData([makeArticle()])
     await nextTick()
@@ -220,7 +210,7 @@ describe('Filter mode — ticker tag click', () => {
     await wrapper.findAll('.ticker-tag')[0].trigger('click')
     await nextTick()
 
-    expect(mockSet).toHaveBeenCalledWith('blue', 'AAPL')
+    expect(store.activeTickers['blue']).toBe('AAPL')
   })
 })
 
@@ -228,10 +218,7 @@ describe('Filter mode — ticker tag click', () => {
 
 describe('Select mode — ticker tag click', () => {
   test('clicking a ticker tag broadcasts to linked widgets', async () => {
-    const { useWidgetBus: busMock } = await import('@/composables/useWidgetBus.js')
-    const mockSet = vi.fn()
-    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: mockSet, activeTickers: {} })
-
+    const store = useDashboardStore()
     const wrapper = mountFeed({ linkColor: 'blue', settings: { tickerClickMode: 'select' } })
     triggerData([makeArticle()])
     await nextTick()
@@ -239,7 +226,7 @@ describe('Select mode — ticker tag click', () => {
     await wrapper.findAll('.ticker-tag')[0].trigger('click')
     await nextTick()
 
-    expect(mockSet).toHaveBeenCalledWith('blue', 'AAPL')
+    expect(store.activeTickers['blue']).toBe('AAPL')
   })
 
   test('select mode: ticker tag click does not set active-ticker-pill', async () => {
@@ -268,10 +255,7 @@ describe('Select mode — ticker tag click', () => {
   })
 
   test('select mode: clicking same ticker twice broadcasts null to clear linked widgets', async () => {
-    const { useWidgetBus: busMock } = await import('@/composables/useWidgetBus.js')
-    const mockSet = vi.fn()
-    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: mockSet, activeTickers: {} })
-
+    const store = useDashboardStore()
     const wrapper = mountFeed({ linkColor: 'blue', settings: { tickerClickMode: 'select' } })
     triggerData([makeArticle()])
     await nextTick()
@@ -281,14 +265,11 @@ describe('Select mode — ticker tag click', () => {
     await tag.trigger('click')  // second click → broadcasts null (deselect)
     await nextTick()
 
-    expect(mockSet).toHaveBeenLastCalledWith('blue', null)
+    expect(store.activeTickers['blue']).toBeNull()
   })
 
   test('select mode: no linkColor — ticker tag click has no observable effect', async () => {
-    const { useWidgetBus: busMock } = await import('@/composables/useWidgetBus.js')
-    const mockSet = vi.fn()
-    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: mockSet, activeTickers: {} })
-
+    const store = useDashboardStore()
     const wrapper = mountFeed({ linkColor: null, settings: { tickerClickMode: 'select' } })
     triggerData([makeArticle()])
     await nextTick()
@@ -297,7 +278,8 @@ describe('Select mode — ticker tag click', () => {
     await nextTick()
 
     expect(wrapper.find('.active-ticker-pill').exists()).toBe(false)
-    expect(mockSet).not.toHaveBeenCalled()
+    // No color → store not updated
+    expect(Object.values(store.activeTickers).every(v => v === null)).toBe(true)
   })
 })
 
@@ -305,28 +287,24 @@ describe('Select mode — ticker tag click', () => {
 
 describe('Bus sync', () => {
   test('filter mode: external activeTicker change shows active-ticker-pill', async () => {
-    const { useWidgetBus: busMock, activeTickers } = await import('@/composables/useWidgetBus.js')
-    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: vi.fn(), activeTickers })
-
+    const store = useDashboardStore()
     const wrapper = mountFeed({ linkColor: 'blue' })
     triggerData([makeArticle()])
     await nextTick()
 
-    activeTickers['blue'] = 'AAPL'
+    store.setActiveTicker('blue', 'AAPL')
     await nextTick()
 
     expect(wrapper.find('.active-ticker-pill').exists()).toBe(true)
   })
 
   test('select mode: external activeTicker change does not show active-ticker-pill', async () => {
-    const { useWidgetBus: busMock, activeTickers } = await import('@/composables/useWidgetBus.js')
-    vi.mocked(busMock).mockReturnValueOnce({ setActiveTicker: vi.fn(), activeTickers })
-
+    const store = useDashboardStore()
     const wrapper = mountFeed({ linkColor: 'blue', settings: { tickerClickMode: 'select' } })
     triggerData([makeArticle()])
     await nextTick()
 
-    activeTickers['blue'] = 'AAPL'
+    store.setActiveTicker('blue', 'AAPL')
     await nextTick()
 
     expect(wrapper.find('.active-ticker-pill').exists()).toBe(false)

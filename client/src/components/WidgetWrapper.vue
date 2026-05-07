@@ -75,7 +75,7 @@ import EnhancedQuoteV4 from './widgets/EnhancedQuoteV4.vue'
 import DailyRangeAlerts from './widgets/DailyRangeAlerts.vue'
 import CandlestickChart from './widgets/CandlestickChart.vue'
 import TVLiteChart     from './widgets/TVLiteChart.vue'
-import { LINK_COLORS, LINK_COLOR_MAP } from '@/composables/useWidgetBus.js'
+import { LINK_COLORS, LINK_COLOR_MAP } from '@/constants/linkColors.js'
 
 const props = defineProps({
   widgetId:   { type: String,  required: true },

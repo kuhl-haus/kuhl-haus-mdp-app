@@ -133,7 +133,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { GridLayout, GridItem } from 'vue3-grid-layout-next'
-import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig } from '@/composables/useConfig.js'
 import EQV4HeroCard    from './EQV4HeroCard.vue'
@@ -190,7 +191,7 @@ const emit = defineEmits(['update-settings'])
 const { config } = useConfig()
 
 // ── Widget bus ───────────────────────────────────────────────────────────────
-const { activeTickers, setActiveTicker } = useWidgetBus()
+const store = useDashboardStore()
 
 // ── Settings helpers ─────────────────────────────────────────────────────────
 const gridCols = computed(() => props.settings?.gridCols ?? 6)
@@ -367,7 +368,7 @@ const onGridRowHeightChange = (e) => {
 const inputTicker = ref('')
 const manualTicker = ref('')
 const busTicker = computed(() =>
-  props.linkColor ? (activeTickers[props.linkColor] || null) : null
+  props.linkColor ? (store.activeTickers[props.linkColor] || null) : null
 )
 const activeTicker = computed(() => busTicker.value || manualTicker.value || null)
 
@@ -377,7 +378,7 @@ const applyInput = () => {
   manualTicker.value = t
   inputTicker.value = ''
   if (props.linkColor) {
-    setActiveTicker(props.linkColor, t)
+    store.setActiveTicker(props.linkColor, t)
   }
 }
 

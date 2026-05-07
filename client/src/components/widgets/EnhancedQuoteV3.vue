@@ -577,7 +577,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import draggable from 'vuedraggable'
-import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig } from '@/composables/useConfig.js'
 import EQV3CompanyCard from './EQV3CompanyCard.vue'
@@ -607,7 +608,7 @@ const props = defineProps({
 const emit = defineEmits(['update-settings'])
 
 const { config } = useConfig()
-const { activeTickers, setActiveTicker } = useWidgetBus()
+const store = useDashboardStore()
 
 // ── Layout mode ──
 const widgetEl = ref(null)
@@ -753,7 +754,7 @@ const quoteFlame = computed(() => {
 const inputTicker = ref('')
 
 const busTicker = computed(() =>
-  props.linkColor ? (activeTickers[props.linkColor] || null) : null
+  props.linkColor ? (store.activeTickers[props.linkColor] || null) : null
 )
 const manualTicker = ref('')
 const activeTicker = computed(() => busTicker.value || manualTicker.value || null)
@@ -764,7 +765,7 @@ const applyInput = () => {
   manualTicker.value = t
   inputTicker.value = ''
   if (props.linkColor) {
-    setActiveTicker(props.linkColor, t)
+    store.setActiveTicker(props.linkColor, t)
   }
 }
 

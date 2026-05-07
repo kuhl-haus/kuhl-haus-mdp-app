@@ -8,14 +8,14 @@
  * @param {import('vue').Ref<string|null>} linkColorRef  - reactive linkColor prop
  */
 import { computed } from 'vue'
-import { useWidgetBus } from './useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 
 export function useScannerLink(linkColorRef) {
-  const { setActiveTicker, activeTickers } = useWidgetBus()
+  const store = useDashboardStore()
 
   const activeTicker = computed(() => {
     const color = linkColorRef.value
-    return color ? activeTickers[color] : null
+    return color ? store.activeTickers[color] : null
   })
 
   const onRowClick = (row) => {
@@ -24,8 +24,8 @@ export function useScannerLink(linkColorRef) {
     const symbol = row.symbol || row.ticker || null
     if (!symbol) return
     // Toggle: clicking the active ticker clears it
-    const current = activeTickers[color]
-    setActiveTicker(color, current === symbol ? null : symbol)
+    const current = store.activeTickers[color]
+    store.setActiveTicker(color, current === symbol ? null : symbol)
   }
 
   return { activeTicker, onRowClick }

@@ -13,20 +13,9 @@
  */
 import { reactive } from 'vue'
 
-// 9-color palette — high contrast, distinct at a glance
-export const LINK_COLORS = [
-  { name: 'red',    hex: '#ef4444' },
-  { name: 'orange', hex: '#f97316' },
-  { name: 'yellow', hex: '#eab308' },
-  { name: 'green',  hex: '#22c55e' },
-  { name: 'blue',   hex: '#3b82f6' },
-  { name: 'violet', hex: '#8b5cf6' },
-  { name: 'pink',   hex: '#ec4899' },
-  { name: 'cyan',   hex: '#06b6d4' },
-  { name: 'white',  hex: '#e5e7eb' },
-]
-
-export const LINK_COLOR_MAP = Object.fromEntries(LINK_COLORS.map(c => [c.name, c.hex]))
+// Re-exported from shared constants for backwards compatibility
+import { LINK_COLORS, LINK_COLOR_MAP } from '@/constants/linkColors.js'
+export { LINK_COLORS, LINK_COLOR_MAP }
 
 // ── News freshness state ─────────────────────────────────────────────────────
 // Map of ticker → timestamp (ms) of most recent article mentioning that ticker.

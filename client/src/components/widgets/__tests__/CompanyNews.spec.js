@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 
 // ── Mock useWebSocketClient ───────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -27,12 +28,7 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
 
 // ── Mock useWidgetBus ─────────────────────────────────────────────────────────
 vi.mock('@/composables/useWidgetBus.js', async () => {
-  const { reactive } = await import('vue')
   return {
-    useWidgetBus: vi.fn(() => ({
-      activeTickers:    reactive({}),
-      setActiveTicker:  vi.fn(),
-    })),
     setNewsTimestamp: vi.fn(),
   }
 })
@@ -251,19 +247,14 @@ describe('applyInput', () => {
 
   test('with input and linkColor expect setActiveTicker called', async () => {
     // Arrange
-    const { useWidgetBus: mockWidgetBus } = await import('@/composables/useWidgetBus.js')
-    const setActiveTickerMock = vi.fn()
-    vi.mocked(mockWidgetBus).mockReturnValue({
-      activeTickers: {},
-      setActiveTicker: setActiveTickerMock,
-    })
+    const store = useDashboardStore()
     const wrapper = mountCompanyNews({ linkColor: 'blue' })
     // Act
     await wrapper.find('.cn-input').setValue('AAPL')
     await wrapper.find('.cn-go-btn').trigger('click')
     await wrapper.vm.$nextTick()
     // Assert
-    expect(setActiveTickerMock).toHaveBeenCalledWith('blue', 'AAPL')
+    expect(store.activeTickers['blue']).toBe('AAPL')
     wrapper.unmount()
   })
 

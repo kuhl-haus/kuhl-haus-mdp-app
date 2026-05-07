@@ -1,100 +1,95 @@
 /**
  * Tests for useScannerLink composable.
  *
- * useScannerLink wraps useWidgetBus — test via onRowClick and verify
- * activeTickers state. Reset bus between tests via clearActiveTicker.
+ * useScannerLink wraps useDashboardStore — test via onRowClick and verify
+ * store state. Reset store between tests via createPinia().
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import { useScannerLink } from '../useScannerLink.js'
-import { useWidgetBus, LINK_COLORS } from '../useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
+import { LINK_COLORS } from '@/constants/linkColors.js'
 
-function resetBus() {
-  const { clearActiveTicker } = useWidgetBus()
-  LINK_COLORS.forEach(c => clearActiveTicker(c.name))
-}
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('useScannerLink', () => {
-  beforeEach(() => {
-    resetBus()
-  })
-
   // ------------------------------------------------------------------
   // onRowClick
   // ------------------------------------------------------------------
 
-  it('test_useScannerLink_with_color_and_ticker_expect_bus_updated', () => {
+  it('test_useScannerLink_with_color_and_ticker_expect_store_updated', () => {
     const linkColor = ref('blue')
     const { onRowClick } = useScannerLink(linkColor)
-    const { activeTickers } = useWidgetBus()
+    const store = useDashboardStore()
 
     onRowClick({ symbol: 'AAPL' })
 
-    expect(activeTickers['blue']).toBe('AAPL')
+    expect(store.activeTickers['blue']).toBe('AAPL')
   })
 
-  it('test_useScannerLink_with_no_color_expect_no_bus_update', () => {
+  it('test_useScannerLink_with_no_color_expect_no_store_update', () => {
     const linkColor = ref(null)
     const { onRowClick } = useScannerLink(linkColor)
-    const { activeTickers } = useWidgetBus()
+    const store = useDashboardStore()
 
     onRowClick({ symbol: 'AAPL' })
 
     LINK_COLORS.forEach(({ name }) => {
-      expect(activeTickers[name]).toBeNull()
+      expect(store.activeTickers[name]).toBeNull()
     })
   })
 
-  it('test_useScannerLink_with_ticker_field_expect_bus_updated', () => {
-    // Some rows use 'ticker' instead of 'symbol'
+  it('test_useScannerLink_with_ticker_field_expect_store_updated', () => {
     const linkColor = ref('red')
     const { onRowClick } = useScannerLink(linkColor)
-    const { activeTickers } = useWidgetBus()
+    const store = useDashboardStore()
 
     onRowClick({ ticker: 'MSFT' })
 
-    expect(activeTickers['red']).toBe('MSFT')
+    expect(store.activeTickers['red']).toBe('MSFT')
   })
 
-  it('test_useScannerLink_with_no_symbol_or_ticker_expect_no_bus_update', () => {
+  it('test_useScannerLink_with_no_symbol_or_ticker_expect_no_store_update', () => {
     const linkColor = ref('green')
     const { onRowClick } = useScannerLink(linkColor)
-    const { activeTickers } = useWidgetBus()
+    const store = useDashboardStore()
 
     onRowClick({})
 
-    expect(activeTickers['green']).toBeNull()
+    expect(store.activeTickers['green']).toBeNull()
   })
 
   it('test_useScannerLink_clicking_active_ticker_again_expect_clears', () => {
-    // Toggle behavior: clicking the same ticker clears it
     const linkColor = ref('orange')
     const { onRowClick } = useScannerLink(linkColor)
-    const { activeTickers } = useWidgetBus()
+    const store = useDashboardStore()
 
     onRowClick({ symbol: 'NVDA' })
-    expect(activeTickers['orange']).toBe('NVDA')
+    expect(store.activeTickers['orange']).toBe('NVDA')
 
     onRowClick({ symbol: 'NVDA' })
-    expect(activeTickers['orange']).toBeNull()
+    expect(store.activeTickers['orange']).toBeNull()
   })
 
   it('test_useScannerLink_clicking_different_ticker_expect_updates', () => {
     const linkColor = ref('cyan')
     const { onRowClick } = useScannerLink(linkColor)
-    const { activeTickers } = useWidgetBus()
+    const store = useDashboardStore()
 
     onRowClick({ symbol: 'AMD' })
     onRowClick({ symbol: 'NVDA' })
 
-    expect(activeTickers['cyan']).toBe('NVDA')
+    expect(store.activeTickers['cyan']).toBe('NVDA')
   })
 
   // ------------------------------------------------------------------
   // activeTicker computed
   // ------------------------------------------------------------------
 
-  it('test_useScannerLink_activeTicker_reflects_bus_state', () => {
+  it('test_useScannerLink_activeTicker_reflects_store_state', () => {
     const linkColor = ref('violet')
     const { activeTicker, onRowClick } = useScannerLink(linkColor)
 
@@ -118,7 +113,6 @@ describe('useScannerLink', () => {
     onRowClick({ symbol: 'QQQ' })
     expect(activeTicker.value).toBe('QQQ')
 
-    // Switch to a color with no active ticker
     linkColor.value = 'white'
     expect(activeTicker.value).toBeNull()
   })
