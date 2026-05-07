@@ -16,6 +16,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same mocks as existing spec ───────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -114,6 +115,10 @@ beforeEach(() => { vi.clearAllMocks() })
 // ─────────────────────────────────────────────────────────────────────────────
 // quoteFlame with variant
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('quoteFlame', () => {
   test('with getFlameVariant returning non-null expect flame icon rendered', async () => {

@@ -17,6 +17,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same mocks as existing TVLiteChart.spec.js ────────────────────────────────
 vi.mock('lightweight-charts', () => {
@@ -132,6 +133,10 @@ afterEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Settings panel
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('settings panel', () => {
   test('with ⚙️ click expect settings panel shown', async () => {

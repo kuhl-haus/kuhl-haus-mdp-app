@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock useWebSocketClient ───────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -112,6 +113,10 @@ beforeEach(() => {
 })
 
 // ── Filter isolation tests ────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('Filter isolation', () => {
   test('minPrice excludes events where price < threshold', async () => {

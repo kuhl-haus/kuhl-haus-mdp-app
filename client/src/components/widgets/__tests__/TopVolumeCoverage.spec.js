@@ -9,6 +9,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same mocks as TopVolume.spec.js ───────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -114,6 +115,10 @@ beforeEach(() => { vi.clearAllMocks() })
 // ─────────────────────────────────────────────────────────────────────────────
 // settings prop watch
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('settings prop watch', () => {
   test('with props.settings updated expect all filter fields synced', async () => {

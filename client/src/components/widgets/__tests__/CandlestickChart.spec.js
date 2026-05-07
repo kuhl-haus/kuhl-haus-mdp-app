@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock vue-echarts and echarts tree-shake imports ───────────────────────────
 // VChart uses canvas internally — not available in jsdom. Mock entirely.
@@ -84,6 +85,10 @@ beforeEach(() => {
 })
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('Rendering', () => {
   test('renders VChart stub when ticker is configured', async () => {

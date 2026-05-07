@@ -19,6 +19,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import * as wsComposable from '@/composables/useWebSocketClient.js'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same global stubs as existing spec ────────────────────────────────────────
 vi.mock('vue3-grid-layout-next', () => ({
@@ -98,6 +99,10 @@ beforeEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // applyInput — empty input + linkColor
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('applyInput', () => {
   test('with empty input expect no ticker change (early return)', async () => {

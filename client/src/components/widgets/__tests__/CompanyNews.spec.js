@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock useWebSocketClient ───────────────────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -79,6 +80,10 @@ function mountCompanyNews(propsOverrides = {}) {
 // stored as refs inside the composable. A watcher on appConfig updates those
 // refs when config loads, so connect() always dials the real endpoint even if
 // config wasn't ready at mount time.
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('useConfig integration', () => {
   beforeEach(() => {

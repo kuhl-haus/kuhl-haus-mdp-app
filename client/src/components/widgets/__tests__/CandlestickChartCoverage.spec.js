@@ -21,6 +21,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Same mocks as existing spec ───────────────────────────────────────────────
 vi.mock('vue-echarts', () => ({
@@ -100,6 +101,10 @@ beforeEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Settings panel toggle
 // ─────────────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('settings panel', () => {
   test('with ⚙️ click expect settings panel shown', async () => {

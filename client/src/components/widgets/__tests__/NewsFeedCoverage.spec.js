@@ -20,6 +20,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Shared mocks (same setup as NewsFeed.spec.js) ────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -129,6 +130,10 @@ beforeEach(() => {
 // ── modal open/close ──────────────────────────────────────────────────────────
 // Modal uses <Teleport to="body">. With attachTo:document.body the Teleport
 // works correctly; modal content is found via document.querySelector.
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('modal open and close', () => {
   test('with row click expect modal opens with article title', async () => {

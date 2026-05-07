@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock lightweight-charts (v5 API) ─────────────────────────────────────────
 // chart/series instances must NOT be wrapped in Vue ref() — plain JS vars only.
@@ -105,6 +106,10 @@ afterEach(() => {
 })
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('Rendering', () => {
   test('chart container div renders', () => {

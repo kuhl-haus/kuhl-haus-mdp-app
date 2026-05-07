@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/composables/useWebSocketClient.js', async () => {
   const { ref } = await import('vue')
@@ -54,6 +55,10 @@ function makeRow(overrides = {}) {
     avg_volume: 50_000, prev_day_volume: 100_000, official_open_price: 4,
     prev_day_close: 4, aggregate_vwap: 4.5, prev_day_vwap: 4, ...overrides }
 }
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('useConfig integration', () => {
   beforeEach(() => { vi.mocked(useWebSocketClient).mockClear(); vi.mocked(useConfig).mockClear() })

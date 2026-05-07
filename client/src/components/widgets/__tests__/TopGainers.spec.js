@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/composables/useWebSocketClient.js', async () => {
   const { ref } = await import('vue')
@@ -57,6 +58,10 @@ function makeMarketData(overrides = []) {
   ]
   return [...base, ...overrides]
 }
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('useConfig integration', () => {
   beforeEach(() => { vi.mocked(useWebSocketClient).mockClear(); vi.mocked(useConfig).mockClear() })
