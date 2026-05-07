@@ -23,11 +23,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
-  function getActiveTicker(color) {
-    if (!color || !(color in activeTickers)) return null
-    return activeTickers[color]
-  }
-
   function clearActiveTicker(color) {
     if (color && color in activeTickers) activeTickers[color] = null
   }
@@ -39,5 +34,5 @@ export const useDashboardStore = defineStore('dashboard', () => {
     filterMode.value = false
   }
 
-  return { activeTickers, filterMode, setActiveTicker, getActiveTicker, clearActiveTicker, clearAll }
+  return { activeTickers, filterMode, setActiveTicker, clearActiveTicker, clearAll }
 })
