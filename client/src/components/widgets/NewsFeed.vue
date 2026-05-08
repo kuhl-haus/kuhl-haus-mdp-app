@@ -47,6 +47,22 @@
       <select v-model.number="maxArticles" class="max-articles-select" title="Max articles loaded">
         <option v-for="n in MAX_ARTICLES_OPTIONS" :key="n" :value="n">{{ n }}</option>
       </select>
+
+      <!-- Audio alert toggle -->
+      <button
+        :class="['filter-btn', configAlertEnabled ? 'filter-btn--active' : '']"
+        :title="configAlertEnabled ? 'Audio alerts ON \u2014 click to disable' : 'Audio alerts OFF \u2014 click to enable'"
+        @click="onAlertEnabledChange(!configAlertEnabled)"
+        data-testid="alert-toggle"
+      >&#x1F514;</button>
+
+      <!-- Sound picker (shown when alerts enabled) -->
+      <AlertSoundPicker
+        v-if="configAlertEnabled"
+        :model-value="configAlertSound"
+        :show-default="true"
+        @update:model-value="onAlertSoundChange"
+      />
     </div>
 
     <!-- Mobile: card list -->
@@ -191,13 +207,15 @@
  * @emits ticker-click        - US ticker badge clicked, payload: symbol string
  * @emits update-col-widths   - Column widths changed, payload: { time, title, source, tickers }
  */
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { setNewsTimestamp } from '@/composables/useWidgetBus.js'
 import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
+import { useAlertStore }          from '@/stores/useAlertStore.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig }          from '@/composables/useConfig.js'
+import AlertSoundPicker from '@/components/AlertSoundPicker.vue'
 
 const props = defineProps({
   feedName:  { type: String,  default: 'news:feed:latest' },
@@ -206,6 +224,7 @@ const props = defineProps({
   linkColor: { type: String,  default: null },
   isMobile:  { type: Boolean, default: false },
   settings:  { type: Object,  default: () => ({}) },
+  userLabel: { type: String,  default: '' },
 })
 const emit = defineEmits(['ticker-click', 'update-col-widths', 'update-settings'])
 
@@ -436,6 +455,65 @@ const filteredNews = computed(() => {
   })
 
   return items
+})
+
+// ── Alert config — derived from settings prop ────────────────────────────────
+const configAlertEnabled = computed(() => props.settings.alertEnabled ?? false)
+const configAlertSound   = computed(() => props.settings.alertSound   ?? null)
+
+const onAlertEnabledChange = (val) => {
+  emit('update-settings', { ...props.settings, alertEnabled: val })
+  if (val) alertStore.preloadAll()
+}
+const onAlertSoundChange = (val) => {
+  emit('update-settings', { ...props.settings, alertSound: val })
+}
+
+// ── Audio alert trigger ───────────────────────────────────────────────────────
+const alertStore = useAlertStore()
+
+// seenIds tracks article links visible in the current filter context.
+// `link` is the stable server-assigned article identifier.
+const seenIds = ref(new Set())
+
+// alertReady: false until the initial cache tick has settled. Prevents the
+// initial cache load from being treated as "new" articles.
+const alertReady = ref(false)
+
+// Filter-reset strategy: when any filter input changes, this is a new
+// monitoring context — reset seenIds to avoid false positives from
+// items revealed by a looser filter.
+watch(
+  [hasTickersOnly, activeTicker, searchQuery],
+  () => {
+    seenIds.value = new Set(filteredNews.value.map(a => a.link))
+  }
+)
+
+// Fire once per batch when genuinely new filtered articles arrive.
+watch(filteredNews, (newItems) => {
+  if (!alertReady.value || !configAlertEnabled.value) return
+  const newIds = newItems
+    .map(a => a.link)
+    .filter(id => !seenIds.value.has(id))
+  if (newIds.length === 0) return
+  newIds.forEach(id => seenIds.value.add(id))
+  const soundId = configAlertSound.value ?? widgetSettingsStore.defaultAlertSound
+  alertStore.fire(soundId, {
+    widgetLabel: props.userLabel || 'News Feed',
+    widgetType:  'NewsFeed',
+    linkColor:   props.linkColor ?? null,
+    count:       newIds.length,
+  })
+})
+
+// Seed seenIds after the initial cache tick so the first batch of articles
+// is treated as "already seen" rather than firing an alert on page load.
+onMounted(() => {
+  nextTick(() => {
+    seenIds.value = new Set(filteredNews.value.map(a => a.link))
+    alertReady.value = true
+  })
 })
 </script>
 
