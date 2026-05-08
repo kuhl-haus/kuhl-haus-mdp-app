@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=ghcr.io/kuhl-haus/kuhl-haus-mdp-app-server-base:latest
 
-FROM node:25-alpine AS frontend-builder
+FROM node:26-alpine AS frontend-builder
 
 USER root
 
