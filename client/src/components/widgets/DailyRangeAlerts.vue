@@ -82,6 +82,26 @@
         <input type="number" v-model="pctChangeLocal" @change="emitSettings" :placeholder="feedLocal === 'hod' ? 'Min %' : 'Max %'" class="filter-input filter-input--narrow" />
       </div>
 
+        <!-- Section: Audio alerts -->
+      <div class="controls-section">
+        <span class="section-label">Alerts</span>
+        <label class="filter-label checkbox-label">
+          <input
+            type="checkbox"
+            :checked="config.alertEnabled"
+            @change="onAlertEnabledChange($event.target.checked)"
+          />
+          Audio alerts
+        </label>
+        <template v-if="config.alertEnabled">
+          <AlertSoundPicker
+            :model-value="config.alertSound"
+            :show-default="true"
+            @update:model-value="onAlertSoundChange"
+          />
+        </template>
+      </div>
+
       <!-- Column visibility & order -->
       <div class="col-menu-wrap">
         <div class="col-menu-title">Columns</div>
@@ -160,12 +180,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig }          from '@/composables/useConfig.js'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { parseShareCount } from '@/utils/parseShareCount.js'
 import { getFlameVariant, getFlameTooltip, newsTimestamps } from '@/composables/useWidgetBus.js'
+import AlertSoundPicker from '@/components/AlertSoundPicker.vue'
+import { useAlertStore }          from '@/stores/useAlertStore.js'
+import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
 
 const props = defineProps({
   isLocked:  { type: Boolean, default: true },
@@ -173,6 +196,7 @@ const props = defineProps({
   linkColor: { type: String,  default: null },
   isMobile:  { type: Boolean, default: false },
   settings:  { type: Object,  default: () => ({}) },
+  userLabel: { type: String,  default: '' },
 })
 
 const emit = defineEmits(['update-settings', 'update-col-widths'])
@@ -195,6 +219,8 @@ const DEFAULT_SETTINGS = {
   colOrder:           [],
   colWidths:          {},
   rowClickMode:       'link',
+  alertEnabled:       false,
+  alertSound:         null,
 }
 
 const FEED_MAP = {
@@ -611,8 +637,82 @@ const emitSettings = () => {
     colOrder:           [...colOrderLocal.value],
     rowClickMode:       rowClickModeLocal.value,
     colWidths:          { ...localColWidths.value },
+    alertEnabled:       config.value.alertEnabled,
+    alertSound:         config.value.alertSound ?? null,
   })
 }
+
+const onAlertEnabledChange = (val) => {
+  emit('update-settings', { ...props.settings, alertEnabled: val })
+  // Pre-load all sounds the moment the user enables alerts — they've already
+  // interacted with the page so autoplay policy is satisfied, and sounds
+  // will be decoded and cached before the first alert fires.
+  if (val) alertStore.preloadAll()
+}
+const onAlertSoundChange = (val) => {
+  emit('update-settings', { ...props.settings, alertSound: val })
+}
+
+// ── Audio alert trigger ───────────────────────────────────────────────────────
+const alertStore          = useAlertStore()
+const widgetSettingsStore = useWidgetSettingsStore()
+
+// seenIds tracks event IDs visible in the current filter context.
+// Keyed as `${symbol}-${timestamp}` — both fields are server-assigned.
+const seenIds = ref(new Set())
+
+// Seed on mount — don't fire on initial load.
+onMounted(() => {
+  seenIds.value = new Set(
+    filteredEvents.value.map(e => `${e.symbol}-${e.timestamp}`)
+  )
+})
+
+// Filter-reset strategy: when any filter value changes, reset seenIds to the
+// current filtered list. This is a new monitoring context — items revealed by
+// a looser filter are seeded immediately and must not trigger an alert.
+//
+// We watch config.value filter fields (not local refs) because config is the
+// same reactive source that drives filteredEvents. Vue runs watchers in
+// creation order, so this watcher fires before the filteredEvents watcher
+// below, guaranteeing seenIds is re-seeded before any alert check occurs.
+watch(
+  () => [
+    config.value.feed,
+    config.value.sessionFilter,
+    config.value.minPrice,
+    config.value.maxPrice,
+    config.value.minVolume,
+    config.value.minRelVol,
+    config.value.minAvgVol,
+    config.value.minFloat,
+    config.value.maxFloat,
+    config.value.pctChangeThreshold,
+    tickerFilter.value,
+  ],
+  () => {
+    seenIds.value = new Set(
+      filteredEvents.value.map(e => `${e.symbol}-${e.timestamp}`)
+    )
+  }
+)
+
+// Fire once per batch when genuinely new filtered events arrive.
+watch(filteredEvents, (newEvents) => {
+  if (!config.value.alertEnabled) return
+  const newIds = newEvents
+    .map(e => `${e.symbol}-${e.timestamp}`)
+    .filter(id => !seenIds.value.has(id))
+  if (newIds.length === 0) return
+  newIds.forEach(id => seenIds.value.add(id))
+  const soundId = config.value.alertSound ?? widgetSettingsStore.defaultAlertSound
+  alertStore.fire(soundId, {
+    widgetLabel: props.userLabel || 'Range Alerts',
+    widgetType:  'DailyRangeAlerts',
+    linkColor:   props.linkColor ?? null,
+    count:       newIds.length,
+  })
+})
 
 // Emit whenever non-immediate filter controls change
 watch(

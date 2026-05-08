@@ -20,7 +20,7 @@ import { ALERT_SOUNDS }                            from '@/constants/alertSounds
 let playImpl = vi.fn(() => Promise.resolve())
 
 const AudioMock = vi.fn(function MockAudio() {
-  return { play: playImpl }
+  return { play: playImpl, load: vi.fn() }
 })
 vi.stubGlobal('Audio', AudioMock)
 
@@ -209,6 +209,36 @@ describe('clearLog', () => {
 
     // Assert
     expect(store.recentLog).toHaveLength(0)
+  })
+})
+
+// ── preloadAll() ─────────────────────────────────────────────────────────────
+
+describe('preloadAll', () => {
+  test('with preloadAll called expect Audio constructed once per sound', () => {
+    // Arrange
+    const store = useAlertStore()
+
+    // Act
+    store.preloadAll()
+
+    // Assert — AudioMock called once per registered sound.
+    // The stub has .load: vi.fn() so the guard passes, the cache fills,
+    // and the constructor is called exactly once per sound.
+    expect(AudioMock).toHaveBeenCalledTimes(ALERT_SOUNDS.length)
+  })
+
+  test('with preloadAll called twice expect Audio constructed only once per sound', () => {
+    // Arrange — first call fills the cache (stub now has .load() so guard passes)
+    const store = useAlertStore()
+    store.preloadAll()
+    AudioMock.mockClear()
+
+    // Act — second call; every src is already cached
+    store.preloadAll()
+
+    // Assert — no new Audio constructions
+    expect(AudioMock).not.toHaveBeenCalled()
   })
 })
 

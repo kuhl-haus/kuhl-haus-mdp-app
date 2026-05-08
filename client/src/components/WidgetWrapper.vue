@@ -55,6 +55,7 @@
         :link-color="linkColor"
         :is-mobile="isMobile"
         :settings="settings"
+        :user-label="userLabel"
         @update-col-widths="$emit('update-col-widths', $event)"
         @update-settings="$emit('update-settings', $event)"
       />

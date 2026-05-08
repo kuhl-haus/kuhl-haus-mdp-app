@@ -14,11 +14,20 @@
  */
 import { defineStore } from 'pinia'
 import { ref }         from 'vue'
-import { ALERT_SOUND_MAP } from '@/constants/alertSounds.js'
+import { ALERT_SOUNDS, ALERT_SOUND_MAP } from '@/constants/alertSounds.js'
 
+// Module-level cache of pre-loaded Audio objects keyed by src URL.
+// Populated by preloadAll() on first user interaction; fire() reuses
+// these objects (currentTime reset) to avoid HTTP round-trips and
+// decode latency at alert time.
 const MAX_LOG = 20
 
 export const useAlertStore = defineStore('alerts', () => {
+  // Per-instance cache of pre-loaded Audio objects keyed by src URL.
+  // Lives inside the store function so setActivePinia(createPinia()) resets
+  // it naturally with each fresh store instance (important for test isolation).
+  const _audioCache = new Map()
+
   // ── State ────────────────────────────────────────────────────────────────
 
   /** Master mute — silences all audio without removing per-widget config. */
@@ -50,11 +59,37 @@ export const useAlertStore = defineStore('alerts', () => {
    * @param {string} soundId
    * @param {AlertLogEntry} entry
    */
+  /**
+   * Pre-load all registered sounds into the audio cache.
+   * Call this after the first user gesture (e.g. when alerts are enabled)
+   * so audio is decoded and ready before the first alert fires.
+   * Safe to call multiple times — already-cached srcs are skipped.
+   */
+  function preloadAll() {
+    ALERT_SOUNDS.forEach(({ src }) => {
+      if (_audioCache.has(src)) return
+      try {
+        const a = new Audio(src)
+        // Only cache real HTMLAudioElements; test stubs don't have .load()
+        if (typeof a.load === 'function') {
+          a.preload = 'auto'
+          a.load()
+          _audioCache.set(src, a)
+        }
+      } catch {}
+    })
+  }
+
   function fire(soundId, entry) {
     if (!muted.value) {
       const sound = ALERT_SOUND_MAP[soundId]
       if (sound) {
-        new Audio(sound.src).play().catch(() => {
+        // Use pre-loaded audio if available — avoids HTTP round-trip and
+        // decode latency. Falls back to a fresh Audio for first fire if
+        // preloadAll() hasn't been called yet.
+        const audio = _audioCache.get(sound.src) ?? new Audio(sound.src)
+        audio.currentTime = 0
+        audio.play().catch(() => {
           audioBlocked.value = true
         })
       }
@@ -77,7 +112,7 @@ export const useAlertStore = defineStore('alerts', () => {
     recentLog.value = []
   }
 
-  return { muted, audioBlocked, recentLog, fire, toggleMute, clearLog }
+  return { muted, audioBlocked, recentLog, fire, toggleMute, clearLog, preloadAll }
 }, {
   persist: {
     pick: ['muted'],
