@@ -1432,3 +1432,246 @@ describe('onMove with resizeState=null in DRA (L460 TRUE path)', () => {
     wrapper.unmount()
   })
 })
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alert config UI & trigger logic (Chunk 2 additions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Mock alertSounds so WAV imports don't fail
+vi.mock('@/constants/alertSounds.js', async () => {
+  const ALERT_SOUNDS = [
+    { id: 'blip',    label: 'Blip',    src: '/sounds/blip.wav'    },
+    { id: 'marimba', label: 'Marimba', src: '/sounds/marimba.wav' },
+  ]
+  const ALERT_SOUND_MAP = Object.fromEntries(ALERT_SOUNDS.map(s => [s.id, s]))
+  const DEFAULT_ALERT_SOUND_ID = 'blip'
+  return { ALERT_SOUNDS, ALERT_SOUND_MAP, DEFAULT_ALERT_SOUND_ID }
+})
+
+// Stub AlertSoundPicker so DailyRangeAlerts can render without full picker logic
+vi.mock('@/components/AlertSoundPicker.vue', () => ({
+  default: {
+    name: 'AlertSoundPicker',
+    props: { modelValue: { default: null }, showDefault: { default: false } },
+    emits: ['update:modelValue'],
+    template: '<select data-testid="alert-sound-picker" @change="$emit(\'update:modelValue\', $event.target.value || null)"><option value="">Default</option><option value="marimba">Marimba</option></select>',
+  },
+}))
+
+import { useAlertStore } from '@/stores/useAlertStore.js'
+
+describe('Alert config UI', () => {
+  test('with settings.alertEnabled=false expect alert checkbox unchecked and no sound picker', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: false } },
+    })
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    const checkbox = wrapper.find('input[type="checkbox"]')
+    expect(checkbox.element.checked).toBe(false)
+    expect(wrapper.find('[data-testid="alert-sound-picker"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('with settings.alertEnabled=true expect alert checkbox checked and sound picker rendered', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true } },
+    })
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    const checkbox = wrapper.find('input[type="checkbox"]')
+    expect(checkbox.element.checked).toBe(true)
+    expect(wrapper.find('[data-testid="alert-sound-picker"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  // Note: wrapper.emitted() does not capture Vue emissions from <script setup> in VTU 2.4.x.
+  // Use the attrs listener pattern instead.
+
+  test('checking the checkbox emits update-settings with alertEnabled: true', async () => {
+    const settingsCalls = []
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: false } },
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    const checkbox = wrapper.find('input[type="checkbox"]')
+    checkbox.element.checked = true
+    await checkbox.trigger('change')
+    await nextTick()
+
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    const lastEmit = settingsCalls[settingsCalls.length - 1]
+    expect(lastEmit.alertEnabled).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('unchecking emits update-settings with alertEnabled: false', async () => {
+    const settingsCalls = []
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true } },
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    const checkbox = wrapper.find('input[type="checkbox"]')
+    checkbox.element.checked = false
+    await checkbox.trigger('change')
+    await nextTick()
+
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    const lastEmit = settingsCalls[settingsCalls.length - 1]
+    expect(lastEmit.alertEnabled).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('sound picker change emits update-settings with alertSound: marimba', async () => {
+    const settingsCalls = []
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true, alertSound: null } },
+      attrs: { 'onUpdate-settings': (s) => settingsCalls.push(s) },
+    })
+    await wrapper.find('.col-menu-btn').trigger('click')
+    await nextTick()
+
+    // The stubbed AlertSoundPicker renders a <select> that emits update:modelValue on change
+    const picker = wrapper.find('[data-testid="alert-sound-picker"]')
+    expect(picker.exists()).toBe(true)
+    picker.element.value = 'marimba'
+    await picker.trigger('change')
+    await nextTick()
+
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    const lastEmit = settingsCalls[settingsCalls.length - 1]
+    expect(lastEmit.alertSound).toBe('marimba')
+    wrapper.unmount()
+  })
+})
+
+describe('Alert trigger logic', () => {
+  test('with alertEnabled=false and new events arriving expect alertStore.fire NOT called', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: false } },
+    })
+    await nextTick()
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'TSLA', timestamp: 9999999 })])
+    await nextTick()
+
+    expect(alertStore.fire).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true new event after initial seed expect alertStore.fire called', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true } },
+    })
+    await nextTick()
+
+    // Seed with initial data
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL', timestamp: 1000001 })])
+    await nextTick()
+
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    // Deliver a genuinely new event alongside the already-seen one
+    onData([
+      makeEvent({ symbol: 'TSLA', timestamp: 2000001 }),
+      makeEvent({ symbol: 'AAPL', timestamp: 1000001 }),
+    ])
+    await nextTick()
+
+    expect(alertStore.fire).toHaveBeenCalledTimes(1)
+    const callArgs = alertStore.fire.mock.calls[0]
+    expect(callArgs[1].widgetType).toBe('DailyRangeAlerts')
+    expect(callArgs[1].count).toBe(1)
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true multiple new events in one batch expect fire called once with count=2', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true } },
+    })
+    await nextTick()
+
+    const onData = getOnData()
+    // Seed with initial state
+    onData([makeEvent({ symbol: 'AAPL', timestamp: 1000001 })])
+    await nextTick()
+
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    // Deliver two new events in one batch
+    onData([
+      makeEvent({ symbol: 'TSLA', timestamp: 2000001 }),
+      makeEvent({ symbol: 'NVDA', timestamp: 3000001 }),
+      makeEvent({ symbol: 'AAPL', timestamp: 1000001 }),  // already seen
+    ])
+    await nextTick()
+
+    expect(alertStore.fire).toHaveBeenCalledTimes(1)
+    expect(alertStore.fire.mock.calls[0][1].count).toBe(2)
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true and alertSound=null expect defaultAlertSound (blip) used', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true, alertSound: null } },
+    })
+    await nextTick()
+
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL', timestamp: 1000001 })])
+    await nextTick()
+
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    onData([
+      makeEvent({ symbol: 'TSLA', timestamp: 2000001 }),
+      makeEvent({ symbol: 'AAPL', timestamp: 1000001 }),
+    ])
+    await nextTick()
+
+    expect(alertStore.fire).toHaveBeenCalledTimes(1)
+    const soundId = alertStore.fire.mock.calls[0][0]
+    expect(soundId).toBe('blip')
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true and userLabel set expect fire called with correct widgetLabel', async () => {
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true }, userLabel: 'My Alerts' },
+    })
+    await nextTick()
+
+    const onData = getOnData()
+    onData([makeEvent({ symbol: 'AAPL', timestamp: 1000001 })])
+    await nextTick()
+
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    onData([
+      makeEvent({ symbol: 'TSLA', timestamp: 5000001 }),
+      makeEvent({ symbol: 'AAPL', timestamp: 1000001 }),
+    ])
+    await nextTick()
+
+    expect(alertStore.fire).toHaveBeenCalledTimes(1)
+    expect(alertStore.fire.mock.calls[0][1].widgetLabel).toBe('My Alerts')
+    wrapper.unmount()
+  })
+})
