@@ -1,12 +1,16 @@
-/**
- * useWidgetSettingsStore — persisted widget settings.
- *
- * Consolidates widget-level localStorage keys into a typed, schema-defined store.
- * Fields are populated in Chunk 4 of the Pinia migration.
- */
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 export const useWidgetSettingsStore = defineStore('widgetSettings', () => {
-  // Fields added in Chunk 4
-  return {}
-}, { persist: false })
+  // DashboardGrid — 4 keys (Chunk 4)
+  const savedLayouts     = ref({})
+  const defaultLayoutName = ref(null)
+  const isLocked         = ref(true)
+  const autosaveEnabled  = ref(true)
+
+  // NewsFeed — 2 keys (Chunk 4)
+  const maxArticles    = ref(1000)
+  const hasTickersOnly = ref(false)
+
+  return { savedLayouts, defaultLayoutName, isLocked, autosaveEnabled, maxArticles, hasTickersOnly }
+}, { persist: true })

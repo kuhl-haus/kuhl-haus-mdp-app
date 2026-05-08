@@ -194,6 +194,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { setNewsTimestamp } from '@/composables/useWidgetBus.js'
 import { useDashboardStore } from '@/stores/useDashboardStore.js'
+import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig }          from '@/composables/useConfig.js'
@@ -209,6 +210,7 @@ const props = defineProps({
 const emit = defineEmits(['ticker-click', 'update-col-widths', 'update-settings'])
 
 const store = useDashboardStore()
+const widgetSettingsStore = useWidgetSettingsStore()
 
 // ── Ticker click mode ─────────────────────────────────────────────────────────
 const tickerClickMode = ref(props.settings.tickerClickMode ?? 'filter')
@@ -220,7 +222,6 @@ const toggleTickerClickMode = () => {
 
 const { config: appConfig } = useConfig()
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
-const LS_HAS_TICKERS_KEY = 'newsfeed:hasTickersOnly'
 
 // Default widths (px)
 const DEFAULT_WIDTHS = { time: 90, title: 0 }
@@ -247,22 +248,21 @@ const newsItems      = ref([])
 const selected       = ref(null)
 const activeTicker   = ref(null)
 const searchQuery    = ref('')
-const LS_MAX_ARTICLES_KEY = 'newsfeed:maxArticles'
 const MAX_ARTICLES_OPTIONS = [50, 100, 500, 1000, 2000, 4000, 8000, 10000, 20000, 25000]
-const maxArticles = ref(props.settings.maxArticles ?? parseInt(localStorage.getItem(LS_MAX_ARTICLES_KEY) || '1000', 10))
+const maxArticles = ref(props.settings.maxArticles ?? widgetSettingsStore.maxArticles)
 watch(maxArticles, v => {
-  localStorage.setItem(LS_MAX_ARTICLES_KEY, String(v))
+  widgetSettingsStore.maxArticles = v
   emit('update-settings', { ...props.settings, maxArticles: v })
   cacheLimit.value = v
   newsItems.value = []
   getCache(v)
 })
-const hasTickersOnly = ref(props.settings.hasTickersOnly ?? localStorage.getItem(LS_HAS_TICKERS_KEY) === 'true')
+const hasTickersOnly = ref(props.settings.hasTickersOnly ?? widgetSettingsStore.hasTickersOnly)
 const tableWrap      = ref(null)
 
 // Persist R1 toggle
 watch(hasTickersOnly, (val) => {
-  localStorage.setItem(LS_HAS_TICKERS_KEY, val)
+  widgetSettingsStore.hasTickersOnly = val
   emit('update-settings', { ...props.settings, hasTickersOnly: val })
 })
 

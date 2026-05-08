@@ -1,6 +1,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
+import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
 
 // ── Stubs ─────────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,7 @@ vi.mock('@/composables/useConfig.js', async () => {
 beforeEach(() => {
   vi.clearAllMocks()
   Object.keys(store).forEach(k => delete store[k])
+  setActivePinia(createPinia())
 })
 
 import DashboardGrid from '../DashboardGrid.vue'
@@ -67,8 +70,9 @@ function mountGrid() {
 }
 
 function seedLayouts(data, defaultName = null) {
-  store['dashboard-layouts'] = JSON.stringify(data)
-  if (defaultName) store['dashboard-default-layout'] = defaultName
+  const wss = useWidgetSettingsStore()
+  wss.savedLayouts = data
+  wss.defaultLayoutName = defaultName ?? null
 }
 
 // ── Default ───────────────────────────────────────────────────────────────────
@@ -207,13 +211,8 @@ describe('dashboardColNum persisted on save', () => {
     wrapper.vm.saveLayout()
     await nextTick()
 
-    // Assert — find the dashboard-layouts write in localStorage calls
-    const call = localStorageMock.setItem.mock.calls
-      .reverse()
-      .find(([k]) => k === 'dashboard-layouts')
-    expect(call).toBeDefined()
-    const saved = JSON.parse(call[1])
-    expect(saved['test-save']?.dashboardColNum).toBe(16)
+    // Assert — find the saved layout in the Pinia store
+    expect(useWidgetSettingsStore().savedLayouts['test-save']?.dashboardColNum).toBe(16)
 
     wrapper.unmount()
   })
@@ -348,13 +347,8 @@ describe('dashboardColNum autosave', () => {
     vi.runAllTimers()
     await nextTick()
 
-    // Assert — storage contains updated dashboardColNum for the selected layout
-    const call = localStorageMock.setItem.mock.calls
-      .reverse()
-      .find(([k]) => k === 'dashboard-layouts')
-    expect(call).toBeDefined()
-    const saved = JSON.parse(call[1])
-    expect(saved['my-layout']?.dashboardColNum).toBe(24)
+    // Assert — store contains updated dashboardColNum for the selected layout
+    expect(useWidgetSettingsStore().savedLayouts['my-layout']?.dashboardColNum).toBe(24)
 
     vi.useRealTimers()
     wrapper.unmount()
@@ -383,7 +377,7 @@ describe('dashboardColNum autosave', () => {
       await nextTick()
     }
 
-    localStorageMock.setItem.mockClear()
+    const savedBefore = { ...useWidgetSettingsStore().savedLayouts }
 
     // Act
     wrapper.vm.dashboardColNum = 24
@@ -392,8 +386,7 @@ describe('dashboardColNum autosave', () => {
     await nextTick()
 
     // Assert — no layout write triggered
-    const layoutWrite = localStorageMock.setItem.mock.calls.find(([k]) => k === 'dashboard-layouts')
-    expect(layoutWrite).toBeUndefined()
+    expect(useWidgetSettingsStore().savedLayouts).toEqual(savedBefore)
 
     vi.useRealTimers()
     wrapper.unmount()
