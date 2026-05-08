@@ -1761,3 +1761,182 @@ describe('sort fallback when sortKey is unknown', () => {
     wrapper.unmount()
   })
 })
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alert config UI (Chunk 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useAlertStore } from '@/stores/useAlertStore.js'
+
+describe('alert config UI', () => {
+  test('with alertEnabled not set expect 🔔 button rendered with inactive class', async () => {
+    const wrapper = mountFeed()
+    await nextTick()
+    const btn = wrapper.find('[data-testid="alert-toggle"]')
+    expect(btn.exists()).toBe(true)
+    expect(btn.classes()).not.toContain('filter-btn--active')
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true expect 🔔 button has active class and sound picker rendered', async () => {
+    const wrapper = mountFeed({ settings: { alertEnabled: true } })
+    await nextTick()
+    const btn = wrapper.find('[data-testid="alert-toggle"]')
+    expect(btn.classes()).toContain('filter-btn--active')
+    // AlertSoundPicker renders a select with class sound-select
+    expect(wrapper.find('.sound-select').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('clicking 🔔 button when disabled emits update-settings with alertEnabled: true', async () => {
+    const calls = []
+    const wrapper = mount(NewsFeed, {
+      props: { ...defaultProps, settings: { alertEnabled: false } },
+      attrs: { 'onUpdate-settings': (s) => calls.push(s) },
+      global: { stubs: { Teleport: true } },
+    })
+    await nextTick()
+    await wrapper.find('[data-testid="alert-toggle"]').trigger('click')
+    await nextTick()
+    expect(calls.length).toBeGreaterThan(0)
+    expect(calls[calls.length - 1].alertEnabled).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('clicking 🔔 button when enabled emits update-settings with alertEnabled: false', async () => {
+    const calls = []
+    const wrapper = mount(NewsFeed, {
+      props: { ...defaultProps, settings: { alertEnabled: true } },
+      attrs: { 'onUpdate-settings': (s) => calls.push(s) },
+      global: { stubs: { Teleport: true } },
+    })
+    await nextTick()
+    await wrapper.find('[data-testid="alert-toggle"]').trigger('click')
+    await nextTick()
+    expect(calls.length).toBeGreaterThan(0)
+    expect(calls[calls.length - 1].alertEnabled).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('sound picker change emits update-settings with alertSound: "snap"', async () => {
+    const calls = []
+    const wrapper = mount(NewsFeed, {
+      props: { ...defaultProps, settings: { alertEnabled: true } },
+      attrs: { 'onUpdate-settings': (s) => calls.push(s) },
+      global: { stubs: { Teleport: true } },
+    })
+    await nextTick()
+    // AlertSoundPicker emits update:modelValue which calls onAlertSoundChange
+    const select = wrapper.find('.sound-select')
+    expect(select.exists()).toBe(true)
+    await select.setValue('snap')
+    await nextTick()
+    expect(calls.length).toBeGreaterThan(0)
+    expect(calls[calls.length - 1].alertSound).toBe('snap')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alert trigger logic (Chunk 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('alert trigger logic', () => {
+  test('with alertEnabled=false and new articles arriving expect alertStore.fire NOT called', async () => {
+    const wrapper = mountFeed({ settings: { alertEnabled: false } })
+    await nextTick()
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+    triggerData([makeArticle({ link: 'https://a.com/new1' })])
+    await nextTick()
+    expect(alertStore.fire).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true and initial data load (mount) expect alertStore.fire NOT called', async () => {
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+    const wrapper = mountFeed({ settings: { alertEnabled: true } })
+    // Deliver data as part of "initial" load — seenIds seeds on nextTick after mount
+    triggerData([makeArticle({ link: 'https://a.com/seed1' })])
+    await nextTick()
+    // onMounted nextTick callback runs, seeding seenIds and setting alertReady
+    await nextTick()
+    // fire should not have been called since seenIds was seeded with these items
+    expect(alertStore.fire).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true and new article arriving after mount expect alertStore.fire called', async () => {
+    const wrapper = mountFeed({ settings: { alertEnabled: true } })
+    // Seed initial data
+    triggerData([makeArticle({ link: 'https://a.com/existing' })])
+    await nextTick()
+    await nextTick() // allow onMounted nextTick seeding
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+    // Now deliver a new article
+    triggerData([makeArticle({ link: 'https://a.com/brand-new', title: 'Breaking News' })])
+    await nextTick()
+    expect(alertStore.fire).toHaveBeenCalledOnce()
+    const [soundId, entry] = alertStore.fire.mock.calls[0]
+    expect(entry.widgetType).toBe('NewsFeed')
+    expect(entry.count).toBe(1)
+    wrapper.unmount()
+  })
+
+  test('with alertEnabled=true and 3 new articles in one batch expect fire called once with count: 3', async () => {
+    const wrapper = mountFeed({ settings: { alertEnabled: true } })
+    await nextTick()
+    await nextTick() // allow onMounted nextTick seeding
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+    triggerData([
+      makeArticle({ link: 'https://a.com/b1', title: 'Batch 1' }),
+      makeArticle({ link: 'https://a.com/b2', title: 'Batch 2' }),
+      makeArticle({ link: 'https://a.com/b3', title: 'Batch 3' }),
+    ])
+    await nextTick()
+    expect(alertStore.fire).toHaveBeenCalledOnce()
+    expect(alertStore.fire.mock.calls[0][1].count).toBe(3)
+    wrapper.unmount()
+  })
+
+  test('with filter change then new articles expect fire NOT called for already-seen articles', async () => {
+    const wrapper = mountFeed({ settings: { alertEnabled: true } })
+    // Deliver initial articles
+    triggerData([
+      makeArticle({ link: 'https://a.com/a1', title: 'Apple news', companies: [{ ticker: 'AAPL', name: 'Apple', primaryListing: { exchangeCode: 'XNAS' } }] }),
+      makeArticle({ link: 'https://a.com/a2', title: 'Other news', companies: [] }),
+    ])
+    await nextTick()
+    await nextTick() // allow onMounted nextTick seeding
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    // Toggle hasTickersOnly — filter changes, seenIds reseeds
+    await wrapper.find('button[title="Show only articles with tickers"]').trigger('click')
+    await nextTick()
+
+    // The AAPL article is still in filteredNews — was already seen
+    expect(alertStore.fire).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  test('with settings.alertSound=null expect widgetSettingsStore.defaultAlertSound used', async () => {
+    const wrapper = mountFeed({ settings: { alertEnabled: true, alertSound: null } })
+    await nextTick()
+    await nextTick()
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+    const widgetSettingsStore = useWidgetSettingsStore()
+    const expectedSound = widgetSettingsStore.defaultAlertSound
+
+    triggerData([makeArticle({ link: 'https://a.com/sound-test' })])
+    await nextTick()
+    expect(alertStore.fire).toHaveBeenCalledOnce()
+    expect(alertStore.fire.mock.calls[0][0]).toBe(expectedSound)
+    wrapper.unmount()
+  })
+})
