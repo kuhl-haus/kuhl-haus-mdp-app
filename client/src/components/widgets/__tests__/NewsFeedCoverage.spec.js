@@ -21,6 +21,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
 
 // ── Shared mocks (same setup as NewsFeed.spec.js) ────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -506,7 +507,7 @@ describe('hasTickersOnly filter', () => {
     await nextTick()
 
     // Assert
-    expect(localStorage.getItem('newsfeed:hasTickersOnly')).toBe('true')
+    expect(useWidgetSettingsStore().hasTickersOnly).toBe(true)
     wrapper.unmount()
   })
 })
@@ -910,7 +911,7 @@ describe('maxArticles select', () => {
     await nextTick()
 
     // Assert — persisted
-    expect(localStorage.getItem('newsfeed:maxArticles')).toBe('500')
+    expect(useWidgetSettingsStore().maxArticles).toBe(500)
     wrapper.unmount()
   })
 

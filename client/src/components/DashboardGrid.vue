@@ -313,6 +313,8 @@ import 'vue3-grid-layout-next/dist/style.css'
 import WidgetMenu from './WidgetMenu.vue'
 import WidgetWrapper from './WidgetWrapper.vue'
 import { useConfig } from '@/composables/useConfig.js'
+import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
+import { storeToRefs } from 'pinia'
 
 const { config: appConfig, loading: configLoading, error: configError } = useConfig()
 const appVersion = window.__APP_VERSION__ || null
@@ -322,24 +324,14 @@ const MOBILE_BREAKPOINT = 640
 const isMobile = ref(window.innerWidth < MOBILE_BREAKPOINT)
 const onResize = () => { isMobile.value = window.innerWidth < MOBILE_BREAKPOINT }
 
-const STORAGE_KEY = 'dashboard-layouts'
-const DEFAULT_KEY = 'dashboard-default-layout'
-const LOCK_KEY = 'dashboard-layout-locked'
 const AUTOSAVE_KEY = '__autosave__'
-const AUTOSAVE_ENABLED_KEY = 'dashboard-autosave-enabled'
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
-// Lock mode — default locked to prevent accidental drag/autosave
-const isLocked = ref(localStorage.getItem(LOCK_KEY) !== 'false')
-watch(isLocked, (val) => localStorage.setItem(LOCK_KEY, String(val)))
-
-const autosaveEnabled = ref(localStorage.getItem(AUTOSAVE_ENABLED_KEY) !== 'false')
-watch(autosaveEnabled, (val) => localStorage.setItem(AUTOSAVE_ENABLED_KEY, String(val)))
+const widgetSettingsStore = useWidgetSettingsStore()
+const { savedLayouts, defaultLayoutName, isLocked, autosaveEnabled } = storeToRefs(widgetSettingsStore)
 
 // State
 const layout = ref([])
-const savedLayouts = ref({})
-const defaultLayoutName = ref(null)
 const selectedLayoutName = ref('')
 const showSaveDialog = ref(false)
 const saveLayoutName = ref('')
@@ -376,31 +368,6 @@ const editingExistingLayout = computed(() =>
     saveLayoutName.value.trim() && savedLayouts.value[saveLayoutName.value.trim()]
 )
 
-// LocalStorage Operations
-const loadFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    savedLayouts.value = stored ? JSON.parse(stored) : {}
-    defaultLayoutName.value = localStorage.getItem(DEFAULT_KEY)
-  } catch (e) {
-    console.error('Failed to load layouts:', e)
-    savedLayouts.value = {}
-  }
-}
-
-const saveToStorage = () => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedLayouts.value))
-    if (defaultLayoutName.value) {
-      localStorage.setItem(DEFAULT_KEY, defaultLayoutName.value)
-    } else {
-      localStorage.removeItem(DEFAULT_KEY)
-    }
-  } catch (e) {
-    console.error('Failed to save layouts:', e)
-  }
-}
-
 // Layout Operations
 const saveLayout = () => {
   if (!saveLayoutName.value.trim()) return
@@ -431,7 +398,6 @@ const saveLayout = () => {
     defaultLayoutName.value = name
   }
 
-  saveToStorage()
   selectedLayoutName.value = name
   closeSaveDialog()
 }
@@ -458,7 +424,6 @@ const deleteCurrentLayout = () => {
     defaultLayoutName.value = null
   }
 
-  saveToStorage()
   selectedLayoutName.value = ''
   layout.value = []
   widgetCounter = 0
@@ -501,7 +466,6 @@ const autoSaveLayout = () => {
       modified: Date.now()
     }
 
-    saveToStorage()
     isAutoSaving.value = false
   }, AUTOSAVE_DEBOUNCE_MS)
 }
@@ -571,7 +535,6 @@ const importLayouts = (event) => {
         defaultLayoutName.value = data.defaultLayout
       }
 
-      saveToStorage()
       alert(`Imported ${Object.keys(data.layouts).length} layout(s)`)
 
     } catch (e) {
@@ -856,7 +819,6 @@ const handleClickOutside = (e) => {
 // Lifecycle
 onMounted(() => {
   window.addEventListener('resize', onResize)
-  loadFromStorage()
   loadDefaultLayout()
   document.addEventListener('click', handleClickOutside)
 })

@@ -9,6 +9,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref, nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // ── Mock heavy/irrelevant dependencies ────────────────────────────────────────
 vi.mock('vue3-grid-layout-next', () => ({
@@ -32,6 +33,10 @@ vi.mock('@/composables/useConfig.js', async () => {
 
 import { useConfig } from '@/composables/useConfig.js'
 import DashboardGrid from '../DashboardGrid.vue'
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function mountGrid(propsOverrides = {}) {

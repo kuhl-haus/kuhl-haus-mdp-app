@@ -18,6 +18,8 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount }     from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
+import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
 
 // ── Heavy dep stubs ────────────────────────────────────────────────────────────
 vi.mock('vue3-grid-layout-next', () => ({
@@ -86,9 +88,9 @@ import DashboardGrid from '../DashboardGrid.vue'
 // $.setupState removed — all state accessed via exposed wrapper.vm interface or DOM
 
 function seedLayouts(data, defaultName = null) {
-  store['dashboard-layouts'] = JSON.stringify(data)
-  if (defaultName) store['dashboard-default-layout'] = defaultName
-  else             delete store['dashboard-default-layout']
+  const wss = useWidgetSettingsStore()
+  wss.savedLayouts = data
+  wss.defaultLayoutName = defaultName ?? null
 }
 
 function makeLayout(overrides = {}) {
@@ -109,8 +111,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockCtx)
   Object.keys(store).forEach(k => delete store[k])
-  store['dashboard-layout-locked']    = 'false'
-  store['dashboard-autosave-enabled'] = 'true'
+  setActivePinia(createPinia())
+  const wss = useWidgetSettingsStore()
+  wss.isLocked = false
+  wss.autosaveEnabled = true
   // restore default useConfig mock after clearAllMocks resets implementations
   vi.mocked(useConfig).mockImplementation(() => ({
     config:  ref({ apiKey: 'test', wsEndpoint: 'ws://localhost:4202/ws',
@@ -414,7 +418,7 @@ describe('loadDefaultLayout autosave colNum fallback', () => {
 describe('autoSaveLayout disabled', () => {
   test('with autosaveEnabled=false expect layout change does not trigger autosave', async () => {
     // Arrange — disable autosave
-    store['dashboard-autosave-enabled'] = 'false'
+    useWidgetSettingsStore().autosaveEnabled = false
     vi.useFakeTimers()
     const wrapper = mountGrid()
     await nextTick()
@@ -424,14 +428,13 @@ describe('autoSaveLayout disabled', () => {
     expect(autosaveBtn.exists()).toBe(true)
 
     // Act — trigger a layout change (which internally calls autoSaveLayout → early return)
-    localStorageMock.setItem.mockClear()
     wrapper.vm.layout.push({ i: 'widget-99', x: 0, y: 0, w: 6, h: 19, type: 'quote' })
     await nextTick()
     vi.runAllTimers()
     await nextTick()
 
     // Assert — no layout written (autoSaveLayout returned early due to autosaveEnabled=false)
-    expect(localStorageMock.setItem.mock.calls.find(([k]) => k === 'dashboard-layouts')).toBeUndefined()
+    expect(Object.keys(useWidgetSettingsStore().savedLayouts)).toHaveLength(0)
 
     vi.useRealTimers()
     wrapper.unmount()
@@ -451,20 +454,13 @@ describe('autoSaveLayout with no selected layout', () => {
     wrapper.vm.selectedLayoutName = ''  // no layout selected
 
     // Act — trigger layout change which calls autoSaveLayout internally
-    localStorageMock.setItem.mockClear()
     wrapper.vm.layout.push({ i: 'widget-1', x: 0, y: 0, w: 6, h: 19, type: 'quote' })
     await nextTick()
     vi.runAllTimers()
     await nextTick()
 
-    // Assert — autosave key used in localStorage
-    const written = localStorageMock.setItem.mock.calls.find(
-      ([k]) => k === 'dashboard-layouts'
-    )
-    if (written) {
-      const saved = JSON.parse(written[1])
-      expect('__autosave__' in saved).toBe(true)
-    }
+    // Assert — autosave key used in store
+    expect('__autosave__' in useWidgetSettingsStore().savedLayouts).toBe(true)
 
     vi.useRealTimers()
     wrapper.unmount()
@@ -486,7 +482,7 @@ describe('autoSaveLayout with no selected layout', () => {
 describe('mobile toolbar isLocked state', () => {
   test('with mobile + isLocked=true expect lock icon shown', async () => {
     // Arrange — mobile width, locked layout
-    store['dashboard-layout-locked'] = 'true'
+    useWidgetSettingsStore().isLocked = true
     const wrapper = mountGrid(390)
     await nextTick()
 
@@ -591,10 +587,9 @@ describe('saveLayout without setting as default', () => {
     wrapper.vm.saveLayout()
     await nextTick()
 
-    // Assert — layout saved in localStorage but no default key written
-    const layouts = JSON.parse(store['dashboard-layouts'] || '{}')
-    expect(layouts['TestLayout']).toBeTruthy()
-    expect(store['dashboard-default-layout']).toBeUndefined()
+    // Assert — layout saved in store but no default set
+    expect(useWidgetSettingsStore().savedLayouts['TestLayout']).toBeTruthy()
+    expect(useWidgetSettingsStore().defaultLayoutName).toBeNull()
 
     wrapper.unmount()
   })
@@ -759,8 +754,7 @@ describe('saveLayout with non-numeric widget ID (L413 FALSE path)', () => {
 
     // Assert — layout saved, no crash
     expect(wrapper.exists()).toBe(true)
-    const layouts = JSON.parse(store['dashboard-layouts'] || '{}')
-    expect(layouts['TestLayout']).toBeTruthy()
+    expect(useWidgetSettingsStore().savedLayouts['TestLayout']).toBeTruthy()
     wrapper.unmount()
   })
 })
