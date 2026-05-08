@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import EQV4CardPicker from '../EQV4CardPicker.vue'
 
 // ── Global stubs ─────────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ function mockMassiveFetch() {
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia())
   vi.clearAllMocks()
   global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) })
 })

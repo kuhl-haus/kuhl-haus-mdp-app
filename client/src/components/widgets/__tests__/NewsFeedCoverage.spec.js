@@ -48,13 +48,8 @@ vi.mock('@/composables/useConfig.js', async () => {
 })
 
 vi.mock('@/composables/useWidgetBus.js', async () => {
-  const { reactive } = await import('vue')
-  const activeTickers = reactive({})
   return {
-    useWidgetBus:     vi.fn(() => ({ setActiveTicker: vi.fn(), activeTickers })),
     setNewsTimestamp: vi.fn(),
-    activeTickers,
-    setActiveTicker:  vi.fn(),
   }
 })
 
@@ -67,7 +62,7 @@ vi.mock('vue-virtual-scroller', () => ({
 }))
 
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
-import { setNewsTimestamp, activeTickers } from '@/composables/useWidgetBus.js'
+import { setNewsTimestamp } from '@/composables/useWidgetBus.js'
 import NewsFeed from '../NewsFeed.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -123,7 +118,6 @@ function triggerData(data) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.keys(activeTickers).forEach(k => delete activeTickers[k])
   localStorage.clear()
 })
 

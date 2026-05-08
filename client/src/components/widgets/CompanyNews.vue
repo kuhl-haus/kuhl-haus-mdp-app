@@ -200,7 +200,7 @@
  * @emits update-settings    - Settings changed, payload: updated settings object
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useWidgetBus } from '@/composables/useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig }          from '@/composables/useConfig.js'
@@ -212,7 +212,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update-settings'])
 
-const { activeTickers, setActiveTicker } = useWidgetBus()
+const store = useDashboardStore()
 const { config: appConfig } = useConfig()
 const US_EXCHANGES = new Set(['XNYS', 'XNAS', 'XASE'])
 
@@ -222,7 +222,7 @@ const inputTicker  = ref('')
 const manualTicker = ref('')
 
 const busTicker = computed(() =>
-  props.linkColor ? (activeTickers[props.linkColor] || null) : null
+  props.linkColor ? (store.activeTickers[props.linkColor] || null) : null
 )
 const activeTicker = computed(() => busTicker.value || manualTicker.value || null)
 
@@ -231,7 +231,7 @@ const applyInput = () => {
   if (!t) return
   manualTicker.value = t
   inputTicker.value  = ''
-  if (props.linkColor) setActiveTicker(props.linkColor, t)
+  if (props.linkColor) store.setActiveTicker(props.linkColor, t)
 }
 
 // When bus fires, clear manual override
@@ -376,7 +376,7 @@ const usCompanies = (item) => item.companies?.filter(isUsTicker) ?? []
 
 const switchTicker = (ticker) => {
   manualTicker.value = ticker
-  if (props.linkColor) setActiveTicker(props.linkColor, ticker)
+  if (props.linkColor) store.setActiveTicker(props.linkColor, ticker)
 }
 
 const shortSource = (src) => src ? src.replace(/^www\./, '').replace(/\.[^.]+$/, '') : ''

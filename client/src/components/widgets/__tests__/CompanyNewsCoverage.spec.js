@@ -19,8 +19,9 @@
  */
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { nextTick, ref, reactive } from 'vue'
+import { nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 
 // ── Mocks (same setup as existing spec) ──────────────────────────────────────
 vi.mock('@/composables/useWebSocketClient.js', async () => {
@@ -44,12 +45,7 @@ vi.mock('@/composables/useWebSocketClient.js', async () => {
   }
 })
 
-const sharedActiveTickers = reactive({})
 vi.mock('@/composables/useWidgetBus.js', () => ({
-  useWidgetBus: vi.fn(() => ({
-    activeTickers:   sharedActiveTickers,
-    setActiveTicker: vi.fn(),
-  })),
   setNewsTimestamp: vi.fn(),
 }))
 
@@ -118,7 +114,6 @@ function mountCNWithBody(propsOverrides = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.keys(sharedActiveTickers).forEach(k => delete sharedActiveTickers[k])
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -312,8 +307,9 @@ describe('watch(busTicker)', () => {
     expect(busMock.subscribe).toHaveBeenCalled()
     const subscribeCountAfterManual = busMock.subscribe.mock.calls.length
 
-    // Act — bus fires with a different ticker
-    sharedActiveTickers['blue'] = 'TSLA'
+    // Act — bus fires with a different ticker (via store)
+    const store = useDashboardStore()
+    store.setActiveTicker('blue', 'TSLA')
     await nextTick()
 
     // Assert — manualTicker cleared → activeTicker switches to TSLA → resubscribe
@@ -1353,10 +1349,11 @@ describe('busTicker watcher with null value', () => {
     await nextTick()
 
     // Act — set busTicker to a value then clear it (triggers watch with null)
-    sharedActiveTickers['blue'] = 'TSLA'
+    const store = useDashboardStore()
+    store.setActiveTicker('blue', 'TSLA')
     await nextTick()
     // Now clear → busTicker becomes null → if(t) FALSE path
-    delete sharedActiveTickers['blue']
+    store.setActiveTicker('blue', null)
     await nextTick()
 
     // Assert — manualTicker was cleared when bus fired (TRUE path)

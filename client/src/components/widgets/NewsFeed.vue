@@ -192,7 +192,8 @@
  * @emits update-col-widths   - Column widths changed, payload: { time, title, source, tickers }
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useWidgetBus, setNewsTimestamp } from '@/composables/useWidgetBus.js'
+import { setNewsTimestamp } from '@/composables/useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig }          from '@/composables/useConfig.js'
@@ -207,7 +208,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['ticker-click', 'update-col-widths', 'update-settings'])
 
-const { setActiveTicker, activeTickers } = useWidgetBus()
+const store = useDashboardStore()
 
 // ── Ticker click mode ─────────────────────────────────────────────────────────
 const tickerClickMode = ref(props.settings.tickerClickMode ?? 'filter')
@@ -268,7 +269,7 @@ watch(hasTickersOnly, (val) => {
 // Receive ticker from bus when another linked widget broadcasts
 // Only update local filter in filter mode; in select mode, feed stays unchanged
 watch(
-  () => props.linkColor ? activeTickers[props.linkColor] : undefined,
+  () => props.linkColor ? store.activeTickers[props.linkColor] : undefined,
   (incoming) => {
     if (props.linkColor && incoming !== undefined && tickerClickMode.value === 'filter') {
       activeTicker.value = incoming
@@ -381,14 +382,14 @@ const toggleTickerFilter = (ticker) => {
     // Filter mode: toggle local feed filter AND broadcast
     const next = activeTicker.value === ticker ? null : ticker
     activeTicker.value = next
-    if (props.linkColor) setActiveTicker(props.linkColor, next)
+    if (props.linkColor) store.setActiveTicker(props.linkColor, next)
   } else {
     // Select mode: broadcast only — feed unchanged.
     // Use lastBroadcastTicker for toggle bookkeeping so double-clicking the
     // same ticker sends null and clears linked widgets (Option B).
     const next = lastBroadcastTicker.value === ticker ? null : ticker
     lastBroadcastTicker.value = next
-    if (props.linkColor) setActiveTicker(props.linkColor, next)
+    if (props.linkColor) store.setActiveTicker(props.linkColor, next)
   }
 }
 

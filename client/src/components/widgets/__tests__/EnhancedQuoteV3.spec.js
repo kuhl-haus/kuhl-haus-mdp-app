@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 
 // Stub ResizeObserver — jsdom does not implement it.
 global.ResizeObserver = class ResizeObserver {
@@ -157,6 +158,7 @@ function mockMassiveFetch({ ticker = MASSIVE_TICKER_RESPONSE, si = MASSIVE_SI_RE
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia())
   vi.clearAllMocks()
   // Default: all Massive endpoints return empty results
   global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) })

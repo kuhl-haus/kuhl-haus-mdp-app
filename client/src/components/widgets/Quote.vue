@@ -94,7 +94,8 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { useWidgetBus, getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { getFlameVariant, getFlameTooltip } from '@/composables/useWidgetBus.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import { useWebSocketClient } from '@/composables/useWebSocketClient.js'
 import { useConfig }          from '@/composables/useConfig.js'
 
@@ -108,7 +109,7 @@ const props = defineProps({
 defineEmits(['update-settings'])
 
 const { config: appConfig } = useConfig()
-const { activeTickers, setActiveTicker } = useWidgetBus()
+const store = useDashboardStore()
 
 // ── Flame freshness icon ──────────────────────────────────────────────────────
 const FLAME_SRCS = {
@@ -132,7 +133,7 @@ const inputTicker = ref('')
 // Active ticker: widget bus takes precedence when linked; manual entry otherwise
 // Widget bus updates reset manual input; manual entry overrides bus for that ticker
 const busTicker = computed(() =>
-  props.linkColor ? (activeTickers[props.linkColor] || null) : null
+  props.linkColor ? (store.activeTickers[props.linkColor] || null) : null
 )
 const manualTicker = ref('')
 const activeTicker = computed(() => busTicker.value || manualTicker.value || null)
@@ -144,7 +145,7 @@ const applyInput = () => {
   inputTicker.value = ''
   // Broadcast to widget bus so linked widgets (news feed, etc.) also update
   if (props.linkColor) {
-    setActiveTicker(props.linkColor, t)
+    store.setActiveTicker(props.linkColor, t)
   }
 }
 

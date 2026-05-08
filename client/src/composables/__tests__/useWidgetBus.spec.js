@@ -281,7 +281,6 @@ describe('getFlameTooltip', () => {
 describe('getFlameVariant: dark fallback when very old', () => {
   test('with very old news timestamp expect dark variant', () => {
     // Arrange — set a very old timestamp (days ago, exceeds all thresholds)
-    const { setNewsTimestamp, getFlameVariant } = require('../useWidgetBus.js')
     // Set timestamp to 1 week ago (well beyond any threshold)
     setNewsTimestamp('OLD', Date.now() - 7 * 24 * 3600_000)
 

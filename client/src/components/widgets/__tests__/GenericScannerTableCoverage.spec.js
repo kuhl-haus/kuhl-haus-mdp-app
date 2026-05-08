@@ -23,7 +23,6 @@ import { createPinia, setActivePinia } from 'pinia'
 vi.mock('@/composables/useWidgetBus.js', async () => {
   const { reactive } = await import('vue')
   return {
-    useWidgetBus:     vi.fn(() => ({ activeTickers: reactive({}), setActiveTicker: vi.fn() })),
     getFlameVariant:  vi.fn(() => null),
     getFlameTooltip:  vi.fn(() => ''),
     newsTimestamps:   reactive({}),
