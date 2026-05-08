@@ -50,16 +50,16 @@
 
       <!-- Audio alert toggle -->
       <button
-        :class="['filter-btn', config_alertEnabled ? 'filter-btn--active' : '']"
-        :title="config_alertEnabled ? 'Audio alerts ON \u2014 click to disable' : 'Audio alerts OFF \u2014 click to enable'"
-        @click="onAlertEnabledChange(!config_alertEnabled)"
+        :class="['filter-btn', configAlertEnabled ? 'filter-btn--active' : '']"
+        :title="configAlertEnabled ? 'Audio alerts ON \u2014 click to disable' : 'Audio alerts OFF \u2014 click to enable'"
+        @click="onAlertEnabledChange(!configAlertEnabled)"
         data-testid="alert-toggle"
       >&#x1F514;</button>
 
       <!-- Sound picker (shown when alerts enabled) -->
       <AlertSoundPicker
-        v-if="config_alertEnabled"
-        :model-value="config_alertSound"
+        v-if="configAlertEnabled"
+        :model-value="configAlertSound"
         :show-default="true"
         @update:model-value="onAlertSoundChange"
       />
@@ -458,11 +458,12 @@ const filteredNews = computed(() => {
 })
 
 // ── Alert config — derived from settings prop ────────────────────────────────
-const config_alertEnabled = computed(() => props.settings.alertEnabled ?? false)
-const config_alertSound   = computed(() => props.settings.alertSound   ?? null)
+const configAlertEnabled = computed(() => props.settings.alertEnabled ?? false)
+const configAlertSound   = computed(() => props.settings.alertSound   ?? null)
 
 const onAlertEnabledChange = (val) => {
   emit('update-settings', { ...props.settings, alertEnabled: val })
+  if (val) alertStore.preloadAll()
 }
 const onAlertSoundChange = (val) => {
   emit('update-settings', { ...props.settings, alertSound: val })
@@ -491,13 +492,13 @@ watch(
 
 // Fire once per batch when genuinely new filtered articles arrive.
 watch(filteredNews, (newItems) => {
-  if (!alertReady.value || !config_alertEnabled.value) return
+  if (!alertReady.value || !configAlertEnabled.value) return
   const newIds = newItems
     .map(a => a.link)
     .filter(id => !seenIds.value.has(id))
   if (newIds.length === 0) return
   newIds.forEach(id => seenIds.value.add(id))
-  const soundId = config_alertSound.value ?? widgetSettingsStore.defaultAlertSound
+  const soundId = configAlertSound.value ?? widgetSettingsStore.defaultAlertSound
   alertStore.fire(soundId, {
     widgetLabel: props.userLabel || 'News Feed',
     widgetType:  'NewsFeed',

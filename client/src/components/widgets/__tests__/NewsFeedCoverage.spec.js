@@ -117,8 +117,14 @@ function triggerData(data) {
   lastCall[0].onData(data)
 }
 
+// Stub Audio globally so useAlertStore.fire() can call new Audio(...).play() without crashing
+const audioPlayMock = vi.fn(() => Promise.resolve())
+const AudioMock = vi.fn(function () { return { play: audioPlayMock } })
+vi.stubGlobal('Audio', AudioMock)
+
 beforeEach(() => {
   vi.clearAllMocks()
+  audioPlayMock.mockResolvedValue(undefined)
   localStorage.clear()
 })
 
