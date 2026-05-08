@@ -6,6 +6,12 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Relative base so Vite generates asset URLs as './[name]-[hash].ext' rather
+  // than the default absolute '/assets/[name]-[hash].ext'. The app.Dockerfile
+  // copies dist/assets/* into static/dist/ (flattening the assets/ subdir), so
+  // an absolute /assets/ URL would 404 behind py4web's /static/ prefix.
+  // With base: './', import.meta.url resolution works correctly from static/dist/index.js.
+  base: './',
   test: {
     environment: 'jsdom',
     globals: true,
@@ -43,7 +49,7 @@ export default defineConfig({
           if (assetInfo.name.endsWith('.css')) {
             return 'assets/index.css';
           }
-          return '[name].[ext]';
+          return 'assets/[name]-[hash][extname]';
         },
         manualChunks: undefined
       }

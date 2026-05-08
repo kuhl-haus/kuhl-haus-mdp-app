@@ -644,6 +644,10 @@ const emitSettings = () => {
 
 const onAlertEnabledChange = (val) => {
   emit('update-settings', { ...props.settings, alertEnabled: val })
+  // Pre-load all sounds the moment the user enables alerts — they've already
+  // interacted with the page so autoplay policy is satisfied, and sounds
+  // will be decoded and cached before the first alert fires.
+  if (val) alertStore.preloadAll()
 }
 const onAlertSoundChange = (val) => {
   emit('update-settings', { ...props.settings, alertSound: val })
@@ -664,13 +668,28 @@ onMounted(() => {
   )
 })
 
-// Filter-reset strategy: when any filter input changes, reset seenIds
-// to the current filtered list. This is a new monitoring context —
-// items revealed by a looser filter are seeded, not alerted.
+// Filter-reset strategy: when any filter value changes, reset seenIds to the
+// current filtered list. This is a new monitoring context — items revealed by
+// a looser filter are seeded immediately and must not trigger an alert.
+//
+// We watch config.value filter fields (not local refs) because config is the
+// same reactive source that drives filteredEvents. Vue runs watchers in
+// creation order, so this watcher fires before the filteredEvents watcher
+// below, guaranteeing seenIds is re-seeded before any alert check occurs.
 watch(
-  [feedLocal, sessionFilterLocal, minPriceLocal, maxPriceLocal,
-   minVolumeInput, minRelVolLocal, minAvgVolInput, minFloatInput,
-   maxFloatInput, pctChangeLocal, tickerFilter],
+  () => [
+    config.value.feed,
+    config.value.sessionFilter,
+    config.value.minPrice,
+    config.value.maxPrice,
+    config.value.minVolume,
+    config.value.minRelVol,
+    config.value.minAvgVol,
+    config.value.minFloat,
+    config.value.maxFloat,
+    config.value.pctChangeThreshold,
+    tickerFilter.value,
+  ],
   () => {
     seenIds.value = new Set(
       filteredEvents.value.map(e => `${e.symbol}-${e.timestamp}`)

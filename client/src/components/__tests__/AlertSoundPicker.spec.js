@@ -44,10 +44,7 @@ beforeEach(() => {
 })
 
 function mountPicker(props = {}) {
-  return mount(AlertSoundPicker, {
-    props,
-    global: { plugins: [createPinia()] },
-  })
+  return mount(AlertSoundPicker, { props })
 }
 
 describe('AlertSoundPicker rendering', () => {
@@ -90,7 +87,6 @@ describe('AlertSoundPicker interactions', () => {
     const wrapper = mount(AlertSoundPicker, {
       props: { showDefault: true, modelValue: null },
       attrs: { 'onUpdate:modelValue': (v) => emitted.push(v) },
-      global: { plugins: [createPinia()] },
     })
     const select = wrapper.find('select')
     select.element.value = 'marimba'
@@ -104,7 +100,6 @@ describe('AlertSoundPicker interactions', () => {
     const wrapper = mount(AlertSoundPicker, {
       props: { showDefault: true, modelValue: 'marimba' },
       attrs: { 'onUpdate:modelValue': (v) => emitted.push(v) },
-      global: { plugins: [createPinia()] },
     })
     const select = wrapper.find('select')
     select.element.value = ''

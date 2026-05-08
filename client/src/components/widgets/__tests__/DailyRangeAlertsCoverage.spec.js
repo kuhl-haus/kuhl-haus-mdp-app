@@ -89,7 +89,12 @@ function getOnData(idx = 0) {
   return vi.mocked(useWebSocketClient).mock.calls[idx][0].onData
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+// Stub Audio globally so useAlertStore.fire() can call new Audio(...).play() without crashing
+const audioPlayMock = vi.fn(() => Promise.resolve())
+const AudioMock = vi.fn(function () { return { play: audioPlayMock } })
+vi.stubGlobal('Audio', AudioMock)
+
+beforeEach(() => { vi.clearAllMocks(); audioPlayMock.mockResolvedValue(undefined) })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // onFlameTouchStart / onFlameTouchEnd
@@ -1672,6 +1677,45 @@ describe('Alert trigger logic', () => {
 
     expect(alertStore.fire).toHaveBeenCalledTimes(1)
     expect(alertStore.fire.mock.calls[0][1].widgetLabel).toBe('My Alerts')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Alert trigger — filter-reset strategy (N1 design decision)
+// ─────────────────────────────────────────────────────────────────────────────
+// When a filter input changes, seenIds is re-seeded from the current filtered
+// list. Items that become visible due to a looser filter are seeded immediately
+// and must NOT trigger an alert — they are not new data, just newly visible.
+describe('Alert trigger — filter-reset strategy', () => {
+  test('with filter loosened expect pre-existing-but-newly-visible events do not fire alert', async () => {
+    // Arrange — mount with minPrice=100 so only expensive events pass the filter
+    const wrapper = mount(DailyRangeAlerts, {
+      props: { ...defaultProps, settings: { alertEnabled: true, minPrice: 100 } },
+    })
+    await nextTick()
+
+    // Deliver two events: EXPENSIVE passes the filter (price=150), CHEAP does not (price=50)
+    const onData = getOnData()
+    onData([
+      makeEvent({ symbol: 'EXPENSIVE', timestamp: 1000001, price: 150 }),
+      makeEvent({ symbol: 'CHEAP',     timestamp: 2000001, price: 50  }),
+    ])
+    await nextTick()
+    // seenIds now = { 'EXPENSIVE-1000001' } (only visible event seeded on mount)
+
+    const alertStore = useAlertStore()
+    vi.spyOn(alertStore, 'fire')
+
+    // Act — loosen the filter (minPrice=null): CHEAP becomes visible.
+    // The settings watcher updates minPriceLocal → filter-reset watcher
+    // re-seeds seenIds from current filteredEvents → CHEAP is seeded, not alerted.
+    await wrapper.setProps({ settings: { alertEnabled: true, minPrice: null } })
+    await nextTick()
+    await nextTick()  // settle filter-reset watcher then filteredEvents watcher
+
+    // Assert — no alert fired; CHEAP was seeded by the reset, not treated as new
+    expect(alertStore.fire).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 })
