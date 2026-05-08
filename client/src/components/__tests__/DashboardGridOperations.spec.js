@@ -494,25 +494,41 @@ describe('empty store initial state', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('exportLayouts', () => {
-  test('with saved layouts expect Blob created and anchor clicked', async () => {
+  // Shared helper: create a real anchor element with a spied click.
+  // Using a real HTMLAnchorElement (not a plain object) lets document.body.appendChild/removeChild
+  // operate correctly and ensures the test exercises the same DOM path as production.
+  function makeAnchorMock() {
+    const origCreateElement = document.createElement.bind(document)
+    const anchor = origCreateElement('a')
+    const clickSpy = vi.spyOn(anchor, 'click').mockImplementation(() => {})
+    vi.spyOn(document, 'createElement').mockImplementation((tag) =>
+      tag === 'a' ? anchor : origCreateElement(tag)
+    )
+    return { anchor, clickSpy }
+  }
+
+  test('with saved layouts expect anchor appended, clicked, removed, and URL revoked async', async () => {
     // Arrange
     seedLayouts({ 'MyLayout': makeLayout() })
     const wrapper = mountGrid()
     await nextTick()
-    const clickSpy = vi.fn()
-    const origCreateElement = document.createElement.bind(document)
-    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
-      if (tag === 'a') return { href: '', download: '', click: clickSpy }
-      return origCreateElement(tag)
-    })
+    const { anchor, clickSpy } = makeAnchorMock()
+    const appendSpy = vi.spyOn(document.body, 'appendChild')
+    const removeSpy = vi.spyOn(document.body, 'removeChild')
 
     // Act
     await wrapper.find('button[title="Export All Layouts"]').trigger('click')
     await nextTick()
 
-    // Assert
+    // Assert — URL not yet revoked (revoke is async)
     expect(URL.createObjectURL).toHaveBeenCalled()
+    expect(appendSpy).toHaveBeenCalledWith(anchor)
     expect(clickSpy).toHaveBeenCalled()
+    expect(removeSpy).toHaveBeenCalledWith(anchor)
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+
+    // Flush the setTimeout — now revoke fires
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
     wrapper.unmount()
   })
@@ -531,7 +547,7 @@ describe('exportLayouts', () => {
         try { capturedData = JSON.parse(parts[0]) } catch {}
       }
     }
-    vi.spyOn(document, 'createElement').mockReturnValue({ href: '', download: '', click: vi.fn() })
+    makeAnchorMock()
 
     // Act
     await wrapper.find('button[title="Export All Layouts"]').trigger('click')
@@ -543,6 +559,23 @@ describe('exportLayouts', () => {
       expect(capturedData.layouts['Real']).toBeDefined()
     }
     global.Blob = origBlob
+    wrapper.unmount()
+  })
+
+  test('with export expect store state unchanged (regression: export must not mutate savedLayouts)', async () => {
+    // Arrange
+    seedLayouts({ 'Alpha': makeLayout(), 'Beta': makeLayout() })
+    const wrapper = mountGrid()
+    await nextTick()
+    makeAnchorMock()
+
+    // Act
+    await wrapper.find('button[title="Export All Layouts"]').trigger('click')
+    await nextTick()
+
+    // Assert — layouts intact after export
+    expect(useWidgetSettingsStore().savedLayouts).toHaveProperty('Alpha')
+    expect(useWidgetSettingsStore().savedLayouts).toHaveProperty('Beta')
     wrapper.unmount()
   })
 })

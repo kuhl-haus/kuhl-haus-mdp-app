@@ -499,8 +499,10 @@ const exportLayouts = () => {
   const a = document.createElement('a')
   a.href = url
   a.download = `dashboard-layouts-${Date.now()}.json`
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 const importLayouts = (event) => {
