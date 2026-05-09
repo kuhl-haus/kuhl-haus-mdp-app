@@ -20,6 +20,7 @@ import { mount }     from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
+import { useAlertStore } from '@/stores/useAlertStore.js'
 
 // ── Heavy dep stubs ────────────────────────────────────────────────────────────
 vi.mock('vue3-grid-layout-next', () => ({
@@ -38,6 +39,9 @@ vi.mock('vue3-grid-layout-next', () => ({
 }))
 vi.mock('../WidgetMenu.vue', () => ({
   default: { name: 'WidgetMenu', emits: ['add-widget'], template: '<div />' },
+}))
+vi.mock('../AlertManager.vue', () => ({
+  default: { name: 'AlertManager', props: ['alertEnabledWidgets'], template: '<div class="mock-alert-manager" />' },
 }))
 vi.mock('../WidgetWrapper.vue', () => ({
   default: {
@@ -122,6 +126,114 @@ beforeEach(() => {
     loading: ref(false),
     error:   ref(null),
   }))
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bell icon + badge
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('alert bell icon and badge', () => {
+  test('with no alert-enabled widgets expect badge absent', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    expect(wrapper.find('.alert-badge').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('with 2 alert-enabled widgets expect badge shows "2"', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    wrapper.vm.layout = [
+      { i: 'w1', x: 0, y: 0, w: 6, h: 4, type: 'news-feed',   settings: { alertEnabled: true, alertSound: 'blip' } },
+      { i: 'w2', x: 6, y: 0, w: 6, h: 4, type: 'range-alerts', settings: { alertEnabled: true, alertSound: 'snap' } },
+    ]
+    await nextTick()
+    expect(wrapper.find('.alert-badge').exists()).toBe(true)
+    expect(wrapper.find('.alert-badge').text()).toBe('2')
+    wrapper.unmount()
+  })
+
+  test('bell click toggles widgetSettingsStore.alertManagerOpen', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const wss = useWidgetSettingsStore()
+    expect(wss.alertManagerOpen).toBe(false)
+    await wrapper.find('[data-testid="alert-bell"]').trigger('click')
+    await nextTick()
+    expect(wss.alertManagerOpen).toBe(true)
+    await wrapper.find('[data-testid="alert-bell"]').trigger('click')
+    await nextTick()
+    expect(wss.alertManagerOpen).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('when alertManagerOpen=true expect AlertManager rendered', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const wss = useWidgetSettingsStore()
+    wss.alertManagerOpen = true
+    await nextTick()
+    expect(wrapper.find('.mock-alert-manager').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('when alertManagerOpen=false expect AlertManager absent', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const wss = useWidgetSettingsStore()
+    wss.alertManagerOpen = false
+    await nextTick()
+    expect(wrapper.find('.mock-alert-manager').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('when muted expect bell has alert-bell--muted class', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const alertStore = useAlertStore()
+    alertStore.muted = true
+    await nextTick()
+    expect(wrapper.find('[data-testid="alert-bell"]').classes()).toContain('alert-bell--muted')
+    wrapper.unmount()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Autoplay blocked banner
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('autoplay blocked banner', () => {
+  test('when audioBlocked=true expect banner rendered', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const alertStore = useAlertStore()
+    alertStore.audioBlocked = true
+    await nextTick()
+    expect(wrapper.find('.audio-blocked-banner').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  test('when audioBlocked=false expect banner absent', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const alertStore = useAlertStore()
+    alertStore.audioBlocked = false
+    await nextTick()
+    expect(wrapper.find('.audio-blocked-banner').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  test('clicking banner sets audioBlocked=false', async () => {
+    const wrapper = mountGrid()
+    await nextTick()
+    const alertStore = useAlertStore()
+    alertStore.audioBlocked = true
+    await nextTick()
+    await wrapper.find('.audio-blocked-banner').trigger('click')
+    await nextTick()
+    expect(alertStore.audioBlocked).toBe(false)
+    wrapper.unmount()
+  })
 })
 
 afterEach(() => { vi.restoreAllMocks() })

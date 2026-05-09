@@ -147,12 +147,35 @@
 
     </div>
 
+    <!-- Alert Manager bell icon -->
+    <div v-if="appConfig && !isMobile" class="alert-manager-wrap">
+      <button
+        @click="widgetSettingsStore.alertManagerOpen = !widgetSettingsStore.alertManagerOpen"
+        class="btn-icon alert-bell"
+        :class="{ 'alert-bell--muted': alertStore.muted }"
+        title="Alert Manager"
+        data-testid="alert-bell"
+      >
+        🔔<span v-if="alertBadgeCount > 0" class="alert-badge">{{ alertBadgeCount }}</span>
+      </button>
+      <AlertManager
+        v-if="widgetSettingsStore.alertManagerOpen"
+        :alert-enabled-widgets="alertEnabledWidgets"
+        class="alert-manager-dropdown"
+      />
+    </div>
+
     <div v-if="!appConfig" class="auth-required">
       <p>Please log in to access the dashboard</p>
     </div>
 
     <div v-if="appVersion" class="app-version">v{{ appVersion }}</div>
   </header>
+
+  <!-- Autoplay blocked banner -->
+  <div v-if="alertStore.audioBlocked" class="audio-blocked-banner" @click="alertStore.audioBlocked = false">
+    🔔 Click to enable audio alerts
+  </div>
 
   <!-- Hover Preview Tooltip -->
   <div
@@ -314,7 +337,24 @@ import WidgetMenu from './WidgetMenu.vue'
 import WidgetWrapper from './WidgetWrapper.vue'
 import { useConfig } from '@/composables/useConfig.js'
 import { useWidgetSettingsStore } from '@/stores/useWidgetSettingsStore.js'
+import { useAlertStore } from '@/stores/useAlertStore.js'
+import { LINK_COLOR_MAP } from '@/constants/linkColors.js'
 import { storeToRefs } from 'pinia'
+import AlertManager from './AlertManager.vue'
+
+const WIDGET_TYPE_LABELS = {
+  'top-gainers':       'Top Gainers',
+  'top-gappers':       'Top Gappers',
+  'top-volume':        'Top Volume',
+  'news-feed':         'News Feed',
+  'company-news':      'Company News',
+  'quote':             'Mini Quote',
+  'enhanced-quote':    'Quote',
+  'enhanced-quote-v4': 'Enhanced Quote',
+  'range-alerts':      'Range Alerts',
+  'candlestick-chart': 'Candlestick Chart',
+  'tv-lite-chart':     'TV Lite Chart',
+}
 
 const { config: appConfig, loading: configLoading, error: configError } = useConfig()
 const appVersion = window.__APP_VERSION__ || null
@@ -329,6 +369,7 @@ const AUTOSAVE_DEBOUNCE_MS = 2000
 
 const widgetSettingsStore = useWidgetSettingsStore()
 const { savedLayouts, defaultLayoutName, isLocked, autosaveEnabled } = storeToRefs(widgetSettingsStore)
+const alertStore = useAlertStore()
 
 // State
 const layout = ref([])
@@ -367,6 +408,20 @@ const savedLayoutNames = computed(() =>
 const editingExistingLayout = computed(() =>
     saveLayoutName.value.trim() && savedLayouts.value[saveLayoutName.value.trim()]
 )
+
+const alertEnabledWidgets = computed(() =>
+  layout.value
+    .filter(item => item.settings?.alertEnabled)
+    .map(item => ({
+      widgetId:       item.i,
+      widgetLabel:    item.userLabel || WIDGET_TYPE_LABELS[item.type] || item.type,
+      widgetType:     item.type,
+      linkColor:      item.linkColor ?? null,
+      effectiveSound: item.settings?.alertSound ?? widgetSettingsStore.defaultAlertSound,
+    }))
+)
+
+const alertBadgeCount = computed(() => alertEnabledWidgets.value.length)
 
 // Layout Operations
 const saveLayout = () => {
@@ -1285,6 +1340,61 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
 
 .auth-required button:hover {
   background: #3d3d3d;
+}
+
+.alert-manager-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.alert-bell {
+  position: relative;
+  font-size: 18px;
+  padding: 4px 8px;
+}
+
+.alert-bell--muted {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.alert-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 1px 4px;
+  line-height: 1.2;
+  min-width: 16px;
+  text-align: center;
+}
+
+.alert-manager-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.audio-blocked-banner {
+  background: #f97316;
+  color: #fff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.audio-blocked-banner:hover {
+  background: #ea6a00;
 }
 
 /* ── Mobile (< 640px) ── */
