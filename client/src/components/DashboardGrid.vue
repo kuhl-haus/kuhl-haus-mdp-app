@@ -514,11 +514,14 @@ const autoSaveLayout = () => {
   autoSaveTimeout = setTimeout(() => {
     const layoutCopy = JSON.parse(JSON.stringify(layout.value))
     const name = selectedLayoutName.value
+    const existing = savedLayouts.value[name || AUTOSAVE_KEY]
     savedLayouts.value[name || AUTOSAVE_KEY] = {
       layout: layoutCopy,
       widgetCounter: widgetCounter,
       dashboardColNum: dashboardColNum.value,
-      modified: Date.now()
+      created:     existing?.created     ?? Date.now(),
+      description: existing?.description ?? '',
+      modified:    Date.now(),
     }
 
     isAutoSaving.value = false
