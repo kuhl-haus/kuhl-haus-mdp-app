@@ -147,6 +147,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers() // ensure fake timers never leak between tests regardless of assertion failures
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1215,6 +1216,64 @@ describe('autoSaveLayout on layout change', () => {
     // Assert
     expect(useWidgetSettingsStore().savedLayouts['AutoSaveMe']).toBeDefined()
     vi.useRealTimers()
+    wrapper.unmount()
+  })
+
+  test('with existing layout having description and created expect autosave preserves both', async () => {
+    // Arrange
+    vi.useFakeTimers()
+    const originalCreated = 1700000000000
+    const originalDescription = 'My carefully written description'
+    seedLayouts({
+      'Precious': makeLayout({ created: originalCreated, description: originalDescription })
+    }, 'Precious')
+    const wrapper = mountGrid()
+    await nextTick(); await nextTick()
+
+    // Act — trigger autosave by modifying the layout while unlocked
+    wrapper.vm.layout.push({ i: 'widget-99', x: 0, y: 0, w: 6, h: 19, type: 'quote' })
+    await nextTick()
+    vi.runAllTimers()
+    await nextTick()
+
+    // Assert — description and created must survive autosave
+    const saved = useWidgetSettingsStore().savedLayouts['Precious']
+    expect(saved.description).toBe(originalDescription)
+    expect(saved.created).toBe(originalCreated)
+    vi.useRealTimers()
+    wrapper.unmount()
+  })
+
+  test('with no named layout selected expect __autosave__ created preserved across subsequent autosaves', async () => {
+    // Arrange — no named layout; autosave falls back to __autosave__ key.
+    // On the first write existing is undefined so created = Date.now().
+    // On the second write existing.created must survive, not be replaced by
+    // the newer Date.now() — that is what the bug fix guarantees.
+    vi.useFakeTimers()
+    const wrapper = mountGrid() // selectedLayoutName starts as '' → AUTOSAVE_KEY used
+    await nextTick(); await nextTick()
+
+    // Act step 1 — first autosave
+    wrapper.vm.layout.push({ i: 'widget-1', x: 0, y: 0, w: 6, h: 19, type: 'quote' })
+    await nextTick()
+    vi.runAllTimers()
+    await nextTick()
+
+    const firstCreated = useWidgetSettingsStore().savedLayouts['__autosave__'].created
+    expect(firstCreated).toBeDefined()
+
+    // Advance fake time so a subsequent Date.now() would return a different value
+    vi.advanceTimersByTime(60_000)
+
+    // Act step 2 — second autosave
+    wrapper.vm.layout.push({ i: 'widget-2', x: 6, y: 0, w: 6, h: 19, type: 'quote' })
+    await nextTick()
+    vi.runAllTimers()
+    await nextTick()
+
+    // Assert — created must match the first write, not the advanced clock time
+    const secondCreated = useWidgetSettingsStore().savedLayouts['__autosave__'].created
+    expect(secondCreated).toBe(firstCreated)
     wrapper.unmount()
   })
 
