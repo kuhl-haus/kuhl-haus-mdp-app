@@ -74,6 +74,7 @@ vi.stubGlobal('ResizeObserver', function ResizeObserverMock() { return resizeObs
 
 import { createChart } from 'lightweight-charts'
 import { useScannerLink } from '@/composables/useScannerLink.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import TVLiteChart from '../TVLiteChart.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -370,6 +371,74 @@ describe('Ticker source', () => {
 
     // Assert
     expect(global.fetch.mock.calls.some(c => c[0].includes('NVDA'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  // ── Commit-gated fetch (typing should NOT trigger fetch) ────────────────────
+  //
+  // Bug: tickerLocal was computed(() => headerTickerInput.value...), so every
+  // @input keystroke changed tickerLocal → watch fired → fetchBars().
+  // Fix: tickerLocal is a ref; only updated on explicit commit (Go/Enter/bus/settings).
+
+  test('typing in header input does NOT trigger fetch before committing', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, { props: defaultProps }) // no ticker in settings
+    await nextTick()
+    await nextTick()
+    const before = global.fetch.mock.calls.length // 0 — no ticker, no initial fetch
+
+    // Act — type a valid ticker symbol (triggers @input handler)
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('AAPL')
+    await nextTick()
+    await nextTick()
+
+    // Assert — no fetch until user commits with Go or Enter
+    expect(global.fetch.mock.calls.length).toBe(before)
+    wrapper.unmount()
+  })
+
+  // ── Two-way bus: Go/Enter should broadcast to linked widgets ─────────────────
+  //
+  // Bug: onGoTicker() only called emitSettings(), never store.setActiveTicker().
+  // Ticker events only flowed INTO the chart (from bus), never OUT (to bus).
+  // Fix: onGoTicker() calls dashboardStore.setActiveTicker(linkColor, sym) so
+  // other linked widgets (charts, scanners) receive the ticker.
+
+  test('Go button broadcasts committed ticker to linked bus color', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, { props: { ...defaultProps, linkColor: 'blue' } })
+    await nextTick()
+
+    // Act — type ticker then click Go
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('TSLA')
+    await wrapper.find('.go-btn').trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Assert — bus updated so other linked widgets receive the ticker
+    const store = useDashboardStore()
+    expect(store.activeTickers['blue']).toBe('TSLA')
+    wrapper.unmount()
+  })
+
+  test('Enter key in header input broadcasts ticker to linked bus color', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, { props: { ...defaultProps, linkColor: 'blue' } })
+    await nextTick()
+
+    // Act — type ticker then press Enter
+    const input = wrapper.find('[data-testid="header-ticker-input"]')
+    await input.setValue('MSFT')
+    await input.trigger('keydown.enter')
+    await nextTick()
+    await nextTick()
+
+    // Assert — bus updated
+    const store = useDashboardStore()
+    expect(store.activeTickers['blue']).toBe('MSFT')
     wrapper.unmount()
   })
 
