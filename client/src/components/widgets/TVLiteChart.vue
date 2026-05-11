@@ -212,8 +212,17 @@ const showSettings        = ref(false)
 // ── Ticker ────────────────────────────────────────────────────────────────────
 const tickerLocal = computed(() => headerTickerInput.value?.trim().toUpperCase() || null)
 
-// Bus auto-fills the header input
-watch(activeTicker, (t) => { if (t) headerTickerInput.value = t })
+// Bus auto-fills the header input and persists the ticker to settings.
+// Without emitSettings() here, the ticker lives only in headerTickerInput and is
+// lost whenever props.settings is re-applied with a new object reference — which
+// vue3-grid-layout-next does on touch/scroll events for widgets that need
+// repositioning (typically any chart after the first one at y=0).
+watch(activeTicker, (t) => {
+  if (t) {
+    headerTickerInput.value = t
+    emitSettings()
+  }
+})
 
 const onGoTicker = () => {
   headerTickerInput.value = headerTickerInput.value.trim().toUpperCase()

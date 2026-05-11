@@ -372,6 +372,71 @@ describe('Ticker source', () => {
     expect(global.fetch.mock.calls.some(c => c[0].includes('NVDA'))).toBe(true)
     wrapper.unmount()
   })
+
+  // ── Bus persistence regression (mobile touch/scroll bug) ──────────────────
+  //
+  // Bug: when the bus sets a ticker, headerTickerInput is updated but emitSettings()
+  // is NOT called, so the ticker is never persisted to props.settings.
+  //
+  // vue3-grid-layout-next creates new item objects during touch/scroll compaction.
+  // The new object reference triggers the settings watcher, which resets
+  // headerTickerInput to the settings value — which is empty because the ticker
+  // was never persisted. The first chart at y=0 survives because it doesn't need
+  // repositioning (object reference unchanged); subsequent charts at y>0 do not.
+  //
+  // Fix: call emitSettings() in the bus watcher so the ticker is always persisted.
+
+  test('bus activeTicker emits update-settings with the ticker (persistence)', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const settingsCalls = []
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(TVLiteChart, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': s => settingsCalls.push(s) },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+
+    // Act — bus fires
+    activeTicker.value = 'NVDA'
+    await nextTick()
+    await nextTick()
+
+    // Assert — update-settings must include the ticker so layout re-renders can restore it
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    expect(settingsCalls[settingsCalls.length - 1].ticker).toBe('NVDA')
+    wrapper.unmount()
+  })
+
+  test('ticker set via bus survives settings prop re-application (simulates touch/scroll layout re-render)', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const settingsCalls = []
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(TVLiteChart, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': s => settingsCalls.push(s) },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+
+    // Act step 1 — bus sets ticker
+    activeTicker.value = 'NVDA'
+    await nextTick()
+    await nextTick()
+
+    // Act step 2 — simulate vue3-grid-layout-next creating a new item object on
+    // touch/scroll: re-apply the same settings (as emitted) with a new reference.
+    // Before fix: settingsCalls is empty so emittedSettings is undefined → ticker lost.
+    // After fix: emittedSettings includes ticker: 'NVDA' → watcher restores it.
+    const emittedSettings = settingsCalls[settingsCalls.length - 1]
+    await wrapper.setProps({ settings: { ...emittedSettings } })
+    await nextTick()
+
+    // Assert — ticker must still be shown after settings re-application
+    expect(wrapper.find('[data-testid="header-ticker-input"]').element.value).toBe('NVDA')
+    expect(wrapper.find('[data-testid="no-ticker"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
 })
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
