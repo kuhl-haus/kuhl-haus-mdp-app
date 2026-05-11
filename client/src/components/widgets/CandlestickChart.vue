@@ -246,8 +246,12 @@ const tickerLocal = ref(config.value.ticker?.trim().toUpperCase() || null)
 // vue3-grid-layout-next does on touch/scroll events for widgets that need
 // repositioning (typically any chart after the first one at y=0).
 watch(activeTicker, (t) => {
-  if (t) {
-    headerTickerInput.value = t
+  if (!t) return
+  headerTickerInput.value = t
+  // Guard against self-echo: onGoTicker() calls setActiveTicker() which bounces
+  // back through this watcher. If tickerLocal already equals t, settings were
+  // already emitted by onGoTicker — skip to avoid a double update-settings event.
+  if (t !== tickerLocal.value) {
     tickerLocal.value = t
     emitSettings()
   }
