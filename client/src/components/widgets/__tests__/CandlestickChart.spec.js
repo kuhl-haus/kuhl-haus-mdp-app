@@ -62,6 +62,7 @@ vi.mock('@/utils/chartIndicators.js', () => ({
 }))
 
 import { useScannerLink } from '@/composables/useScannerLink.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import CandlestickChart from '../CandlestickChart.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -617,6 +618,128 @@ describe('Header ticker input (Tweak 3)', () => {
 
     // Assert
     expect(wrapper.find('[data-testid="header-ticker-input"]').element.value).toBe('MSFT')
+    wrapper.unmount()
+  })
+
+  // ── Bus persistence (mobile touch/scroll bug) ─────────────────────────────
+  //
+  // Bug: when the bus sets a ticker, emitSettings() was NOT called, so the
+  // ticker was never persisted to props.settings. vue3-grid-layout-next creates
+  // new item objects on touch/scroll, triggering the settings watcher which
+  // reset headerTickerInput to the (empty) settings value.
+
+  test('bus activeTicker emits update-settings with the ticker (persistence)', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const settingsCalls = []
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(CandlestickChart, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': s => settingsCalls.push(s) },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+
+    // Act — bus fires
+    activeTicker.value = 'NVDA'
+    await nextTick()
+    await nextTick()
+
+    // Assert — update-settings must include the ticker so layout re-renders can restore it
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    expect(settingsCalls[settingsCalls.length - 1].ticker).toBe('NVDA')
+    wrapper.unmount()
+  })
+
+  test('ticker set via bus survives settings prop re-application (simulates touch/scroll layout re-render)', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const settingsCalls = []
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(CandlestickChart, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': s => settingsCalls.push(s) },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+
+    // Act step 1 — bus sets ticker
+    activeTicker.value = 'NVDA'
+    await nextTick()
+    await nextTick()
+
+    // Act step 2 — simulate vue3-grid-layout-next creating a new item object on
+    // touch/scroll: re-apply the same settings (as emitted) with a new reference.
+    const emittedSettings = settingsCalls[settingsCalls.length - 1]
+    await wrapper.setProps({ settings: { ...emittedSettings } })
+    await nextTick()
+
+    // Assert — ticker must still be shown after settings re-application
+    expect(wrapper.find('[data-testid="header-ticker-input"]').element.value).toBe('NVDA')
+    wrapper.unmount()
+  })
+
+  // ── Commit-gated fetch ────────────────────────────────────────────────────
+  //
+  // Bug: tickerLocal was computed(() => headerTickerInput.value...), so every
+  // @input keystroke changed tickerLocal → watch fired → fetchBars().
+  // Fix: tickerLocal is a ref; only updated on explicit commit (Go/Enter/bus/settings).
+
+  test('typing in header input does NOT trigger fetch before committing', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const wrapper = mount(CandlestickChart, { props: defaultProps }) // no ticker in settings
+    await nextTick()
+    await nextTick()
+    const before = global.fetch.mock.calls.length // 0 — no ticker, no initial fetch
+
+    // Act — type a valid ticker symbol (triggers @input handler)
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('AAPL')
+    await nextTick()
+    await nextTick()
+
+    // Assert — no fetch until user commits with Go or Enter
+    expect(global.fetch.mock.calls.length).toBe(before)
+    wrapper.unmount()
+  })
+
+  // ── Two-way bus: Go/Enter broadcasts to linked widgets ─────────────────────
+  //
+  // Bug: onGoTicker() only called emitSettings(), never store.setActiveTicker().
+  // Fix: onGoTicker() calls dashboardStore.setActiveTicker(linkColor, sym).
+
+  test('Go button broadcasts committed ticker to linked bus color', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const wrapper = mount(CandlestickChart, { props: { ...defaultProps, linkColor: 'blue' } })
+    await nextTick()
+
+    // Act — type ticker then click Go
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('TSLA')
+    await wrapper.find('.go-btn').trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Assert — bus updated so other linked widgets receive the ticker
+    const store = useDashboardStore()
+    expect(store.activeTickers['blue']).toBe('TSLA')
+    wrapper.unmount()
+  })
+
+  test('Enter key in header input broadcasts ticker to linked bus color', async () => {
+    // Arrange
+    global.fetch = mockFetch({ results: [] })
+    const wrapper = mount(CandlestickChart, { props: { ...defaultProps, linkColor: 'blue' } })
+    await nextTick()
+
+    // Act — type ticker then press Enter
+    const input = wrapper.find('[data-testid="header-ticker-input"]')
+    await input.setValue('MSFT')
+    await input.trigger('keydown.enter')
+    await nextTick()
+    await nextTick()
+
+    // Assert — bus updated
+    const store = useDashboardStore()
+    expect(store.activeTickers['blue']).toBe('MSFT')
     wrapper.unmount()
   })
 })

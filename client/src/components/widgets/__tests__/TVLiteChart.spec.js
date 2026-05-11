@@ -74,6 +74,7 @@ vi.stubGlobal('ResizeObserver', function ResizeObserverMock() { return resizeObs
 
 import { createChart } from 'lightweight-charts'
 import { useScannerLink } from '@/composables/useScannerLink.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import TVLiteChart from '../TVLiteChart.vue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -370,6 +371,139 @@ describe('Ticker source', () => {
 
     // Assert
     expect(global.fetch.mock.calls.some(c => c[0].includes('NVDA'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  // ── Commit-gated fetch (typing should NOT trigger fetch) ────────────────────
+  //
+  // Bug: tickerLocal was computed(() => headerTickerInput.value...), so every
+  // @input keystroke changed tickerLocal → watch fired → fetchBars().
+  // Fix: tickerLocal is a ref; only updated on explicit commit (Go/Enter/bus/settings).
+
+  test('typing in header input does NOT trigger fetch before committing', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, { props: defaultProps }) // no ticker in settings
+    await nextTick()
+    await nextTick()
+    const before = global.fetch.mock.calls.length // 0 — no ticker, no initial fetch
+
+    // Act — type a valid ticker symbol (triggers @input handler)
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('AAPL')
+    await nextTick()
+    await nextTick()
+
+    // Assert — no fetch until user commits with Go or Enter
+    expect(global.fetch.mock.calls.length).toBe(before)
+    wrapper.unmount()
+  })
+
+  // ── Two-way bus: Go/Enter should broadcast to linked widgets ─────────────────
+  //
+  // Bug: onGoTicker() only called emitSettings(), never store.setActiveTicker().
+  // Ticker events only flowed INTO the chart (from bus), never OUT (to bus).
+  // Fix: onGoTicker() calls dashboardStore.setActiveTicker(linkColor, sym) so
+  // other linked widgets (charts, scanners) receive the ticker.
+
+  test('Go button broadcasts committed ticker to linked bus color', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, { props: { ...defaultProps, linkColor: 'blue' } })
+    await nextTick()
+
+    // Act — type ticker then click Go
+    await wrapper.find('[data-testid="header-ticker-input"]').setValue('TSLA')
+    await wrapper.find('.go-btn').trigger('click')
+    await nextTick()
+    await nextTick()
+
+    // Assert — bus updated so other linked widgets receive the ticker
+    const store = useDashboardStore()
+    expect(store.activeTickers['blue']).toBe('TSLA')
+    wrapper.unmount()
+  })
+
+  test('Enter key in header input broadcasts ticker to linked bus color', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const wrapper = mount(TVLiteChart, { props: { ...defaultProps, linkColor: 'blue' } })
+    await nextTick()
+
+    // Act — type ticker then press Enter
+    const input = wrapper.find('[data-testid="header-ticker-input"]')
+    await input.setValue('MSFT')
+    await input.trigger('keydown.enter')
+    await nextTick()
+    await nextTick()
+
+    // Assert — bus updated
+    const store = useDashboardStore()
+    expect(store.activeTickers['blue']).toBe('MSFT')
+    wrapper.unmount()
+  })
+
+  // ── Bus persistence regression (mobile touch/scroll bug) ──────────────────
+  //
+  // Bug: when the bus sets a ticker, headerTickerInput is updated but emitSettings()
+  // is NOT called, so the ticker is never persisted to props.settings.
+  //
+  // vue3-grid-layout-next creates new item objects during touch/scroll compaction.
+  // The new object reference triggers the settings watcher, which resets
+  // headerTickerInput to the settings value — which is empty because the ticker
+  // was never persisted. The first chart at y=0 survives because it doesn't need
+  // repositioning (object reference unchanged); subsequent charts at y>0 do not.
+  //
+  // Fix: call emitSettings() in the bus watcher so the ticker is always persisted.
+
+  test('bus activeTicker emits update-settings with the ticker (persistence)', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const settingsCalls = []
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(TVLiteChart, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': s => settingsCalls.push(s) },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+
+    // Act — bus fires
+    activeTicker.value = 'NVDA'
+    await nextTick()
+    await nextTick()
+
+    // Assert — update-settings must include the ticker so layout re-renders can restore it
+    expect(settingsCalls.length).toBeGreaterThan(0)
+    expect(settingsCalls[settingsCalls.length - 1].ticker).toBe('NVDA')
+    wrapper.unmount()
+  })
+
+  test('ticker set via bus survives settings prop re-application (simulates touch/scroll layout re-render)', async () => {
+    // Arrange
+    global.fetch = mockFetch([makeBar()])
+    const settingsCalls = []
+    const callsBefore = vi.mocked(useScannerLink).mock.calls.length
+    const wrapper = mount(TVLiteChart, {
+      props: defaultProps,
+      attrs: { 'onUpdate-settings': s => settingsCalls.push(s) },
+    })
+    const { activeTicker } = vi.mocked(useScannerLink).mock.results[callsBefore].value
+
+    // Act step 1 — bus sets ticker
+    activeTicker.value = 'NVDA'
+    await nextTick()
+    await nextTick()
+
+    // Act step 2 — simulate vue3-grid-layout-next creating a new item object on
+    // touch/scroll: re-apply the same settings (as emitted) with a new reference.
+    // Before fix: settingsCalls is empty so emittedSettings is undefined → ticker lost.
+    // After fix: emittedSettings includes ticker: 'NVDA' → watcher restores it.
+    const emittedSettings = settingsCalls[settingsCalls.length - 1]
+    await wrapper.setProps({ settings: { ...emittedSettings } })
+    await nextTick()
+
+    // Assert — ticker must still be shown after settings re-application
+    expect(wrapper.find('[data-testid="header-ticker-input"]').element.value).toBe('NVDA')
+    expect(wrapper.find('[data-testid="no-ticker"]').exists()).toBe(false)
     wrapper.unmount()
   })
 })

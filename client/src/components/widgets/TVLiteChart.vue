@@ -120,6 +120,7 @@ import {
 } from 'lightweight-charts'
 import { useScannerLink } from '@/composables/useScannerLink.js'
 import { useConfig }      from '@/composables/useConfig.js'
+import { useDashboardStore } from '@/stores/useDashboardStore.js'
 import {
   calcEMA, calcSMA, calcVWMA, calcVWAP, calcMACD, calcVolumeAvg,
 } from '@/utils/chartIndicators.js'
@@ -181,8 +182,10 @@ const config = computed(() => ({ ...DEFAULT_SETTINGS, ...props.settings }))
 // ── Config (massiveApiKey) ────────────────────────────────────────────────────
 const { config: appConfig } = useConfig()
 
+// ── Dashboard store (for bidirectional bus writes) ─────────────────────────────
+const dashboardStore = useDashboardStore()
+
 // ── Scanner bus ───────────────────────────────────────────────────────────────
-// TVLiteChart is read-only from the bus — no onRowClick needed
 const { activeTicker } = useScannerLink(computed(() => props.linkColor))
 
 // ── Local state ───────────────────────────────────────────────────────────────
@@ -210,13 +213,34 @@ const macdLocal           = ref({ ...config.value.macd })
 const showSettings        = ref(false)
 
 // ── Ticker ────────────────────────────────────────────────────────────────────
-const tickerLocal = computed(() => headerTickerInput.value?.trim().toUpperCase() || null)
+// tickerLocal is the COMMITTED ticker — drives fetches and the no-ticker overlay.
+// It is only updated on explicit commit (Go/Enter), bus update, or settings sync.
+// Keeping it separate from headerTickerInput means keystrokes do NOT trigger fetches.
+const tickerLocal = ref(config.value.ticker?.trim().toUpperCase() || null)
 
-// Bus auto-fills the header input
-watch(activeTicker, (t) => { if (t) headerTickerInput.value = t })
+// Bus auto-fills the header input and persists the ticker to settings.
+// Without emitSettings() here, the ticker lives only in headerTickerInput and is
+// lost whenever props.settings is re-applied with a new object reference — which
+// vue3-grid-layout-next does on touch/scroll events for widgets that need
+// repositioning (typically any chart after the first one at y=0).
+watch(activeTicker, (t) => {
+  if (!t) return
+  headerTickerInput.value = t
+  // Guard against self-echo: onGoTicker() calls setActiveTicker() which bounces
+  // back through this watcher. If tickerLocal already equals t, settings were
+  // already emitted by onGoTicker — skip to avoid a double update-settings event.
+  if (t !== tickerLocal.value) {
+    tickerLocal.value = t
+    emitSettings()
+  }
+})
 
 const onGoTicker = () => {
-  headerTickerInput.value = headerTickerInput.value.trim().toUpperCase()
+  const sym = headerTickerInput.value.trim().toUpperCase()
+  headerTickerInput.value = sym
+  tickerLocal.value = sym || null
+  // Broadcast to bus so other linked widgets (charts, scanners) receive the ticker
+  if (props.linkColor && sym) dashboardStore.setActiveTicker(props.linkColor, sym)
   emitSettings()
 }
 
@@ -260,7 +284,9 @@ watch(intervalLocal, () => { fetchBars(); scheduleRefresh() })
 // Sync local state when settings prop changes
 watch(() => props.settings, (s) => {
   const m = { ...DEFAULT_SETTINGS, ...s }
-  headerTickerInput.value    = m.ticker?.trim().toUpperCase() ?? ''
+  const ticker               = m.ticker?.trim().toUpperCase() ?? ''
+  headerTickerInput.value    = ticker
+  tickerLocal.value          = ticker || null
   intervalLocal.value        = m.interval
   barCountLocal.value        = m.barCount
   autoRefreshLocal.value     = m.autoRefresh
