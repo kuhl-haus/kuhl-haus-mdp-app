@@ -11,6 +11,9 @@
 
 Service control plane and web application for the Kuhl Haus Market Data Platform.
 
+> **If you got bit by the v0.4.1 upgrade and didn't export first, your layouts aren't gone — the app just stopped looking at the old key. There's a full recovery procedure (desktop and iPad both) in [Recovering Dashboard Layouts After Upgrading to v0.4.1](https://kuhl-haus-mdp.readthedocs.io/en/latest/troubleshooting/layout-recovery-v041.html).**
+
+
 ## Overview
 
 The frontend application — also referred to as the **Service Control Plane (SCP)** — hosts the client single-page application and manages the data plane at runtime. It is built on [py4web](https://py4web.com/) and provides OAuth-secured access to the market data dashboard.
