@@ -95,7 +95,7 @@ hooks and Pinia's `mutation.events` don't exist in production at all.
 #### Observing mutation history in the Timeline tab
 
 DevTools → **Timeline** is the Pinia mutation log. Every state change emits a `Pinia 🍍` event
-showing the store id, the action that triggered it, a timestamp, and a before/after state diff.
+showing the store id, the action that triggered it (if applicable), a timestamp, and a before/after state diff.
 You can scrub back through events to see exactly what changed and when.
 
 #### Programmatic observation with `$subscribe`
@@ -133,9 +133,10 @@ window.__VUE_DEVTOOLS_GLOBAL_HOOK__
 
 #### `pinia-plugin-persistedstate` tip
 
-State changes that trigger a `localStorage` write show up in the Timeline as a `patch object`
-mutation. Use this to confirm persistence is firing without digging through Application →
-Local Storage.
+`pinia-plugin-persistedstate` subscribes to all mutations via `$subscribe` and writes to
+`localStorage` after every mutation regardless of type. In the Timeline, you'll see a
+`Pinia 🍍` event for each mutation; to confirm the write actually landed, check
+Application → Local Storage for the `widgetSettings` key after triggering an action.
 
 ## Documentation
 
