@@ -67,6 +67,76 @@ The platform consists of four main packages:
 - **Frontend Application** ([kuhl-haus-mdp-app](https://github.com/kuhl-haus/kuhl-haus-mdp-app)) — Web-based user interface and API *(this repo)*
 - **Deployment Automation** ([kuhl-haus-mdp-deployment](https://github.com/kuhl-haus/kuhl-haus-mdp-deployment)) — Docker Compose, Ansible playbooks and Kubernetes manifests for environment provisioning
 
+## Development
+
+### Pinia State Inspection with Vue DevTools
+
+Install the [Vue DevTools browser extension](https://devtools.vuejs.org/) (Chrome/Edge/Firefox).
+DevTools hooks are only active in dev builds — they are compiled out of production bundles entirely.
+
+**Start the dev server** (devtools enabled automatically):
+
+```bash
+npm run dev
+```
+
+To produce a built artifact with devtools intact (e.g. for staging):
+
+```bash
+vite build --mode development
+```
+
+#### How Vue knows it's in production
+
+Vite replaces the global `__DEV__` flag at build time — `true` in development, `false` in production.
+The bundler then tree-shakes all `if (__DEV__)` branches from the production bundle, so devtools
+hooks and Pinia's `mutation.events` don't exist in production at all.
+
+#### Observing mutation history in the Timeline tab
+
+DevTools → **Timeline** is the Pinia mutation log. Every state change emits a `Pinia 🍍` event
+showing the store id, the action that triggered it, a timestamp, and a before/after state diff.
+You can scrub back through events to see exactly what changed and when.
+
+#### Programmatic observation with `$subscribe`
+
+```js
+const store = useWidgetSettingsStore()
+
+store.$subscribe((mutation, state) => {
+  console.log(mutation.type)    // 'direct' | 'patch object' | 'patch function'
+  console.log(mutation.storeId) // store name
+  console.log(mutation.events)  // before/after values — dev mode only
+  console.log(state)            // full state snapshot after mutation
+})
+```
+
+> `mutation.events` is only populated in dev mode. It is compiled out of production builds at
+> the Pinia source level and cannot be re-enabled at runtime.
+
+#### Tracing which action caused a state change
+
+```js
+store.$onAction(({ name, args, after, onError }) => {
+  console.log(`action: ${name}`, args)
+  after((result) => console.log('completed', result))
+  onError((error) => console.error('failed', error))
+})
+```
+
+#### Verifying devtools are active
+
+```js
+// In the browser console — defined and populated means devtools are active:
+window.__VUE_DEVTOOLS_GLOBAL_HOOK__
+```
+
+#### `pinia-plugin-persistedstate` tip
+
+State changes that trigger a `localStorage` write show up in the Timeline as a `patch object`
+mutation. Use this to confirm persistence is firing without digging through Application →
+Local Storage.
+
 ## Documentation
 
 For architecture details, component descriptions, and API reference, see the
