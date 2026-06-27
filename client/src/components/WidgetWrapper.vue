@@ -183,7 +183,7 @@ const freshnessIcon = computed(() => {
   border: 1px solid var(--pd-border);
   border-radius: 4px;
   overflow: hidden;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .widget-header {
@@ -281,10 +281,14 @@ const freshnessIcon = computed(() => {
   overflow: auto;
 }
 
-/* Mobile: fixed heights so widgets don't collapse */
+/* Mobile: fixed height so flex children (charts) have a concrete size to fill */
 .widget-wrapper--mobile {
-  height: auto;
-  min-height: 320px;
-  max-height: 480px;
+  height: 420px;
+}
+
+.widget-wrapper--mobile .widget-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 </style>

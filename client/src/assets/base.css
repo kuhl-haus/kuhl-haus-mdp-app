@@ -56,6 +56,16 @@
   font-weight: normal;
 }
 
+/* Enlarge vue3-grid-layout-next resize handle for touch devices (Apple HIG: 44×44pt min) */
+@media (hover: none) and (pointer: coarse) {
+  .vue-grid-item > .vue-resizable-handle {
+    width: 44px;
+    height: 44px;
+    background-size: 14px 14px;
+    background-position: bottom 6px right 6px;
+  }
+}
+
 body {
   min-height: 100vh;
   color: var(--color-text);

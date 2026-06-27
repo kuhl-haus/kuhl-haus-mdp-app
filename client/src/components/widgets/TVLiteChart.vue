@@ -401,8 +401,8 @@ onMounted(() => {
         return d.toLocaleString('en-US', { ...opts, year: 'numeric' })
       },
     },
-    width:  chartContainer.value.clientWidth,
-    height: chartContainer.value.clientHeight,
+    width:  chartContainer.value.clientWidth  || 300,
+    height: chartContainer.value.clientHeight || 300,
   })
 
   // Candlestick (main pane)
