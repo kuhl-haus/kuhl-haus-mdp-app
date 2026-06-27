@@ -35,6 +35,11 @@
       </div>
       <button @click="showSaveDialog = true" class="btn-icon" title="Save Layout">💾</button>
       <button
+          @click="autosaveEnabled = !autosaveEnabled"
+          :class="['btn-icon', autosaveEnabled ? '' : 'btn-icon--inactive']"
+          :title="autosaveEnabled ? 'Autosave ON' : 'Autosave OFF'"
+      >{{ autosaveEnabled ? '🔄' : '⏸' }}</button>
+      <button
           @click="isLocked = !isLocked"
           class="btn-icon"
           :title="isLocked ? 'Unlock layout' : 'Lock layout'"
