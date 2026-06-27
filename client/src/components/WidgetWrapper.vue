@@ -281,29 +281,7 @@ const freshnessIcon = computed(() => {
   overflow: auto;
 }
 
-/* Mobile: fixed heights so chart widgets get a definite pixel height.
-
-   iOS Safari does not resolve height:100% against a flex-grown parent
-   (flex:1 without an explicit pixel height is not a "definite" height
-   in the CSS spec). Chart widgets call clientHeight at mount and get 0,
-   rendering invisible. The fix: give every element in the chain a
-   concrete pixel height so percentage resolution is unambiguous.
-
-   widget-wrapper--mobile : 420px  (set here)
-   widget-content         : 388px  (420 - 32px header)
-   chart widget           : height:100% resolves to 388px  ✓
-   chart-container        : flex:1 resolves within 388px   ✓
-*/
-.widget-wrapper--mobile {
-  height: 420px;
-  min-height: 420px;  /* belt-and-suspenders: prevent flex shrink from parent */
-  flex-shrink: 0;
-}
-
-.widget-wrapper--mobile .widget-content {
-  height: 388px;      /* explicit px — percentage resolution works on all browsers */
-  min-height: 0;
-  overflow: auto;
-  flex: none;         /* don't let flex override the explicit height */
-}
+/* .widget-wrapper--mobile no longer needs height overrides — GridLayout
+   provides concrete pixel height via transform/style on GridItem.
+   The class is kept for widget-level mobile layout tweaks (e.g. NewsFeed). */
 </style>

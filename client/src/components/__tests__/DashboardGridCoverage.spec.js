@@ -295,6 +295,8 @@ describe('appVersion', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('mobile dropdown states', () => {
+  // Note: the mobile vertical stack is gone — GridLayout is used for all screen sizes.
+  // The layout dropdown is the unified .custom-select (no --mobile variant).
   test('with mobile + saved layout selected expect layout name in trigger', async () => {
     // Arrange — mobile width, one saved layout, load it
     seedLayouts({ 'My Layout': makeLayout() })
@@ -303,8 +305,8 @@ describe('mobile dropdown states', () => {
     wrapper.vm.selectedLayoutName = 'My Layout'
     await nextTick()
 
-    // Assert — selected name appears in mobile select trigger
-    const trigger = wrapper.find('.custom-select--mobile .select-trigger')
+    // Assert — selected name appears in the select trigger
+    const trigger = wrapper.find('.custom-select .select-trigger')
     expect(trigger.text()).toContain('My Layout')
 
     wrapper.unmount()
@@ -315,12 +317,12 @@ describe('mobile dropdown states', () => {
     seedLayouts({ 'Alpha': makeLayout() })
     const wrapper = mountGrid(390)
     await nextTick()
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
     // Assert — dropdown visible with option
-    expect(wrapper.find('.custom-select--mobile .select-dropdown').exists()).toBe(true)
-    expect(wrapper.find('.custom-select--mobile .select-option').text()).toContain('Alpha')
+    expect(wrapper.find('.custom-select .select-dropdown').exists()).toBe(true)
+    expect(wrapper.find('.custom-select .select-option').text()).toContain('Alpha')
 
     wrapper.unmount()
   })
@@ -329,11 +331,11 @@ describe('mobile dropdown states', () => {
     // Arrange — mobile, no saved layouts, open dropdown
     const wrapper = mountGrid(390)
     await nextTick()
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
-    // Assert — "No saved layouts" shown in mobile dropdown
-    const emptyOption = wrapper.find('.custom-select--mobile .select-option.disabled')
+    // Assert — "No saved layouts" shown in dropdown
+    const emptyOption = wrapper.find('.custom-select .select-option.disabled')
     expect(emptyOption.exists()).toBe(true)
     expect(emptyOption.text()).toContain('No saved layouts')
 
@@ -345,11 +347,11 @@ describe('mobile dropdown states', () => {
     seedLayouts({ 'Beta': makeLayout() })
     const wrapper = mountGrid(390)
     await nextTick()
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
     // Act — click the layout option
-    await wrapper.find('.custom-select--mobile .option-name').trigger('click')
+    await wrapper.find('.custom-select .option-name').trigger('click')
     await nextTick()
 
     // Assert — layout selected (selectedLayoutName is exposed)
@@ -364,12 +366,12 @@ describe('mobile dropdown states', () => {
     const wrapper = mountGrid(390)
     await nextTick()
     wrapper.vm.selectedLayoutName = 'MainLayout'
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
-    // Assert — default indicator (✓) shown next to name
-    const optionText = wrapper.find('.custom-select--mobile .option-name').text()
-    expect(optionText).toContain('✓')
+    // Assert — default indicator shown next to name
+    const optionText = wrapper.find('.custom-select .option-name').text()
+    expect(optionText).toContain('(Default)')
 
     wrapper.unmount()
   })
@@ -598,13 +600,12 @@ describe('mobile toolbar isLocked state', () => {
     const wrapper = mountGrid(390)
     await nextTick()
 
-    // Assert — lock emoji shown in mobile toolbar (isLocked=true → '🔒')
-    const lockBtn = wrapper.find('.layout-controls--mobile .btn-icon[title*="Unlock"]')
+    // Assert — lock emoji shown in toolbar (isLocked=true → '🔒')
+    const lockBtn = wrapper.find('.layout-controls .btn-icon[title*="Unlock"]')
     if (lockBtn.exists()) {
       expect(lockBtn.text()).toContain('🔒')
     } else {
-      // Check via text search
-      const btns = wrapper.findAll('.layout-controls--mobile .btn-icon')
+      const btns = wrapper.findAll('.layout-controls .btn-icon')
       const hasLock = btns.some(b => b.text().includes('🔒') || b.attributes('title')?.includes('Unlock'))
       expect(hasLock).toBe(true)
     }
