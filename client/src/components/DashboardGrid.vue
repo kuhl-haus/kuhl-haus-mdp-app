@@ -1,10 +1,11 @@
 <template>
   <header class="dashboard-header">
+    <!-- Title + connection status (always visible) -->
     <h1 class="dashboard-title">Stock Scanner Dashboard</h1>
     <div v-if="appConfig" class="status success">Connected</div>
     <div v-else class="status error">Error</div>
 
-    <!-- Mobile toolbar: layout selector + lock + widget add -->
+    <!-- Mobile toolbar: layout selector + all controls -->
     <div v-if="appConfig && isMobile" class="layout-controls layout-controls--mobile">
       <!-- Layout load dropdown -->
       <div class="custom-select custom-select--mobile" ref="selectContainerMobile">
@@ -1407,19 +1408,49 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
 
 /* ── Mobile (< 640px) ── */
 @media (max-width: 639px) {
-  .dashboard-title { font-size: 15px; }
+  /* Header: allow content to wrap so toolbar drops to its own row */
+  .dashboard-header {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 4px 6px;
+    overflow: visible;
+  }
 
+  .dashboard-header h1 {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  /* Version: shrink font, don't force a full-width line */
+  .app-version {
+    font-size: 11px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* Toolbar: always on its own full-width row below title */
   .layout-controls--mobile {
     display: flex;
     align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;    /* buttons stay on one row, scroll if needed */
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;  /* hide scrollbar on Firefox */
+    padding-bottom: 2px;    /* breathing room for scrollbar on iOS */
+  }
+
+  .layout-controls--mobile::-webkit-scrollbar {
+    display: none;          /* hide scrollbar on WebKit */
   }
 
   .custom-select--mobile {
     min-width: 110px;
     max-width: 150px;
     position: relative;
+    flex-shrink: 0;
   }
 
   .custom-select--mobile .select-trigger {
@@ -1432,6 +1463,18 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
     z-index: 9999;
   }
 
+  /* Buttons: Apple HIG 44pt minimum touch target */
+  .btn-icon {
+    padding: 0;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
   .mobile-stack {
     display: flex;
     flex-direction: column;
@@ -1441,7 +1484,6 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
 
   .mobile-widget {
     width: 100%;
-    /* Fixed heights per widget type handled by inner widget */
   }
 
   .mobile-widget .widget-wrapper {

@@ -281,14 +281,23 @@ const freshnessIcon = computed(() => {
   overflow: auto;
 }
 
-/* Mobile: fixed height so flex children (charts) have a concrete size to fill */
+/* Mobile: fixed height so flex children (charts) have a concrete size to fill.
+   The widget-header is ~32px; leave the rest for widget-content. */
 .widget-wrapper--mobile {
   height: 420px;
+  min-height: 420px;
 }
 
 .widget-wrapper--mobile .widget-content {
-  flex: 1;
+  /* Explicit pixel height = wrapper height minus header height.
+     Charts (TVLiteChart, CandlestickChart) call clientHeight on their
+     container at mount time. If that resolves to 0 — which happens when
+     overflow:hidden collapses the flex chain before layout paint —
+     they render invisible. Explicit height + overflow:auto ensures the
+     container has a real, non-zero size before the chart initialises. */
+  height: 388px;   /* 420px wrapper − 32px header − ~0px borders */
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
+  flex: none;      /* don't let flex override the explicit height */
 }
 </style>
