@@ -183,7 +183,7 @@
                   class="mobile-action-btn"
                   :class="{ 'mobile-action-btn--dim': !selectedLayoutName }"
                   :disabled="!selectedLayoutName"
-                  @click="deleteCurrentLayout; mobileMenuOpen = false"
+                  @click="deleteCurrentLayout(); mobileMenuOpen = false"
               >
                 <span class="mobile-action-icon">🗑️</span>
                 <span class="mobile-action-label">Delete Layout</span>
@@ -199,12 +199,12 @@
                 <span class="mobile-action-label">Alerts{{ alertBadgeCount > 0 ? ` (${alertBadgeCount})` : '' }}</span>
               </button>
 
-              <button class="mobile-action-btn" @click="exportLayouts; mobileMenuOpen = false">
+              <button class="mobile-action-btn" @click="exportLayouts(); mobileMenuOpen = false">
                 <span class="mobile-action-icon">📤</span>
                 <span class="mobile-action-label">Export</span>
               </button>
 
-              <button class="mobile-action-btn" @click="$refs.importFileMobile.click()">
+              <button class="mobile-action-btn" @click="$refs.importFileMobile.click(); mobileMenuOpen = false">
                 <span class="mobile-action-icon">📥</span>
                 <span class="mobile-action-label">Import</span>
               </button>
