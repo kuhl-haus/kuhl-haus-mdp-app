@@ -942,7 +942,9 @@ const formatDate = (timestamp) => {
 
 // Click-outside handler
 const handleClickOutside = (e) => {
-  if (selectContainer.value && !selectContainer.value.contains(e.target)) {
+  const inDesktop = selectContainer.value && selectContainer.value.contains(e.target)
+  const inMobile = selectContainerMobile.value && selectContainerMobile.value.contains(e.target)
+  if (!inDesktop && !inMobile) {
     isDropdownOpen.value = false
     cancelHoverPreview()
   }
