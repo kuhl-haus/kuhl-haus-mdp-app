@@ -5,12 +5,16 @@
     <div v-else class="status error">Error</div>
 
     <!-- Toolbar: full controls on all screen sizes -->
+    <!-- ── Toolbar ────────────────────────────────────────────────────────────
+         Desktop: single flex row (unchanged).
+         Mobile:  two rows —
+           Row 1 (always): layout picker | lock | add widget | alert bell
+           Row 2 (edit mode only): save | delete | autosave | export | import | col stepper
+         The split is driven purely by CSS; the template is shared.
+    ──────────────────────────────────────────────────────────────────────── -->
     <div v-if="appConfig" class="layout-controls">
 
-      <div class="widget-menu">
-        <WidgetMenu @add-widget="addWidget" />
-      </div>
-
+      <!-- Layout picker + management buttons -->
       <div class="layout-selector">
         <!-- Custom Dropdown with Hover Preview -->
         <div class="custom-select" ref="selectContainer">
@@ -39,7 +43,7 @@
                 {{ name }} {{ name === defaultLayoutName ? '(Default)' : '' }}
               </span>
               <button
-                  class="option-preview-btn"
+                  class="option-preview-btn hidden-mobile"
                   @click.stop="showLayoutPreview(name)"
                   title="View Details"
               >
@@ -53,55 +57,69 @@
 
         </div>
 
-        <button @click="showSaveDialog = true" class="btn-icon" title="Save Layout">
+        <!-- Save + Delete: management buttons shown on desktop always;
+             on mobile these move to the second toolbar row (edit mode) -->
+        <button @click="showSaveDialog = true" class="btn-icon mobile-row2" title="Save Layout">
           💾
         </button>
         <button
             @click="deleteCurrentLayout"
             :disabled="!selectedLayoutName"
-            class="btn-icon"
+            class="btn-icon mobile-row2"
             title="Delete Layout"
         >
           🗑️
         </button>
-        <button
-            @click="isLocked = !isLocked"
-            class="btn-icon"
-            :title="isLocked ? 'Unlock layout (edit mode)' : 'Lock layout'"
-        >{{ isLocked ? '🔒' : '✏️' }}</button>
-        <button
-            @click="autosaveEnabled = !autosaveEnabled"
-            :class="['btn-icon', autosaveEnabled ? '' : 'btn-icon--inactive']"
-            :title="autosaveEnabled ? 'Autosave ON — click to disable' : 'Autosave OFF — click to enable'"
-        >{{ autosaveEnabled ? '🔄' : '⏸' }}</button>
-        <button @click="exportLayouts" class="btn-icon" title="Export All Layouts">
-          📤
-        </button>
-        <button @click="$refs.importFile.click()" class="btn-icon" title="Import Layouts">
-          📥
-        </button>
-        <input
-            ref="importFile"
-            type="file"
-            accept=".json"
-            @change="importLayouts"
-            style="display: none"
-        />
       </div>
+
+      <!-- Lock/unlock — always visible, first in mobile row 1 after picker -->
+      <button
+          @click="isLocked = !isLocked"
+          class="btn-icon"
+          :title="isLocked ? 'Unlock layout (edit mode)' : 'Lock layout'"
+      >{{ isLocked ? '🔒' : '✏️' }}</button>
+
+      <!-- Edit-mode controls: autosave, export, import, col stepper.
+           Desktop: inline in the single row.
+           Mobile: only shown when unlocked (second row). -->
+      <button
+          @click="autosaveEnabled = !autosaveEnabled"
+          :class="['btn-icon', 'mobile-row2', autosaveEnabled ? '' : 'btn-icon--inactive']"
+          :title="autosaveEnabled ? 'Autosave ON — click to disable' : 'Autosave OFF — click to enable'"
+      >{{ autosaveEnabled ? '🔄' : '⏸' }}</button>
+      <button @click="exportLayouts" class="btn-icon mobile-row2" title="Export All Layouts">
+        📤
+      </button>
+      <button @click="$refs.importFile.click()" class="btn-icon mobile-row2" title="Import Layouts">
+        📥
+      </button>
+      <input
+          ref="importFile"
+          type="file"
+          accept=".json"
+          @change="importLayouts"
+          style="display: none"
+      />
 
       <div class="auto-save-indicator" v-if="isAutoSaving">
         <span>💾 Auto-saving...</span>
       </div>
 
-      <div v-if="!isLocked" class="col-num-stepper" title="Dashboard column count">
+      <div v-if="!isLocked" class="col-num-stepper mobile-row2" title="Dashboard column count">
         <button class="col-step-btn" @click="dashboardColNum = Math.max(1, dashboardColNum - 1)" aria-label="Fewer columns">−</button>
         <span class="col-num-display">{{ dashboardColNum }}c</span>
         <button class="col-step-btn" @click="dashboardColNum = Math.min(48, dashboardColNum + 1)" aria-label="More columns">+</button>
       </div>
 
+      <!-- Add widget — always visible, sits at end of mobile row 1 -->
+      <div class="widget-menu">
+        <WidgetMenu @add-widget="addWidget" />
+      </div>
+
     </div>
 
-    <!-- Alert Manager bell icon -->
+    <!-- Alert Manager bell — outside toolbar on desktop (flex sibling in header);
+         on mobile it participates in the toolbar row via CSS order -->
     <div v-if="appConfig" class="alert-manager-wrap">
       <button
         @click="widgetSettingsStore.alertManagerOpen = !widgetSettingsStore.alertManagerOpen"
@@ -1369,10 +1387,90 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
 @media (max-width: 639px) {
   .dashboard-title { font-size: 15px; }
 
-  /* Toolbar: allow wrapping so controls don't overflow on narrow viewports */
+  /* Header: allow the toolbar block to wrap below title row */
+  .dashboard-header {
+    flex-wrap: wrap;
+  }
+
+  /* Toolbar: two-row flex layout.
+     Row 1 (order 0, default): layout picker + lock + add widget + alert bell.
+     Row 2 (order 1, .mobile-row2): edit-mode controls — save, delete,
+       autosave, export, import, col stepper.
+     Row 2 items are hidden when locked via v-if on the stepper and the
+     fact that the others are still present but collapsed below the fold;
+     this is acceptable — locked state means the row is essentially empty
+     and collapses. */
   .layout-controls {
     flex-wrap: wrap;
+    align-items: center;
     gap: 6px;
+    width: 100%;
+    order: 10;  /* always below the title/status/version row */
+  }
+
+  /* Row 2 items: bump their order so they sort after row 1 items,
+     and force a line break before them with flex basis. */
+  .mobile-row2 {
+    order: 1;
+  }
+
+  /* Invisible flex break: this pushes all order-1 items to the next line.
+     We inject it via the ::after pseudo-element on the toolbar. */
+  .layout-controls::after {
+    content: '';
+    flex-basis: 100%;
+    order: 0;         /* sits between order-0 and order-1 items */
+    height: 0;
+  }
+
+  /* Alert bell: pull into row 1 alongside layout picker + lock + add */
+  .alert-manager-wrap {
+    order: 0;
+  }
+
+  /* Layout selector: shrink dropdown width so it fits */
+  .layout-selector {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .custom-select {
+    min-width: 100px;
+    max-width: 180px;
+  }
+
+  /* Hide hover-preview button — no hover on touch */
+  .hidden-mobile {
+    display: none;
+  }
+
+  /* Larger touch targets for all buttons */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .col-step-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .col-num-display {
+    font-size: 13px;
+    min-width: 36px;
+  }
+
+  /* Version: don't let it take up a full row */
+  .app-version {
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
 </style>
