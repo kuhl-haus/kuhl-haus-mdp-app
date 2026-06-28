@@ -92,17 +92,17 @@ describe('dashboardColNum default', () => {
 // ── Input control ─────────────────────────────────────────────────────────────
 
 describe('dashboardColNum input control', () => {
-  test('with isLocked true expect col-num input not rendered', async () => {
+  test('with isLocked true expect col-num stepper not rendered', async () => {
     // Arrange / Act — default is locked
     const wrapper = mountGrid()
     await nextTick()
 
     // Assert
-    expect(wrapper.find('.col-num-input').exists()).toBe(false)
+    expect(wrapper.find('.col-num-stepper').exists()).toBe(false)
     wrapper.unmount()
   })
 
-  test('with isLocked false expect col-num input visible', async () => {
+  test('with isLocked false expect col-num stepper visible', async () => {
     // Arrange
     const wrapper = mountGrid()
     await nextTick()
@@ -112,43 +112,78 @@ describe('dashboardColNum input control', () => {
     await nextTick()
 
     // Assert
-    expect(wrapper.find('.col-num-input').exists()).toBe(true)
+    expect(wrapper.find('.col-num-stepper').exists()).toBe(true)
     wrapper.unmount()
   })
 
-  test('with col-num input changed to 8 expect dashboardColNum updated', async () => {
+  test('with col-num + button clicked expect dashboardColNum incremented', async () => {
     // Arrange
     const wrapper = mountGrid()
     await nextTick()
     await wrapper.find('button[title="Unlock layout (edit mode)"]').trigger('click')
     await nextTick()
+    const before = wrapper.vm.dashboardColNum
 
-    // Act
-    const input = wrapper.find('.col-num-input')
-    await input.setValue('8')
-    await input.trigger('change')
+    // Act — click +
+    await wrapper.find('button[aria-label="More columns"]').trigger('click')
     await nextTick()
 
     // Assert
-    expect(wrapper.vm.dashboardColNum).toBe(8)
+    expect(wrapper.vm.dashboardColNum).toBe(before + 1)
     wrapper.unmount()
   })
 
-  test('with col-num input changed to 8 expect grid re-renders with col-num 8', async () => {
+  test('with col-num − button clicked expect dashboardColNum decremented', async () => {
     // Arrange
     const wrapper = mountGrid()
     await nextTick()
     await wrapper.find('button[title="Unlock layout (edit mode)"]').trigger('click')
     await nextTick()
+    wrapper.vm.dashboardColNum = 8
+    await nextTick()
 
-    // Act
-    const input = wrapper.find('.col-num-input')
-    await input.setValue('8')
-    await input.trigger('change')
+    // Act — click −
+    await wrapper.find('button[aria-label="Fewer columns"]').trigger('click')
     await nextTick()
 
     // Assert
-    expect(wrapper.find('.mock-grid-layout').attributes('data-col-num')).toBe('8')
+    expect(wrapper.vm.dashboardColNum).toBe(7)
+    wrapper.unmount()
+  })
+
+  test('with col-num − button at min=1 expect dashboardColNum stays at 1', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    await wrapper.find('button[title="Unlock layout (edit mode)"]').trigger('click')
+    await nextTick()
+    wrapper.vm.dashboardColNum = 1
+    await nextTick()
+
+    // Act
+    await wrapper.find('button[aria-label="Fewer columns"]').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.vm.dashboardColNum).toBe(1)
+    wrapper.unmount()
+  })
+
+  test('with col-num + clicked expect grid re-renders with new col-num', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    await wrapper.find('button[title="Unlock layout (edit mode)"]').trigger('click')
+    await nextTick()
+    wrapper.vm.dashboardColNum = 8
+    await nextTick()
+
+    // Act
+    await wrapper.find('button[aria-label="More columns"]').trigger('click')
+    await nextTick()
+
+    // Assert
+    expect(wrapper.find('.mock-grid-layout').attributes('data-col-num')).toBe('9')
     wrapper.unmount()
   })
 })

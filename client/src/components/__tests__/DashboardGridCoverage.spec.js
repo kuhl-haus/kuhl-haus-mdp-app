@@ -7,7 +7,7 @@
  *  - Mobile dropdown open → options rendered, empty state (lines 20-31)
  *  - Hover preview with description populated (line 79)
  *  - appVersion rendered (line 178)
- *  - Col-count NaN input → || 12 fallback (line 252)
+ *  - Col-count stepper boundary clamping (min=1, max=48)
  *  - loadLayout with no selectedLayoutName → early return (line 441)
  *  - Saved layout missing dashboardColNum → ?? 12 fallback (lines 446, 479)
  *  - autoSaveLayout with autosaveEnabled=false → early return (line 487)
@@ -410,21 +410,38 @@ describe('hover preview with description', () => {
 // Col-count NaN input → || 12 fallback
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('dashboard column count NaN input', () => {
-  test('with empty string in col-count input expect dashboardColNum set to 12', async () => {
+describe('dashboard column count stepper boundaries', () => {
+  // mountGrid() in this spec sets isLocked=false by default, so the stepper is visible.
+  test('with − button at min expect dashboardColNum stays at 1', async () => {
     // Arrange
     const wrapper = mountGrid()
     await nextTick()
-
-    // Act — trigger change event with empty string (parseInt → NaN || 12)
-    const input = wrapper.find('.col-num-input')
-    // Set element value to empty, then trigger change
-    input.element.value = ''
-    await input.trigger('change')
+    wrapper.vm.dashboardColNum = 1
     await nextTick()
 
-    // Assert — falls back to 12
-    expect(wrapper.vm.dashboardColNum).toBe(12)
+    // Act
+    await wrapper.find('button[aria-label="Fewer columns"]').trigger('click')
+    await nextTick()
+
+    // Assert — clamped at 1
+    expect(wrapper.vm.dashboardColNum).toBe(1)
+
+    wrapper.unmount()
+  })
+
+  test('with + button at max=48 expect dashboardColNum stays at 48', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    wrapper.vm.dashboardColNum = 48
+    await nextTick()
+
+    // Act
+    await wrapper.find('button[aria-label="More columns"]').trigger('click')
+    await nextTick()
+
+    // Assert — clamped at 48
+    expect(wrapper.vm.dashboardColNum).toBe(48)
 
     wrapper.unmount()
   })

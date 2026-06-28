@@ -93,17 +93,11 @@
         <span>💾 Auto-saving...</span>
       </div>
 
-      <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
-        Cols
-        <input
-            type="number"
-            :value="dashboardColNum"
-            min="2"
-            max="48"
-            class="col-num-input"
-            @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
-        />
-      </label>
+      <div v-if="!isLocked" class="col-num-stepper" title="Dashboard column count">
+        <button class="col-step-btn" @click="dashboardColNum = Math.max(1, dashboardColNum - 1)" aria-label="Fewer columns">−</button>
+        <span class="col-num-display">{{ dashboardColNum }}c</span>
+        <button class="col-step-btn" @click="dashboardColNum = Math.min(48, dashboardColNum + 1)" aria-label="More columns">+</button>
+      </div>
 
     </div>
 
@@ -1016,28 +1010,55 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
   filter: grayscale(1);
 }
 
-.col-num-label {
+.col-num-stepper {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--pd-text-muted);
+  gap: 2px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.col-num-input {
-  width: 48px;
+
+.col-step-btn {
+  width: 28px;
+  height: 28px;
   background: var(--pd-surface);
   border: 1px solid var(--pd-border);
   border-radius: 4px;
   color: var(--pd-text);
-  font-size: 12px;
-  padding: 2px 4px;
-  text-align: center;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
 }
-.col-num-input:focus {
-  outline: none;
-  border-color: var(--pd-accent);
+
+.col-step-btn:hover {
+  background: var(--pd-surface-2);
+}
+
+.col-num-display {
+  min-width: 32px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--pd-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Larger touch targets on mobile */
+@media (max-width: 639px) {
+  .col-step-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  .col-num-display {
+    font-size: 13px;
+    min-width: 36px;
+  }
 }
 
 .auto-save-indicator {
@@ -1352,11 +1373,6 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
   .layout-controls {
     flex-wrap: wrap;
     gap: 6px;
-  }
-
-  /* Col count input not useful on mobile — hide it */
-  .col-num-label {
-    display: none;
   }
 }
 </style>
