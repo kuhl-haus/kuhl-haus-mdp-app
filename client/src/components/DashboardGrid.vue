@@ -4,8 +4,8 @@
     <div v-if="appConfig" class="status success">Connected</div>
     <div v-else class="status error">Error</div>
 
-    <!-- Toolbar: full controls on all screen sizes -->
-    <div v-if="appConfig" class="layout-controls">
+    <!-- ── Desktop toolbar (hidden on mobile) ── -->
+    <div v-if="appConfig" class="layout-controls hidden-mobile">
 
       <div class="widget-menu">
         <WidgetMenu @add-widget="addWidget" />
@@ -101,8 +101,140 @@
 
     </div>
 
-    <!-- Alert Manager bell icon -->
-    <div v-if="appConfig" class="alert-manager-wrap">
+    <!-- ── Mobile hamburger button (hidden on desktop) ── -->
+    <div v-if="appConfig" class="mobile-menu-wrap visible-mobile">
+      <span v-if="isAutoSaving" class="mobile-autosave-dot" title="Auto-saving...">&#9679;</span>
+      <button class="btn-icon hamburger-btn" @click="mobileMenuOpen = true" aria-label="Open menu">
+        &#9776;
+      </button>
+    </div>
+
+    <!-- ── Mobile bottom-sheet menu ── -->
+    <teleport to="body">
+      <div v-if="mobileMenuOpen" class="mobile-sheet-overlay" @click.self="mobileMenuOpen = false">
+        <div class="mobile-sheet">
+
+          <!-- Sheet header -->
+          <div class="mobile-sheet-header">
+            <span class="mobile-sheet-title">Dashboard Menu</span>
+            <button class="mobile-sheet-close" @click="mobileMenuOpen = false" aria-label="Close menu">✕</button>
+          </div>
+
+          <!-- Layout picker -->
+          <div class="mobile-sheet-section">
+            <div class="mobile-sheet-label">Layout</div>
+            <div class="mobile-layout-row">
+              <div class="custom-select custom-select--sheet" ref="selectContainerMobile">
+                <div
+                    class="select-trigger"
+                    @click="toggleDropdown"
+                    :class="{ active: isDropdownOpen }"
+                >
+                  <span v-if="selectedLayoutName">{{ selectedLayoutName }}{{ selectedLayoutName === defaultLayoutName ? ' ✓' : '' }}</span>
+                  <span v-else class="placeholder">Select layout…</span>
+                  <span class="arrow">▼</span>
+                </div>
+                <div v-if="isDropdownOpen" class="select-dropdown">
+                  <div
+                      v-for="name in savedLayoutNames"
+                      :key="name"
+                      class="select-option"
+                      :class="{ selected: name === selectedLayoutName }"
+                  >
+                    <span class="option-name" @click="selectLayout(name); mobileMenuOpen = false">
+                      {{ name }}{{ name === defaultLayoutName ? ' ✓' : '' }}
+                    </span>
+                  </div>
+                  <div v-if="savedLayoutNames.length === 0" class="select-option disabled">No saved layouts</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action grid -->
+          <div class="mobile-sheet-section">
+            <div class="mobile-sheet-label">Actions</div>
+            <div class="mobile-action-grid">
+
+              <div class="mobile-action-btn mobile-action-btn--menu">
+                <WidgetMenu @add-widget="(w) => { addWidget(w); mobileMenuOpen = false }" />
+              </div>
+
+              <button class="mobile-action-btn" @click="isLocked = !isLocked">
+                <span class="mobile-action-icon">{{ isLocked ? '🔒' : '✏️' }}</span>
+                <span class="mobile-action-label">{{ isLocked ? 'Locked' : 'Edit Mode' }}</span>
+              </button>
+
+              <button
+                  class="mobile-action-btn"
+                  :class="{ 'mobile-action-btn--dim': !autosaveEnabled }"
+                  @click="autosaveEnabled = !autosaveEnabled"
+              >
+                <span class="mobile-action-icon">{{ autosaveEnabled ? '🔄' : '⏸' }}</span>
+                <span class="mobile-action-label">{{ autosaveEnabled ? 'Autosave' : 'Autosave Off' }}</span>
+              </button>
+
+              <button class="mobile-action-btn" @click="showSaveDialog = true; mobileMenuOpen = false">
+                <span class="mobile-action-icon">💾</span>
+                <span class="mobile-action-label">Save Layout</span>
+              </button>
+
+              <button
+                  class="mobile-action-btn"
+                  :class="{ 'mobile-action-btn--dim': !selectedLayoutName }"
+                  :disabled="!selectedLayoutName"
+                  @click="deleteCurrentLayout(); mobileMenuOpen = false"
+              >
+                <span class="mobile-action-icon">🗑️</span>
+                <span class="mobile-action-label">Delete Layout</span>
+              </button>
+
+              <button
+                  class="mobile-action-btn"
+                  @click="widgetSettingsStore.alertManagerOpen = !widgetSettingsStore.alertManagerOpen; mobileMenuOpen = false"
+              >
+                <span class="mobile-action-icon">
+                  🔔<span v-if="alertBadgeCount > 0" class="alert-badge alert-badge--menu">{{ alertBadgeCount }}</span>
+                </span>
+                <span class="mobile-action-label">Alerts{{ alertBadgeCount > 0 ? ` (${alertBadgeCount})` : '' }}</span>
+              </button>
+
+              <button class="mobile-action-btn" @click="exportLayouts(); mobileMenuOpen = false">
+                <span class="mobile-action-icon">📤</span>
+                <span class="mobile-action-label">Export</span>
+              </button>
+
+              <button class="mobile-action-btn" @click="$refs.importFileMobile.click(); mobileMenuOpen = false">
+                <span class="mobile-action-icon">📥</span>
+                <span class="mobile-action-label">Import</span>
+              </button>
+
+            </div>
+            <input
+                ref="importFileMobile"
+                type="file"
+                accept=".json"
+                @change="importLayouts"
+                style="display: none"
+            />
+          </div>
+
+          <!-- Column stepper -->
+          <div class="mobile-sheet-section" v-if="!isLocked">
+            <div class="mobile-sheet-label">Columns</div>
+            <div class="mobile-sheet-stepper">
+              <button class="col-step-btn col-step-btn--large" @click="dashboardColNum = Math.max(1, dashboardColNum - 1)" aria-label="Fewer columns">−</button>
+              <span class="col-num-display col-num-display--large">{{ dashboardColNum }}</span>
+              <button class="col-step-btn col-step-btn--large" @click="dashboardColNum = Math.min(48, dashboardColNum + 1)" aria-label="More columns">+</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Alert Manager bell icon (desktop only) -->
+    <div v-if="appConfig" class="alert-manager-wrap hidden-mobile">
       <button
         @click="widgetSettingsStore.alertManagerOpen = !widgetSettingsStore.alertManagerOpen"
         class="btn-icon alert-bell"
@@ -320,9 +452,12 @@ const showPreviewDialog = ref(false)
 const previewLayoutName = ref('')
 const previewMetadata = ref(null)
 const importFile = ref(null)
+const importFileMobile = ref(null)
 const previewCanvas = ref(null)
 const isDropdownOpen = ref(false)
 const selectContainer = ref(null)
+const selectContainerMobile = ref(null)
+const mobileMenuOpen = ref(false)
 const hoverPreviewVisible = ref(false)
 const hoverPreviewLayout = ref('')
 const hoverPreviewMetadata = ref(null)
@@ -808,7 +943,9 @@ const formatDate = (timestamp) => {
 
 // Click-outside handler
 const handleClickOutside = (e) => {
-  if (selectContainer.value && !selectContainer.value.contains(e.target)) {
+  const inDesktop = selectContainer.value && selectContainer.value.contains(e.target)
+  const inMobile = selectContainerMobile.value && selectContainerMobile.value.contains(e.target)
+  if (!inDesktop && !inMobile) {
     isDropdownOpen.value = false
     cancelHoverPreview()
   }
@@ -1365,14 +1502,286 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
   background: #ea6a00;
 }
 
-/* ── Mobile (< 640px) ── */
-@media (max-width: 639px) {
-  .dashboard-title { font-size: 15px; }
+/* ── Responsive visibility utilities ── */
+.hidden-mobile  { display: flex; }   /* shown by default */
+.visible-mobile { display: none; }   /* hidden by default */
 
-  /* Toolbar: allow wrapping so controls don't overflow on narrow viewports */
-  .layout-controls {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+@media (max-width: 639px) {
+  .hidden-mobile  { display: none !important; }
+  .visible-mobile { display: flex; }
+
+  .dashboard-title { font-size: 15px; }
+}
+
+/* ── Mobile hamburger wrap ── */
+.mobile-menu-wrap {
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.mobile-autosave-dot {
+  font-size: 10px;
+  color: #4ade80;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.hamburger-btn {
+  font-size: 22px;
+  padding: 4px 10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Mobile bottom-sheet overlay ── */
+.mobile-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;   /* sheet rises from bottom */
+}
+
+.mobile-sheet {
+  width: 100%;
+  max-height: 90dvh;
+  background: var(--pd-surface, #1a1a1a);
+  border-top: 1px solid var(--pd-border, #2a2a2a);
+  border-radius: 16px 16px 0 0;
+  overflow-y: auto;
+  padding: 0 0 env(safe-area-inset-bottom, 16px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+  border-bottom: 1px solid var(--pd-border, #2a2a2a);
+  position: sticky;
+  top: 0;
+  background: var(--pd-surface, #1a1a1a);
+  z-index: 1;
+}
+
+.mobile-sheet-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pd-text, #fff);
+}
+
+.mobile-sheet-close {
+  background: none;
+  border: none;
+  color: var(--pd-text-muted, #888);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.mobile-sheet-close:hover {
+  background: var(--pd-surface-2, #2a2a2a);
+}
+
+.mobile-sheet-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pd-border, #2a2a2a);
+}
+
+.mobile-sheet-section:last-child {
+  border-bottom: none;
+}
+
+.mobile-sheet-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pd-text-muted, #666);
+  margin-bottom: 10px;
+}
+
+/* Layout picker row inside the sheet */
+.mobile-layout-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-select--sheet {
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-select--sheet .select-trigger {
+  font-size: 15px;
+  padding: 10px 14px;
+  min-height: 48px;
+}
+
+.custom-select--sheet .select-dropdown {
+  font-size: 15px;
+  max-height: 220px;
+}
+
+.custom-select--sheet .select-option {
+  padding: 12px 16px;
+  font-size: 15px;
+}
+
+/* 3-column action grid */
+.mobile-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mobile-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  background: var(--pd-surface-2, #2a2a2a);
+  border: 1px solid var(--pd-border, #333);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--pd-text, #fff);
+  min-height: 72px;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-action-btn:active {
+  background: var(--pd-accent, #7c3aed);
+}
+
+.mobile-action-btn--dim {
+  opacity: 0.45;
+}
+
+/* WidgetMenu sits inside an action-btn cell; override its internal styles */
+.mobile-action-btn--menu {
+  padding: 0;
+  overflow: visible;
+  background: none;
+  border: none;
+}
+
+.mobile-action-btn--menu :deep(.widget-menu) {
+  width: 100%;
+  height: 100%;
+}
+
+.mobile-action-btn--menu :deep(.menu-toggle) {
+  width: 100%;
+  height: 100%;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--pd-surface-2, #2a2a2a);
+  border: 1px solid var(--pd-border, #333);
+  border-radius: 10px;
+  color: var(--pd-text, #fff);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 14px 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-action-btn--menu :deep(.menu-toggle):active {
+  background: var(--pd-accent, #7c3aed);
+}
+
+.mobile-action-btn--menu :deep(.menu-panel) {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--pd-surface, #1a1a1a);
+  border-top: 1px solid var(--pd-border, #2a2a2a);
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  z-index: 2100;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-height: 70dvh;
+  overflow-y: auto;
+}
+
+.mobile-action-btn--menu :deep(.widget-button) {
+  padding: 14px;
+  background: var(--pd-surface-2, #2a2a2a);
+  border: 1px solid var(--pd-border, #333);
+  border-radius: 10px;
+  color: var(--pd-text, #fff);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.mobile-action-icon {
+  font-size: 24px;
+  line-height: 1;
+  position: relative;
+}
+
+.mobile-action-label {
+  font-size: 11px;
+  color: var(--pd-text-muted, #999);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.alert-badge--menu {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: 9px;
+}
+
+/* Column stepper inside the sheet */
+.mobile-sheet-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.col-step-btn--large {
+  width: 56px;
+  height: 56px;
+  font-size: 28px;
+  border-radius: 8px;
+}
+
+.col-num-display--large {
+  font-size: 28px;
+  font-weight: 600;
+  min-width: 56px;
+  text-align: center;
+  color: var(--pd-text, #fff);
+  font-variant-numeric: tabular-nums;
 }
 </style>
