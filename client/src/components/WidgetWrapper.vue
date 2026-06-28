@@ -281,14 +281,7 @@ const freshnessIcon = computed(() => {
   overflow: auto;
 }
 
-/* Mobile: fixed height so flex children (charts) have a concrete size to fill */
-.widget-wrapper--mobile {
-  height: 420px;
-}
-
-.widget-wrapper--mobile .widget-content {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
+/* .widget-wrapper--mobile no longer needs height overrides — GridLayout
+   provides concrete pixel height via transform/style on GridItem.
+   The class is kept for widget-level mobile layout tweaks (e.g. NewsFeed). */
 </style>

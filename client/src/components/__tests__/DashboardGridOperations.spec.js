@@ -1304,24 +1304,29 @@ describe('autoSaveLayout on layout change', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('mobile layout branch', () => {
-  test('with innerWidth below 640 expect mobile-stack rendered instead of grid', async () => {
+  // The mobile vertical stack has been removed. GridLayout is used for all
+  // screen sizes. isMobile is still reactive and forwarded to widgets, but
+  // it no longer switches between a stack and a grid.
+
+  test('with innerWidth below 640 expect GridLayout rendered (no mobile-stack)', async () => {
     // Arrange
     const wrapper = mountGrid(390)
     await nextTick()
 
-    // Assert
-    expect(wrapper.find('.mobile-stack').exists()).toBe(true)
-    expect(wrapper.find('.mock-grid-layout').exists()).toBe(false)
+    // Assert — grid always present, mobile-stack gone
+    expect(wrapper.find('.mock-grid-layout').exists()).toBe(true)
+    expect(wrapper.find('.mobile-stack').exists()).toBe(false)
     wrapper.unmount()
   })
 
-  test('with mobile width expect mobile layout-controls shown', async () => {
+  test('with mobile width expect unified layout-controls shown', async () => {
     // Arrange
     const wrapper = mountGrid(390)
     await nextTick()
 
-    // Assert
-    expect(wrapper.find('.layout-controls--mobile').exists()).toBe(true)
+    // Assert — unified toolbar, no mobile-specific variant
+    expect(wrapper.find('.layout-controls').exists()).toBe(true)
+    expect(wrapper.find('.layout-controls--mobile').exists()).toBe(false)
     wrapper.unmount()
   })
 
@@ -1340,27 +1345,27 @@ describe('mobile layout branch', () => {
     // Arrange
     const wrapper = mountGrid(390)
     await nextTick()
-    expect(wrapper.find('.mobile-stack').exists()).toBe(true)
+    expect(wrapper.vm.isMobile ?? (window.innerWidth < 640)).toBe(true)
 
     // Act
     Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true, configurable: true })
     window.dispatchEvent(new Event('resize'))
     await nextTick()
 
-    // Assert
-    expect(wrapper.find('.mobile-stack').exists()).toBe(false)
+    // Assert — grid still rendered regardless of isMobile
+    expect(wrapper.find('.mock-grid-layout').exists()).toBe(true)
     wrapper.unmount()
   })
 
-  test('with mobile and widgets expect WidgetWrapper rendered inside mobile-stack', async () => {
+  test('with mobile and widgets expect WidgetWrapper rendered inside GridLayout', async () => {
     // Arrange
     const wrapper = mountGrid(390)
     await nextTick()
     wrapper.vm.addWidget({ type: 'quote', label: 'Q' })
     await nextTick()
 
-    // Assert
-    expect(wrapper.find('.mobile-widget').exists()).toBe(true)
+    // Assert — widget rendered via grid, not mobile-stack
+    expect(wrapper.find('.mobile-widget').exists()).toBe(false)
     expect(wrapper.find('.mock-widget-wrapper').exists()).toBe(true)
     wrapper.unmount()
   })

@@ -4,53 +4,8 @@
     <div v-if="appConfig" class="status success">Connected</div>
     <div v-else class="status error">Error</div>
 
-    <!-- Mobile toolbar: layout selector + lock + widget add -->
-    <div v-if="appConfig && isMobile" class="layout-controls layout-controls--mobile">
-      <!-- Layout load dropdown -->
-      <div class="custom-select custom-select--mobile" ref="selectContainerMobile">
-        <div
-            class="select-trigger"
-            @click="toggleDropdown"
-            :class="{ active: isDropdownOpen }"
-        >
-          <span v-if="selectedLayoutName">{{ selectedLayoutName }}</span>
-          <span v-else class="placeholder">Layout</span>
-          <span class="arrow">▼</span>
-        </div>
-        <div v-if="isDropdownOpen" class="select-dropdown">
-          <div
-              v-for="name in savedLayoutNames"
-              :key="name"
-              class="select-option"
-              :class="{ selected: name === selectedLayoutName }"
-          >
-            <span class="option-name" @click="selectLayout(name)">
-              {{ name }}{{ name === defaultLayoutName ? ' ✓' : '' }}
-            </span>
-          </div>
-          <div v-if="savedLayoutNames.length === 0" class="select-option disabled">
-            No saved layouts
-          </div>
-        </div>
-      </div>
-      <button @click="showSaveDialog = true" class="btn-icon" title="Save Layout">💾</button>
-      <button
-          @click="autosaveEnabled = !autosaveEnabled"
-          :class="['btn-icon', autosaveEnabled ? '' : 'btn-icon--inactive']"
-          :title="autosaveEnabled ? 'Autosave ON' : 'Autosave OFF'"
-      >{{ autosaveEnabled ? '🔄' : '⏸' }}</button>
-      <button
-          @click="isLocked = !isLocked"
-          class="btn-icon"
-          :title="isLocked ? 'Unlock layout' : 'Lock layout'"
-      >{{ isLocked ? '🔒' : '✏️' }}</button>
-      <div class="widget-menu">
-        <WidgetMenu @add-widget="addWidget" />
-      </div>
-    </div>
-
-    <!-- Desktop toolbar: full controls -->
-    <div v-if="appConfig && !isMobile" class="layout-controls">
+    <!-- Toolbar: full controls on all screen sizes -->
+    <div v-if="appConfig" class="layout-controls">
 
       <div class="widget-menu">
         <WidgetMenu @add-widget="addWidget" />
@@ -138,22 +93,16 @@
         <span>💾 Auto-saving...</span>
       </div>
 
-      <label v-if="!isLocked" class="col-num-label" title="Dashboard column count">
-        Cols
-        <input
-            type="number"
-            :value="dashboardColNum"
-            min="2"
-            max="48"
-            class="col-num-input"
-            @change="dashboardColNum = Math.max(2, Math.min(48, parseInt($event.target.value, 10) || 12))"
-        />
-      </label>
+      <div v-if="!isLocked" class="col-num-stepper" title="Dashboard column count">
+        <button class="col-step-btn" @click="dashboardColNum = Math.max(1, dashboardColNum - 1)" aria-label="Fewer columns">−</button>
+        <span class="col-num-display">{{ dashboardColNum }}c</span>
+        <button class="col-step-btn" @click="dashboardColNum = Math.min(48, dashboardColNum + 1)" aria-label="More columns">+</button>
+      </div>
 
     </div>
 
     <!-- Alert Manager bell icon -->
-    <div v-if="appConfig && !isMobile" class="alert-manager-wrap">
+    <div v-if="appConfig" class="alert-manager-wrap">
       <button
         @click="widgetSettingsStore.alertManagerOpen = !widgetSettingsStore.alertManagerOpen"
         class="btn-icon alert-bell"
@@ -262,41 +211,19 @@
   </div>
 
   <div class="dashboard">
-    <!-- Mobile: simple vertical stack (< 640px) -->
+    <!-- Single GridLayout for all screen sizes.
+         isMobile is still forwarded to widgets for layout tweaks (e.g. NewsFeed card mode)
+         but the grid itself is always used — the mobile stack is gone.
+         On narrow viewports dashboardColNum defaults to 2 and rowHeight is larger
+         so widgets get usable dimensions without a separate code path. -->
     <div v-if="appConfig">
-    <div v-if="isMobile" class="mobile-stack">
-      <div
-          v-for="item in layout"
-          :key="item.i"
-          class="mobile-widget"
-      >
-        <WidgetWrapper
-            :widget-id="item.i"
-            :widget-type="item.type"
-            :is-locked="isLocked"
-            :col-widths="item.colWidths || {}"
-            :link-color="item.linkColor || null"
-            :settings="item.settings || {}"
-            :user-label="item.userLabel || ''"
-            :is-mobile="true"
-            @close="removeWidget"
-            @update-col-widths="(w) => updateColWidths(item.i, w)"
-            @update-link-color="(c) => updateLinkColor(item.i, c)"
-            @update-settings="(s) => updateSettings(item.i, s)"
-            @update-label="(l) => updateLabel(item.i, l)"
-        />
-      </div>
-    </div>
-
-    <!-- Desktop/tablet: grid layout -->
     <!-- :key forces full remount on layout switch, preventing vue3-grid-layout-next
          from merging stale internal state with new widget positions -->
     <GridLayout
-        v-else
         :key="selectedLayoutName || '__default__'"
         v-model:layout="layout"
         :col-num="dashboardColNum"
-        :row-height="30"
+        :row-height="gridRowHeight"
         :is-draggable="!isLocked"
         :is-resizable="!isLocked"
         :vertical-compact="true"
@@ -321,7 +248,7 @@
             :link-color="item.linkColor || null"
             :settings="item.settings || {}"
             :user-label="item.userLabel || ''"
-            :is-mobile="false"
+            :is-mobile="isMobile"
             @close="removeWidget"
             @update-col-widths="(w) => updateColWidths(item.i, w)"
             @update-link-color="(c) => updateLinkColor(item.i, c)"
@@ -364,10 +291,15 @@ const WIDGET_TYPE_LABELS = {
 const { config: appConfig, loading: configLoading, error: configError } = useConfig()
 const appVersion = window.__APP_VERSION__ || null
 
-// Responsive: phone < 640px gets stacked layout; tablet/desktop keeps grid
+// Responsive breakpoint — used to forward isMobile to widgets (e.g. NewsFeed card mode)
+// and to tune grid defaults. The mobile *stack* is gone; GridLayout is used for all sizes.
 const MOBILE_BREAKPOINT = 640
 const isMobile = ref(window.innerWidth < MOBILE_BREAKPOINT)
 const onResize = () => { isMobile.value = window.innerWidth < MOBILE_BREAKPOINT }
+
+// On narrow viewports use a larger row height so widgets get real vertical space
+// at reasonable h values without the user needing to drag them tall.
+const gridRowHeight = computed(() => isMobile.value ? 44 : 30)
 
 const AUTOSAVE_KEY = '__autosave__'
 const AUTOSAVE_DEBOUNCE_MS = 2000
@@ -400,8 +332,9 @@ let widgetCounter = 0
 let autoSaveTimeout = null
 let hoverTimeout = null
 
-// Configurable column count — persisted per layout as `dashboardColNum`
-const dashboardColNum = ref(12)
+// Configurable column count — persisted per layout as `dashboardColNum`.
+// Default to 2 on narrow viewports so widgets are readable without manual resizing.
+const dashboardColNum = ref(isMobile.value ? 2 : 12)
 
 // Computed
 const savedLayoutNames = computed(() =>
@@ -1077,28 +1010,55 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
   filter: grayscale(1);
 }
 
-.col-num-label {
+.col-num-stepper {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--pd-text-muted);
+  gap: 2px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.col-num-input {
-  width: 48px;
+
+.col-step-btn {
+  width: 28px;
+  height: 28px;
   background: var(--pd-surface);
   border: 1px solid var(--pd-border);
   border-radius: 4px;
   color: var(--pd-text);
-  font-size: 12px;
-  padding: 2px 4px;
-  text-align: center;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
 }
-.col-num-input:focus {
-  outline: none;
-  border-color: var(--pd-accent);
+
+.col-step-btn:hover {
+  background: var(--pd-surface-2);
+}
+
+.col-num-display {
+  min-width: 32px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--pd-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Larger touch targets on mobile */
+@media (max-width: 639px) {
+  .col-step-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  .col-num-display {
+    font-size: 13px;
+    min-width: 36px;
+  }
 }
 
 .auto-save-indicator {
@@ -1409,43 +1369,10 @@ defineExpose({ dashboardColNum, layout, addWidget, saveLayout, saveLayoutName, l
 @media (max-width: 639px) {
   .dashboard-title { font-size: 15px; }
 
-  .layout-controls--mobile {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  /* Toolbar: allow wrapping so controls don't overflow on narrow viewports */
+  .layout-controls {
     flex-wrap: wrap;
-  }
-
-  .custom-select--mobile {
-    min-width: 110px;
-    max-width: 150px;
-    position: relative;
-  }
-
-  .custom-select--mobile .select-trigger {
-    font-size: 12px;
-    padding: 4px 8px;
-  }
-
-  .custom-select--mobile .select-dropdown {
-    font-size: 12px;
-    z-index: 9999;
-  }
-
-  .mobile-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 6px;
-  }
-
-  .mobile-widget {
-    width: 100%;
-    /* Fixed heights per widget type handled by inner widget */
-  }
-
-  .mobile-widget .widget-wrapper {
-    border-radius: 6px;
+    gap: 6px;
   }
 }
 </style>

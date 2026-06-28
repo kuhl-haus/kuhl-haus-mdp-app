@@ -7,7 +7,7 @@
  *  - Mobile dropdown open → options rendered, empty state (lines 20-31)
  *  - Hover preview with description populated (line 79)
  *  - appVersion rendered (line 178)
- *  - Col-count NaN input → || 12 fallback (line 252)
+ *  - Col-count stepper boundary clamping (min=1, max=48)
  *  - loadLayout with no selectedLayoutName → early return (line 441)
  *  - Saved layout missing dashboardColNum → ?? 12 fallback (lines 446, 479)
  *  - autoSaveLayout with autosaveEnabled=false → early return (line 487)
@@ -295,6 +295,8 @@ describe('appVersion', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('mobile dropdown states', () => {
+  // Note: the mobile vertical stack is gone — GridLayout is used for all screen sizes.
+  // The layout dropdown is the unified .custom-select (no --mobile variant).
   test('with mobile + saved layout selected expect layout name in trigger', async () => {
     // Arrange — mobile width, one saved layout, load it
     seedLayouts({ 'My Layout': makeLayout() })
@@ -303,8 +305,8 @@ describe('mobile dropdown states', () => {
     wrapper.vm.selectedLayoutName = 'My Layout'
     await nextTick()
 
-    // Assert — selected name appears in mobile select trigger
-    const trigger = wrapper.find('.custom-select--mobile .select-trigger')
+    // Assert — selected name appears in the select trigger
+    const trigger = wrapper.find('.custom-select .select-trigger')
     expect(trigger.text()).toContain('My Layout')
 
     wrapper.unmount()
@@ -315,12 +317,12 @@ describe('mobile dropdown states', () => {
     seedLayouts({ 'Alpha': makeLayout() })
     const wrapper = mountGrid(390)
     await nextTick()
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
     // Assert — dropdown visible with option
-    expect(wrapper.find('.custom-select--mobile .select-dropdown').exists()).toBe(true)
-    expect(wrapper.find('.custom-select--mobile .select-option').text()).toContain('Alpha')
+    expect(wrapper.find('.custom-select .select-dropdown').exists()).toBe(true)
+    expect(wrapper.find('.custom-select .select-option').text()).toContain('Alpha')
 
     wrapper.unmount()
   })
@@ -329,11 +331,11 @@ describe('mobile dropdown states', () => {
     // Arrange — mobile, no saved layouts, open dropdown
     const wrapper = mountGrid(390)
     await nextTick()
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
-    // Assert — "No saved layouts" shown in mobile dropdown
-    const emptyOption = wrapper.find('.custom-select--mobile .select-option.disabled')
+    // Assert — "No saved layouts" shown in dropdown
+    const emptyOption = wrapper.find('.custom-select .select-option.disabled')
     expect(emptyOption.exists()).toBe(true)
     expect(emptyOption.text()).toContain('No saved layouts')
 
@@ -345,11 +347,11 @@ describe('mobile dropdown states', () => {
     seedLayouts({ 'Beta': makeLayout() })
     const wrapper = mountGrid(390)
     await nextTick()
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
     // Act — click the layout option
-    await wrapper.find('.custom-select--mobile .option-name').trigger('click')
+    await wrapper.find('.custom-select .option-name').trigger('click')
     await nextTick()
 
     // Assert — layout selected (selectedLayoutName is exposed)
@@ -364,12 +366,12 @@ describe('mobile dropdown states', () => {
     const wrapper = mountGrid(390)
     await nextTick()
     wrapper.vm.selectedLayoutName = 'MainLayout'
-    await wrapper.find('.custom-select--mobile .select-trigger').trigger('click')
+    await wrapper.find('.custom-select .select-trigger').trigger('click')
     await nextTick()
 
-    // Assert — default indicator (✓) shown next to name
-    const optionText = wrapper.find('.custom-select--mobile .option-name').text()
-    expect(optionText).toContain('✓')
+    // Assert — default indicator shown next to name
+    const optionText = wrapper.find('.custom-select .option-name').text()
+    expect(optionText).toContain('(Default)')
 
     wrapper.unmount()
   })
@@ -408,21 +410,38 @@ describe('hover preview with description', () => {
 // Col-count NaN input → || 12 fallback
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('dashboard column count NaN input', () => {
-  test('with empty string in col-count input expect dashboardColNum set to 12', async () => {
+describe('dashboard column count stepper boundaries', () => {
+  // mountGrid() in this spec sets isLocked=false by default, so the stepper is visible.
+  test('with − button at min expect dashboardColNum stays at 1', async () => {
     // Arrange
     const wrapper = mountGrid()
     await nextTick()
-
-    // Act — trigger change event with empty string (parseInt → NaN || 12)
-    const input = wrapper.find('.col-num-input')
-    // Set element value to empty, then trigger change
-    input.element.value = ''
-    await input.trigger('change')
+    wrapper.vm.dashboardColNum = 1
     await nextTick()
 
-    // Assert — falls back to 12
-    expect(wrapper.vm.dashboardColNum).toBe(12)
+    // Act
+    await wrapper.find('button[aria-label="Fewer columns"]').trigger('click')
+    await nextTick()
+
+    // Assert — clamped at 1
+    expect(wrapper.vm.dashboardColNum).toBe(1)
+
+    wrapper.unmount()
+  })
+
+  test('with + button at max=48 expect dashboardColNum stays at 48', async () => {
+    // Arrange
+    const wrapper = mountGrid()
+    await nextTick()
+    wrapper.vm.dashboardColNum = 48
+    await nextTick()
+
+    // Act
+    await wrapper.find('button[aria-label="More columns"]').trigger('click')
+    await nextTick()
+
+    // Assert — clamped at 48
+    expect(wrapper.vm.dashboardColNum).toBe(48)
 
     wrapper.unmount()
   })
@@ -598,13 +617,12 @@ describe('mobile toolbar isLocked state', () => {
     const wrapper = mountGrid(390)
     await nextTick()
 
-    // Assert — lock emoji shown in mobile toolbar (isLocked=true → '🔒')
-    const lockBtn = wrapper.find('.layout-controls--mobile .btn-icon[title*="Unlock"]')
+    // Assert — lock emoji shown in toolbar (isLocked=true → '🔒')
+    const lockBtn = wrapper.find('.layout-controls .btn-icon[title*="Unlock"]')
     if (lockBtn.exists()) {
       expect(lockBtn.text()).toContain('🔒')
     } else {
-      // Check via text search
-      const btns = wrapper.findAll('.layout-controls--mobile .btn-icon')
+      const btns = wrapper.findAll('.layout-controls .btn-icon')
       const hasLock = btns.some(b => b.text().includes('🔒') || b.attributes('title')?.includes('Unlock'))
       expect(hasLock).toBe(true)
     }
